@@ -1,0 +1,8 @@
+{
+  "clientId": "demo-megaphone",
+  "topic": "source signal scorecard for service handoffs",
+  "postType": "evaluation_guide",
+  "contentPillar": "workflow_quality",
+  "audience": "operations leaders",
+  "proofRisk": "medium"
+}

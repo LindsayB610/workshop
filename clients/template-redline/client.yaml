@@ -1,0 +1,7 @@
+clientId: replace-with-client-id
+name: Replace With Client Name
+description: Local private client packet. Do not commit real client strategy.
+canonicalModules:
+  - positioning
+requiredCanonicalModules:
+  - positioning

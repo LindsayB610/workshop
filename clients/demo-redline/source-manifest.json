@@ -1,0 +1,26 @@
+{
+  "clientId": "demo-redline",
+  "sources": [
+    {
+      "id": "demo-source-positioning",
+      "title": "Northstar positioning",
+      "path": "canonical/positioning.md",
+      "type": "local",
+      "tier": "canonical"
+    },
+    {
+      "id": "demo-source-buyer-language",
+      "title": "Buyer language notes",
+      "path": "canonical/buyer-language.md",
+      "type": "local",
+      "tier": "canonical"
+    },
+    {
+      "id": "demo-source-proof-library",
+      "title": "Approved proof notes",
+      "path": "canonical/proof-library.md",
+      "type": "local",
+      "tier": "foundational"
+    }
+  ]
+}

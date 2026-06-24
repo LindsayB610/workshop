@@ -1,0 +1,106 @@
+name: Release Workshop
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Optional Workshop version override, for example 0.2.0. Defaults to next patch after the live updater manifest.
+        required: false
+        type: string
+      notes:
+        description: Release notes shown in the Workshop updater
+        required: true
+        type: string
+
+concurrency:
+  group: workshop-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build, sign, and publish Workshop
+    runs-on: macos-14
+    permissions:
+      contents: read
+    env:
+      WORKSHOP_UPDATE_BASE_URL: https://workshop-updates-lindsaybrunner.netlify.app
+      WORKSHOP_NETLIFY_SITE_ID: c752e385-30f2-4878-b489-03811f8ce106
+      WORKSHOP_RELEASE_NOTES: ${{ inputs.notes }}
+      WORKSHOP_VERSION_OVERRIDE: ${{ inputs.version || '' }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.WORKSHOP_TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.WORKSHOP_TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Resolve Workshop release version
+        id: release_version
+        working-directory: apps/marketing-builds-desktop
+        run: |
+          if [ -n "$WORKSHOP_VERSION_OVERRIDE" ]; then
+            version="$(npm run --silent updater:next-version -- --manifest-url "$WORKSHOP_UPDATE_BASE_URL/latest.json" --override "$WORKSHOP_VERSION_OVERRIDE")"
+          else
+            version="$(npm run --silent updater:next-version -- --manifest-url "$WORKSHOP_UPDATE_BASE_URL/latest.json")"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Publishing Workshop v$version"
+
+      - name: Bump Workshop release version
+        run: npm run updater:bump-version --workspace @marketing-builds/desktop -- "${{ steps.release_version.outputs.version }}"
+
+      - name: Run release checks
+        run: |
+          npm test
+          npm run typecheck
+          npm run public:check
+
+      - name: Build signed Workshop app
+        run: npm run tauri --workspace @marketing-builds/desktop -- build
+
+      - name: Generate updater manifest
+        run: |
+            npm run updater:manifest --workspace @marketing-builds/desktop -- \
+            --version "${{ steps.release_version.outputs.version }}" \
+            --platform darwin-aarch64 \
+            --artifact src-tauri/target/release/bundle/macos/Workshop.app.tar.gz \
+            --signature-file src-tauri/target/release/bundle/macos/Workshop.app.tar.gz.sig \
+            --app-bundle src-tauri/target/release/bundle/macos/Workshop.app \
+            --dmg "src-tauri/target/release/bundle/dmg/Workshop_${{ steps.release_version.outputs.version }}_aarch64.dmg" \
+            --base-url "$WORKSHOP_UPDATE_BASE_URL" \
+            --output dist/latest.json \
+            --notes "$WORKSHOP_RELEASE_NOTES"
+
+      - name: Stage update host payload
+        working-directory: apps/marketing-builds-desktop
+        run: |
+          mkdir -p dist/workshop-update-site
+          cp dist/latest.json dist/workshop-update-site/latest.json
+          cp src-tauri/target/release/bundle/macos/Workshop.app.tar.gz dist/workshop-update-site/Workshop.app.tar.gz
+          cp src-tauri/target/release/bundle/macos/Workshop.app.tar.gz.sig dist/workshop-update-site/Workshop.app.tar.gz.sig
+          cp "src-tauri/target/release/bundle/dmg/Workshop_${{ steps.release_version.outputs.version }}_aarch64.dmg" "dist/workshop-update-site/Workshop_${{ steps.release_version.outputs.version }}_aarch64.dmg"
+
+      - name: Deploy updater payload to Netlify
+        working-directory: apps/marketing-builds-desktop
+        run: npx netlify-cli deploy --prod --no-build --dir "${{ github.workspace }}/apps/marketing-builds-desktop/dist/workshop-update-site" --site "$WORKSHOP_NETLIFY_SITE_ID" --auth "${{ secrets.NETLIFY_AUTH_TOKEN }}"
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: workshop-${{ steps.release_version.outputs.version }}-signed-update
+          path: |
+            apps/marketing-builds-desktop/dist/workshop-update-site/latest.json
+            apps/marketing-builds-desktop/dist/workshop-update-site/Workshop.app.tar.gz
+            apps/marketing-builds-desktop/dist/workshop-update-site/Workshop.app.tar.gz.sig
+            apps/marketing-builds-desktop/dist/workshop-update-site/Workshop_${{ steps.release_version.outputs.version }}_aarch64.dmg

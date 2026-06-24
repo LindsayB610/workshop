@@ -1,0 +1,11 @@
+clientId: demo-redline
+name: Northstar Demo Co.
+description: Fictional Redline demo client for public Workshop installs.
+canonicalModules:
+  - positioning
+  - buyer-language
+  - proof-library
+requiredCanonicalModules:
+  - positioning
+  - buyer-language
+  - proof-library

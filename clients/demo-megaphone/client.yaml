@@ -1,0 +1,26 @@
+clientId: demo-megaphone
+name: Northstar Demo Co.
+clientType: brand
+marketCategory: workflow operations software
+channelFocus:
+  - linkedin_company_page
+primaryAudiences:
+  - operations leaders
+  - customer success leaders
+  - implementation managers
+defaultPrivacyStatus: public_safe
+canonicalModules:
+  icp: canonical/icp.md
+  positioning: canonical/positioning.md
+  buyerLanguage: canonical/buyer-language.md
+  proofLibrary: canonical/proof-library.md
+  objections: canonical/objections.md
+  contentPriorities: canonical/content-priorities.md
+linkedin:
+  strategy: linkedin/strategy.yaml
+  postPillars: linkedin/post-pillars.yaml
+  claimsPolicy: linkedin/claims-policy.yaml
+  postTypeTaxonomy: linkedin/post-type-taxonomy.yaml
+  measurementPlan: linkedin/measurement-plan.yaml
+  voiceGuidance: linkedin/voice-guidance.md
+  doNotSay: linkedin/do-not-say.md

@@ -1,0 +1,24 @@
+clientId: replace-with-client-id
+name: Replace With Client Name
+clientType: brand
+marketCategory: replace with market category
+channelFocus:
+  - linkedin_company_page
+primaryAudiences:
+  - replace with audience
+defaultPrivacyStatus: internal_only
+canonicalModules:
+  icp: canonical/icp.md
+  positioning: canonical/positioning.md
+  buyerLanguage: canonical/buyer-language.md
+  proofLibrary: canonical/proof-library.md
+  objections: canonical/objections.md
+  contentPriorities: canonical/content-priorities.md
+linkedin:
+  strategy: linkedin/strategy.yaml
+  postPillars: linkedin/post-pillars.yaml
+  claimsPolicy: linkedin/claims-policy.yaml
+  postTypeTaxonomy: linkedin/post-type-taxonomy.yaml
+  measurementPlan: linkedin/measurement-plan.yaml
+  voiceGuidance: linkedin/voice-guidance.md
+  doNotSay: linkedin/do-not-say.md

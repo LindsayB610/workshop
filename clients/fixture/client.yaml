@@ -1,0 +1,7 @@
+clientId: fixture
+name: Fixture Client
+description: Minimal second-client packet used to prove Redline is not single-client-specific.
+canonicalModules:
+  - positioning
+requiredCanonicalModules:
+  - positioning

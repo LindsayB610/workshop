@@ -1,0 +1,29 @@
+{
+  "name": "workshop",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "redline": "./bin/redline.js"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace @redline/core && npm run build --workspace @marketing-builds/desktop",
+    "redline": "node bin/redline.js",
+    "desktop:dev": "npm run dev --workspace @marketing-builds/desktop",
+    "desktop:tauri": "npm run tauri --workspace @marketing-builds/desktop",
+    "typecheck": "npm run typecheck --workspace @redline/core && npm run typecheck --workspace @marketing-builds/desktop",
+    "test": "npm run test --workspace @redline/core && npm run test --workspace @marketing-builds/desktop",
+    "test:public": "npm run test:public --workspace @redline/core && npm run test --workspace @marketing-builds/desktop",
+    "privacy:scan": "node apps/marketing-builds-desktop/scripts/public-boundary-scan.mjs",
+    "public:clean-clone": "node apps/marketing-builds-desktop/scripts/public-clean-clone-smoke.mjs",
+    "public:check": "npm run privacy:scan -- --inventory docs/data-boundary-inventory.json --strict && npm run public:clean-clone"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

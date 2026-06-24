@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-06-23",
+  "status": "phase-23-public-clean-clone-inventory",
+  "classifications": [
+    {
+      "path": "LICENSE",
+      "classification": "public-docs",
+      "publicSafe": true,
+      "reason": "MIT license for the future public Workshop repository."
+    },
+    {
+      "path": "README.md",
+      "classification": "public-docs",
+      "publicSafe": "conditional",
+      "reason": "Public-facing README examples use demo/template data and link to private workspace setup.",
+      "remediationPhase": 22
+    },
+    {
+      "path": "docs",
+      "classification": "public-docs",
+      "publicSafe": "conditional",
+      "reason": "Docs are publishable after client-specific examples, local absolute paths, and private updater host details are reviewed."
+    },
+    {
+      "path": "agents.md",
+      "classification": "public-docs",
+      "publicSafe": true,
+      "reason": "Agent build guidance for Workshop."
+    },
+    {
+      "path": "apps",
+      "classification": "app-code",
+      "publicSafe": "conditional",
+      "reason": "Workshop app code is public-source candidate, but bundled resource config and hardcoded private fixtures must be audited."
+    },
+    {
+      "path": "apps/marketing-builds-desktop/src-tauri/tauri.conf.json",
+      "classification": "app-code",
+      "publicSafe": true,
+      "reason": "Tauri resources are limited to classified demo/template client folders. Private client roots must be selected at runtime.",
+      "resourcePolicy": "demo-template-resources-only"
+    },
+    {
+      "path": "packages",
+      "classification": "app-code",
+      "publicSafe": "conditional",
+      "reason": "Core Redline code is public-source candidate; legacy private-client audit helpers remain classified until the clean public clone proof removes or privatizes them.",
+      "remediationPhase": 23
+    },
+    {
+      "path": "clients/fixture",
+      "classification": "safe-demo-fixture",
+      "publicSafe": true,
+      "reason": "Synthetic fixture client used to prove cross-client behavior."
+    },
+    {
+      "path": "clients/demo-redline",
+      "classification": "safe-demo-fixture",
+      "publicSafe": true,
+      "reason": "Fictional Redline demo packet, target, findings, proof gates, and report artifacts for public installs."
+    },
+    {
+      "path": "clients/demo-megaphone",
+      "classification": "safe-demo-fixture",
+      "publicSafe": true,
+      "reason": "Fictional Megaphone demo corpus and post package for public installs."
+    },
+    {
+      "path": "clients/template-redline",
+      "classification": "template",
+      "publicSafe": true,
+      "reason": "Empty Redline packet template without real client source material."
+    },
+    {
+      "path": "clients/template-megaphone",
+      "classification": "template",
+      "publicSafe": true,
+      "reason": "Empty Megaphone corpus template without real examples or source material."
+    },
+    {
+      "path": "clients/parasail",
+      "classification": "private-excluded",
+      "publicSafe": false,
+      "reason": "Real pilot client packet containing canonical strategy, Notion snapshots, targets, and generated reports. Must not ship in a public repo or bundled app.",
+      "remediationPhase": 23
+    },
+    {
+      "path": "reference/randall-redline",
+      "classification": "test-only-mock",
+      "publicSafe": false,
+      "reason": "Ignored upstream reference clone used for parity review. It may contain mock secrets or fixture data and must not be included in the public source package.",
+      "allowedTerms": ["sk-abc12345678901234567890", "sk-deadbeef0123456789012345"]
+    },
+    {
+      "path": "apps/marketing-builds-desktop/dist",
+      "classification": "release-build-output",
+      "publicSafe": false,
+      "reason": "Generated build output must not be committed as source."
+    },
+    {
+      "path": "apps/marketing-builds-desktop/src-tauri/target",
+      "classification": "release-build-output",
+      "publicSafe": false,
+      "reason": "Generated Rust/Tauri build output must not be committed as source."
+    },
+    {
+      "path": "node_modules",
+      "classification": "release-build-output",
+      "publicSafe": false,
+      "reason": "Installed dependencies are ignored for privacy scanning and must not be committed."
+    }
+  ],
+  "blockedTerms": [
+    {
+      "id": "pilot-client-parasail",
+      "pattern": "\\bParasail\\b|parasail\\.io|clients/parasail",
+      "severity": "private-client",
+      "reason": "Real pilot client context must be replaced with demo data before public release."
+    },
+    {
+      "id": "personal-local-path",
+      "pattern": "/Users/lindsaybrunner",
+      "severity": "local-path",
+      "reason": "Local absolute paths should not appear in public examples or bundled config."
+    },
+    {
+      "id": "notion-snapshot-content",
+      "pathPattern": "sources/notion",
+      "severity": "private-source-snapshot",
+      "reason": "Connector snapshots are private client source material unless explicitly sanitized."
+    },
+    {
+      "id": "generated-client-report",
+      "pathPattern": "clients/.+/reports",
+      "severity": "generated-client-output",
+      "reason": "Generated reports belong in private local workspaces unless they are sanitized demo artifacts."
+    },
+    {
+      "id": "api-key-shape",
+      "pattern": "(sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9_]{20,}|ntn_[A-Za-z0-9_]{20,})",
+      "severity": "secret-pattern",
+      "reason": "API keys and tokens must never be committed."
+    }
+  ]
+}

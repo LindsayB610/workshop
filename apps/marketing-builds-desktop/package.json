@@ -1,0 +1,40 @@
+{
+  "name": "@marketing-builds/desktop",
+  "version": "0.1.5",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "npm run build --workspace @redline/core && tsc --noEmit -p tsconfig.app.json && vite build",
+    "dev": "vite --host 127.0.0.1",
+    "preview": "vite preview --host 127.0.0.1",
+    "smoke:megaphone": "node scripts/megaphone-packaged-smoke.mjs && cargo test --manifest-path src-tauri/Cargo.toml megaphone_packaged_action_smoke -- --nocapture",
+    "tauri": "tauri",
+    "test": "npm run build --workspace @redline/core && vitest --run src scripts",
+    "test:e2e": "npm run build --workspace @redline/core && playwright test",
+    "typecheck": "npm run build --workspace @redline/core && tsc --noEmit -p tsconfig.app.json",
+    "updater:bump-version": "node scripts/bump-workshop-version.mjs",
+    "updater:next-version": "node scripts/resolve-workshop-release-version.mjs",
+    "updater:manifest": "node scripts/write-workshop-latest-json.mjs"
+  },
+  "dependencies": {
+    "@redline/core": "file:../../packages/core",
+    "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/plugin-process": "^2.3.1",
+    "@tauri-apps/plugin-updater": "^2.10.1",
+    "lucide-react": "^1.21.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.0",
+    "@tailwindcss/vite": "^4.3.1",
+    "@tauri-apps/cli": "^2.11.3",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "autoprefixer": "^10.5.0",
+    "postcss": "^8.5.15",
+    "tailwindcss": "^4.3.1"
+  }
+}

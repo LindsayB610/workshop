@@ -1,0 +1,118 @@
+{
+  "clientId": "demo-megaphone",
+  "generatedAt": "2026-06-23T00:00:00.000Z",
+  "readiness": "ready_to_brief",
+  "sources": [
+    {
+      "id": "demo-megaphone-context",
+      "clientId": "demo-megaphone",
+      "sourceType": "local_markdown",
+      "originalLocation": "fixture://demo-megaphone/client-context",
+      "localPath": "sources/local/client-context.md",
+      "title": "Northstar Demo Source Context",
+      "importedAt": "2026-06-23T00:00:00.000Z",
+      "sourceTier": "source_of_truth",
+      "trustLevel": "trusted",
+      "freshness": "current",
+      "privacyStatus": "public_safe",
+      "checksum": "64a374e5af5b08dd7b7515ed847412b5ac216e219fd88c5c84609477eb35045f"
+    },
+    {
+      "id": "demo-megaphone-linkedin-research",
+      "clientId": "demo-megaphone",
+      "sourceType": "linkedin_research",
+      "originalLocation": "fixture://demo-megaphone/linkedin-research",
+      "localPath": "sources/linkedin-research/research-readout.md",
+      "title": "Northstar Demo LinkedIn Research Readout",
+      "importedAt": "2026-06-23T00:00:00.000Z",
+      "sourceTier": "research",
+      "trustLevel": "provisional",
+      "freshness": "current",
+      "privacyStatus": "public_safe",
+      "checksum": "273be9b24f3896c3a5fd3d0b6606722f23dbfb981d2546b1a9a83a08834096f5"
+    },
+    {
+      "id": "demo-megaphone-linkedin-taxonomy",
+      "clientId": "demo-megaphone",
+      "sourceType": "csv",
+      "originalLocation": "fixture://demo-megaphone/post-type-taxonomy.csv",
+      "localPath": "sources/linkedin-research/post-type-taxonomy.csv",
+      "title": "Northstar Demo Post-Type Taxonomy Rows",
+      "importedAt": "2026-06-23T00:00:00.000Z",
+      "sourceTier": "research",
+      "trustLevel": "provisional",
+      "freshness": "current",
+      "privacyStatus": "public_safe",
+      "checksum": "ed6a26c4a7ee105bf40718ab944fdb691be724bca53c903efb7a78fa19d8f93e"
+    }
+  ],
+  "canonicalRegistry": [
+    {
+      "moduleId": "icp",
+      "clientId": "demo-megaphone",
+      "path": "canonical/icp.md",
+      "provenance": ["demo-megaphone-context"]
+    },
+    {
+      "moduleId": "positioning",
+      "clientId": "demo-megaphone",
+      "path": "canonical/positioning.md",
+      "provenance": ["demo-megaphone-context"]
+    },
+    {
+      "moduleId": "buyerLanguage",
+      "clientId": "demo-megaphone",
+      "path": "canonical/buyer-language.md",
+      "provenance": ["demo-megaphone-context"]
+    },
+    {
+      "moduleId": "proofLibrary",
+      "clientId": "demo-megaphone",
+      "path": "canonical/proof-library.md",
+      "provenance": ["demo-megaphone-context"]
+    },
+    {
+      "moduleId": "objections",
+      "clientId": "demo-megaphone",
+      "path": "canonical/objections.md",
+      "provenance": ["demo-megaphone-context"]
+    },
+    {
+      "moduleId": "contentPriorities",
+      "clientId": "demo-megaphone",
+      "path": "canonical/content-priorities.md",
+      "provenance": ["demo-megaphone-context"]
+    }
+  ],
+  "linkedinResearch": {
+    "corpus": {
+      "clientId": "demo-megaphone",
+      "generatedAt": "2026-06-23T00:00:00.000Z",
+      "synthesisDocs": ["sources/linkedin-research/research-readout.md"],
+      "dataFiles": {
+        "postTaxonomyRows": "sources/linkedin-research/post-type-taxonomy.csv",
+        "postFormatRows": "sources/linkedin-research/post-type-taxonomy.csv",
+        "audienceQualityRows": "sources/linkedin-research/post-type-taxonomy.csv"
+      },
+      "confidenceNotes": [
+        "Demo research is synthetic and exists only to prove the packaged Workshop flow."
+      ],
+      "sourceRefs": [
+        "demo-megaphone-linkedin-research",
+        "demo-megaphone-linkedin-taxonomy"
+      ]
+    },
+    "expectedCsvHeaders": {
+      "sources/linkedin-research/post-type-taxonomy.csv": [
+        "company",
+        "post_origin",
+        "media_type",
+        "content_type",
+        "taxonomy",
+        "total_engagement_visible",
+        "audience_type",
+        "relevant"
+      ]
+    }
+  }
+}

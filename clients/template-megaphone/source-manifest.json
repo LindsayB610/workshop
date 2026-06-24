@@ -1,0 +1,53 @@
+{
+  "clientId": "replace-with-client-id",
+  "generatedAt": "2026-06-23T00:00:00.000Z",
+  "readiness": "needs_input",
+  "sources": [
+    {
+      "id": "source-context-placeholder",
+      "clientId": "replace-with-client-id",
+      "sourceType": "local_markdown",
+      "originalLocation": "local-private-workspace",
+      "localPath": "sources/local/client-context.md",
+      "title": "Client context placeholder",
+      "importedAt": "2026-06-23T00:00:00.000Z",
+      "sourceTier": "source_of_truth",
+      "trustLevel": "provisional",
+      "freshness": "unknown",
+      "privacyStatus": "internal_only",
+      "checksum": "replace-with-checksum"
+    }
+  ],
+  "canonicalRegistry": [
+    {
+      "moduleId": "positioning",
+      "clientId": "replace-with-client-id",
+      "path": "canonical/positioning.md",
+      "provenance": ["source-context-placeholder"]
+    }
+  ],
+  "linkedinResearch": {
+    "corpus": {
+      "clientId": "replace-with-client-id",
+      "generatedAt": "2026-06-23T00:00:00.000Z",
+      "synthesisDocs": ["sources/linkedin-research/research-readout.md"],
+      "dataFiles": {
+        "postTaxonomyRows": "sources/linkedin-research/post-type-taxonomy.csv"
+      },
+      "confidenceNotes": ["Replace this with local research notes."],
+      "sourceRefs": ["source-context-placeholder"]
+    },
+    "expectedCsvHeaders": {
+      "sources/linkedin-research/post-type-taxonomy.csv": [
+        "company",
+        "post_origin",
+        "media_type",
+        "content_type",
+        "taxonomy",
+        "total_engagement_visible",
+        "audience_type",
+        "relevant"
+      ]
+    }
+  }
+}

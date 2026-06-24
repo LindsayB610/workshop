@@ -1,0 +1,24 @@
+{
+  "clientId": "replace-with-client-id",
+  "generatedAt": "2026-06-23T00:00:00.000Z",
+  "sources": [
+    {
+      "id": "source-positioning-placeholder",
+      "clientId": "replace-with-client-id",
+      "type": "local",
+      "tier": "canonical",
+      "trustLevel": "provisional",
+      "title": "Positioning placeholder",
+      "path": "canonical/positioning.md"
+    }
+  ],
+  "canonicalRegistry": [
+    {
+      "moduleId": "positioning",
+      "clientId": "replace-with-client-id",
+      "path": "canonical/positioning.md",
+      "readiness": "partial",
+      "provenance": ["source-positioning-placeholder"]
+    }
+  ]
+}

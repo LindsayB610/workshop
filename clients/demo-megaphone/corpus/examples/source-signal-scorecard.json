@@ -1,0 +1,9 @@
+{
+  "id": "demo-megaphone-example-1",
+  "topic": "source signal scorecard for service handoffs",
+  "postType": "evaluation_guide",
+  "pillar": "workflow_quality",
+  "audience": "operations leaders",
+  "summary": "A fictional example showing how to turn a source packet into a practical LinkedIn evaluation guide.",
+  "privacy": "public_demo"
+}

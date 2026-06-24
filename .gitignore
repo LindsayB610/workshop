@@ -1,0 +1,17 @@
+node_modules/
+apps/*/node_modules/
+apps/*/dist/
+apps/*/src-tauri/gen/
+apps/*/src-tauri/target/
+packages/*/node_modules/
+packages/*/dist/
+coverage/
+apps/*/playwright-report/
+apps/*/test-results/
+.vite/
+*.tsbuildinfo
+.DS_Store
+reference/
+workshop-private/
+clients/private-*/
+clients/*-private/

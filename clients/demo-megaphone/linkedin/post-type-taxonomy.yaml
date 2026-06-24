@@ -1,0 +1,5 @@
+postTypes:
+  - id: visual_explainer
+    purpose: Turn a workflow distinction into a diagram-ready post.
+  - id: evaluation_guide
+    purpose: Help buyers inspect their current operating pattern.

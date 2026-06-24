@@ -1,0 +1,49 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Workshop",
+  "version": "0.1.5",
+  "identifier": "com.lindsaybrunner.marketingbuilds",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://127.0.0.1:1420",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Workshop",
+        "width": 1280,
+        "height": 840,
+        "minWidth": 1024,
+        "minHeight": 700
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "createUpdaterArtifacts": true,
+    "resources": [
+      "../../../clients/demo-redline",
+      "../../../clients/demo-megaphone",
+      "../../../clients/fixture",
+      "../../../clients/template-redline",
+      "../../../clients/template-megaphone"
+    ],
+    "icon": [
+      "icons/icon.png"
+    ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJFMzY2RjJFODhBQTM0RUQKUldUdE5LcUlMbTgydmk4T2tkNzM0UUZNakRzWUNDVmFSTXVPcS8vRlJSU3NrZDBuQ0RJQjd6eVoK",
+      "endpoints": [
+        "https://workshop-updates-lindsaybrunner.netlify.app/latest.json"
+      ]
+    }
+  }
+}

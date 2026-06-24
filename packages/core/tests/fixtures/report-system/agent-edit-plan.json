@@ -1,0 +1,115 @@
+{
+  "clientId": "fixture",
+  "runId": "run-2026-06-20",
+  "generatedAt": "2026-06-20T12:00:00.000Z",
+  "targets": [
+    {
+      "id": "homepage",
+      "url": "https://example.test/",
+      "title": "Home"
+    },
+    {
+      "id": "pricing",
+      "url": "https://example.test/pricing",
+      "title": "Pricing"
+    }
+  ],
+  "findings": [
+    {
+      "id": "finding-high",
+      "clientId": "fixture",
+      "targetId": "homepage",
+      "url": "https://example.test/",
+      "mode": "proof_gap",
+      "label": "Hero claim needs proof",
+      "priority": "high",
+      "confidence": "high",
+      "quotedText": "Old hero claim.",
+      "issue": "The hero makes a claim that needs approved proof.",
+      "suggestedFix": "Replace the claim or attach approved evidence.",
+      "sourceRefs": [
+        "source-proof-library"
+      ],
+      "proofNeeded": "Approved public proof for the hero claim.",
+      "editReadiness": "open_question",
+      "claimCategory": "metric",
+      "approvalStatus": "needs_client_approval",
+      "proofRequired": true,
+      "proofOwner": "Client proof owner",
+      "canAgentEdit": false,
+      "agentInstruction": "Needs client proof approval. Do not repeat or strengthen the metric."
+    },
+    {
+      "id": "finding-low",
+      "clientId": "fixture",
+      "targetId": "pricing",
+      "url": "https://example.test/pricing",
+      "mode": "buyer_language",
+      "label": "Pricing language is generic",
+      "priority": "low",
+      "confidence": "medium",
+      "quotedText": "Simple pricing for every team.",
+      "issue": "The pricing page does not reflect buyer-specific triggers.",
+      "suggestedFix": "Anchor pricing copy to workload urgency and approval paths.",
+      "sourceRefs": [
+        "source-buyer-language"
+      ],
+      "proofNeeded": "Confirm pricing proof with sales.",
+      "editReadiness": "ready"
+    }
+  ],
+  "openQuestions": [
+    {
+      "findingId": "finding-high",
+      "targetId": "homepage",
+      "proofNeeded": "Approved public proof for the hero claim.",
+      "editReadiness": "open_question",
+      "claimCategory": "metric",
+      "approvalStatus": "needs_client_approval",
+      "proofRequired": true,
+      "proofOwner": "Client proof owner",
+      "canAgentEdit": false,
+      "agentInstruction": "Needs client proof approval. Do not repeat or strengthen the metric."
+    }
+  ],
+  "publicClaimFlags": [
+    {
+      "claimId": "claim-hero",
+      "claim": "Old hero claim.",
+      "claimCategory": "metric",
+      "proofStatus": "weak_proof",
+      "publicUseApproved": true,
+      "approvalStatus": "needs_client_approval",
+      "proofRequired": true,
+      "proofOwner": "Client proof owner",
+      "canAgentEdit": false,
+      "riskNotes": "Needs public substantiation."
+    }
+  ],
+  "proofGateSummary": [
+    {
+      "id": "finding-high",
+      "label": "Hero claim needs proof",
+      "claimCategory": "metric",
+      "approvalStatus": "needs_client_approval",
+      "proofOwner": "Client proof owner",
+      "canAgentEdit": false,
+      "instruction": "Needs client proof approval. Do not repeat or strengthen the metric.",
+      "sourceRefs": [
+        "source-proof-library"
+      ]
+    },
+    {
+      "id": "claim-hero",
+      "label": "Old hero claim.",
+      "claimCategory": "metric",
+      "approvalStatus": "needs_client_approval",
+      "proofOwner": "Client proof owner",
+      "canAgentEdit": false,
+      "instruction": "Do not repeat, strengthen, or reframe this claim until approval is resolved.",
+      "sourceRefs": [
+        "source-proof-library"
+      ]
+    }
+  ]
+}

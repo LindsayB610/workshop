@@ -1,0 +1,4 @@
+id,priority,route,label
+demo-redline-f1,high,agent_ready,Hero does not name the operational buyer
+demo-redline-f2,high,proof_review,Time-savings claim needs approved proof
+demo-redline-f3,medium,agent_ready,Absolute guarantee should be softened

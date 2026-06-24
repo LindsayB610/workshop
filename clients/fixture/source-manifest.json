@@ -1,0 +1,26 @@
+{
+  "clientId": "fixture",
+  "generatedAt": "2026-06-20T00:00:00.000Z",
+  "sources": [
+    {
+      "id": "fixture-source-positioning",
+      "clientId": "fixture",
+      "type": "local",
+      "tier": "canonical",
+      "trustLevel": "trusted",
+      "title": "Fixture Client Positioning",
+      "path": "canonical/positioning.md",
+      "fetchedAt": "2026-06-20T00:00:00.000Z",
+      "checksum": "fixture-positioning"
+    }
+  ],
+  "canonicalRegistry": [
+    {
+      "moduleId": "positioning",
+      "clientId": "fixture",
+      "path": "canonical/positioning.md",
+      "readiness": "strong",
+      "provenance": ["fixture-source-positioning"]
+    }
+  ]
+}

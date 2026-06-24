@@ -1,0 +1,46 @@
+{
+  "name": "@redline/core",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "redline": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./schemas": {
+      "types": "./dist/schemas.d.ts",
+      "import": "./dist/schemas.js"
+    },
+    "./onboarding": {
+      "types": "./dist/onboarding.d.ts",
+      "import": "./dist/onboarding.js"
+    },
+    "./live-target-snapshot": {
+      "types": "./dist/liveTargetSnapshot.d.ts",
+      "import": "./dist/liveTargetSnapshot.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest --run",
+    "test:public": "vitest --run tests/proofApproval.test.ts tests/onboarding.test.ts tests/notionSnapshot.test.ts tests/liveTargetSnapshot.test.ts tests/clientPacket.test.ts tests/crawl.test.ts tests/reportSystem.test.ts tests/redlineParity.test.ts tests/schema.test.ts tests/auditPage.test.ts tests/editBrief.test.ts"
+  },
+  "dependencies": {
+    "cheerio": "^1.2.0",
+    "yaml": "^2.6.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vitest": "^3.2.4"
+  }
+}

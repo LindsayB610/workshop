@@ -1,0 +1,129 @@
+{
+  "clientId": "demo-redline",
+  "runId": "demo-launch-review",
+  "generatedAt": "2026-06-23T00:00:00.000Z",
+  "targets": [
+    {
+      "id": "demo-landing-page",
+      "url": "https://demo.local/northstar/landing-page",
+      "title": "Northstar Demo Landing Page"
+    }
+  ],
+  "findings": [
+    {
+      "id": "demo-redline-f1",
+      "clientId": "demo-redline",
+      "targetId": "demo-landing-page",
+      "url": "https://demo.local/northstar/landing-page",
+      "mode": "message_alignment",
+      "label": "Hero does not name the operational buyer",
+      "priority": "high",
+      "confidence": "high",
+      "quotedText": "Launch your next workflow faster.",
+      "issue": "The hero promise is broad and does not name the operations buyer, handoff risk, or weekly review trigger from the source packet.",
+      "suggestedFix": "Rewrite the hero around operations leaders who need owner-visible handoffs before customer commitments slip.",
+      "sourceRefs": ["demo-source-positioning", "demo-source-buyer-language"],
+      "proofNeeded": "No proof needed; this is a message-alignment rewrite.",
+      "editReadiness": "ready",
+      "claimCategory": "broad_positioning",
+      "approvalStatus": "not_required",
+      "proofRequired": false,
+      "canAgentEdit": true,
+      "agentInstruction": "Rewrite the hero with the operations buyer, handoff-risk language, and a concrete review-loop outcome."
+    },
+    {
+      "id": "demo-redline-f2",
+      "clientId": "demo-redline",
+      "targetId": "demo-landing-page",
+      "url": "https://demo.local/northstar/landing-page",
+      "mode": "proof_gap",
+      "label": "Time-savings claim needs approved proof",
+      "priority": "high",
+      "confidence": "medium",
+      "quotedText": "Teams save hours every week with automated handoffs.",
+      "issue": "The claim implies a quantified productivity outcome, but the demo proof library only approves qualitative workflow visibility.",
+      "suggestedFix": "Either add an approved study for the time-savings claim or soften the sentence to a qualitative workflow-visibility benefit.",
+      "sourceRefs": ["demo-source-proof-library"],
+      "proofNeeded": "Approved study or customer quote that supports the time-savings claim.",
+      "editReadiness": "manual_review",
+      "claimCategory": "metric",
+      "approvalStatus": "needs_client_approval",
+      "proofRequired": true,
+      "proofOwner": "Demo proof owner",
+      "canAgentEdit": false,
+      "agentInstruction": "Do not preserve or strengthen the time-savings claim without approved proof."
+    },
+    {
+      "id": "demo-redline-f3",
+      "clientId": "demo-redline",
+      "targetId": "demo-landing-page",
+      "url": "https://demo.local/northstar/landing-page",
+      "mode": "objection_coverage",
+      "label": "Absolute guarantee should be softened",
+      "priority": "medium",
+      "confidence": "high",
+      "quotedText": "Never miss another customer commitment.",
+      "issue": "The absolute promise overstates control and can create proof and support expectations the source packet does not authorize.",
+      "suggestedFix": "Change the line to a risk-reduction claim such as \"Spot ownership gaps before customer commitments slip.\"",
+      "sourceRefs": ["demo-source-positioning", "demo-source-proof-library"],
+      "proofNeeded": "Approved support or customer-commitment proof before using absolute language.",
+      "editReadiness": "ready",
+      "claimCategory": "support_sla_promise",
+      "approvalStatus": "needs_internal_proof",
+      "proofRequired": true,
+      "proofOwner": "Demo product owner",
+      "canAgentEdit": true,
+      "agentInstruction": "Soften the absolute guarantee into risk-reduction language."
+    }
+  ],
+  "openQuestions": [
+    {
+      "findingId": "demo-redline-f2",
+      "targetId": "demo-landing-page",
+      "proofNeeded": "Approved study or customer quote that supports the time-savings claim.",
+      "editReadiness": "manual_review",
+      "claimCategory": "metric",
+      "approvalStatus": "needs_client_approval",
+      "proofRequired": true,
+      "proofOwner": "Demo proof owner",
+      "canAgentEdit": false,
+      "agentInstruction": "Do not preserve or strengthen the time-savings claim without approved proof."
+    }
+  ],
+  "publicClaimFlags": [
+    {
+      "claimId": "demo-redline-f2",
+      "claim": "Teams save hours every week",
+      "claimCategory": "metric",
+      "proofStatus": "weak_proof",
+      "publicUseApproved": false,
+      "approvalStatus": "needs_client_approval",
+      "proofRequired": true,
+      "proofOwner": "Demo proof owner",
+      "canAgentEdit": false,
+      "riskNotes": "Quantified productivity outcomes need approved methodology before public use."
+    }
+  ],
+  "proofGateSummary": [
+    {
+      "id": "demo-proof-gate-f2",
+      "label": "Time-savings claim needs approved proof",
+      "claimCategory": "metric",
+      "approvalStatus": "needs_client_approval",
+      "proofOwner": "Demo proof owner",
+      "canAgentEdit": false,
+      "instruction": "Do not preserve or strengthen the time-savings claim without approved proof.",
+      "sourceRefs": ["demo-source-proof-library"]
+    },
+    {
+      "id": "demo-proof-gate-f3",
+      "label": "Absolute guarantee should be softened",
+      "claimCategory": "support_sla_promise",
+      "approvalStatus": "needs_internal_proof",
+      "proofOwner": "Demo product owner",
+      "canAgentEdit": true,
+      "instruction": "Soften the absolute guarantee into risk-reduction language.",
+      "sourceRefs": ["demo-source-positioning", "demo-source-proof-library"]
+    }
+  ]
+}

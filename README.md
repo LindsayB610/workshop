@@ -9,6 +9,17 @@ Redline and Megaphone are bundled tools inside Workshop. Real client packets,
 corpora, reports, source snapshots, and credentials should live outside this
 public repo and be selected through local workspace settings.
 
+## Alpha Notice
+
+Workshop's Redline tool is alpha software. It is useful as a local experiment
+and as a staging ground for source-backed audit workflows, but its findings,
+rewrite guidance, and proof checks should not be trusted without human review.
+
+If you want the stronger, more mature Redline implementation today, use Randall
+Degges' [`rdegges/redline`](https://github.com/rdegges/redline). This project is
+not a replacement for Randall's work; it is an experimental TypeScript
+implementation inside a broader Workshop host app.
+
 ## What This Is
 
 Workshop answers one practical question:
@@ -273,9 +284,10 @@ Workshop is licensed under the MIT License. See [LICENSE](LICENSE).
 With gratitude to Randall Degges, whose MIT-licensed
 [`rdegges/redline`](https://github.com/rdegges/redline) project provided a
 strong upstream reference for Redline-compatible contracts, validation behavior,
-and parity tests. Workshop's Redline tool is its own TypeScript implementation,
-but Randall's work helped sharpen the model for what a practical local-first
-content-audit workflow should do. See
+and parity tests. Randall's implementation is more complete and more battle
+tested; Workshop's Redline tool is an alpha TypeScript implementation that
+should be treated as experimental. Randall's work helped sharpen the model for
+what a practical local-first content-audit workflow should do. See
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for the upstream notice.
 
 ## Development Notes

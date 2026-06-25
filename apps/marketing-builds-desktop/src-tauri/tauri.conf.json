@@ -40,7 +40,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJFMzY2RjJFODhBQTM0RUQKUldUdE5LcUlMbTgydmk4T2tkNzM0UUZNakRzWUNDVmFSTXVPcS8vRlJSU3NrZDBuQ0RJQjd6eVoK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDFBMjlENUYxREQxOUNENTQKUldSVXpSbmQ4ZFVwR3UvQ1ZDZGxabGhidnpnOFdNZ2p5NWR4S1MxR1U3UHhseG1PZGhLWGVjNGkK",
       "endpoints": [
         "https://workshop-updates-lindsaybrunner.netlify.app/latest.json"
       ]

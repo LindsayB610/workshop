@@ -22,8 +22,10 @@ The automated release workflow also needs:
 
 - `NETLIFY_AUTH_TOKEN`
 
-As of the Phase 10 readiness pass on 2026-06-20, all three secrets exist in
-GitHub and the `Release Workshop` workflow has deployed signed updater payloads.
+As of 2026-06-24, all three secrets have been rotated and configured in the
+public `LindsayB610/workshop` GitHub repository. The committed updater public
+key in `tauri.conf.json` must match the private key stored in
+`WORKSHOP_TAURI_SIGNING_PRIVATE_KEY`.
 
 ## Publish From GitHub Actions
 

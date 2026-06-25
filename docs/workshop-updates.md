@@ -10,7 +10,7 @@ stay out of git and should live in the release environment only.
 - Current manifest: `https://workshop-updates-lindsaybrunner.netlify.app/latest.json`
 - Netlify project: `workshop-updates-lindsaybrunner`
 - Netlify site ID: `c752e385-30f2-4878-b489-03811f8ce106`
-- Current hosted release: Workshop `0.1.6`
+- Current hosted release: the version returned by the live `latest.json` manifest
 
 The durable updater signing key should be stored in GitHub Actions secrets for
 `LindsayB610/workshop`:
@@ -116,18 +116,25 @@ URLs before the release manifest is published.
 On 2026-06-20, Workshop `0.1.4` was built with launch-time update checking,
 the final public key, and the production update endpoint. Workshop `0.1.5` was
 then built, signed, and published to Netlify for installed-app updater
-acceptance. The first GitHub Actions release later published signed Workshop
+acceptance. The private development repo later published signed Workshop
 `0.1.6` artifacts to the same Netlify host.
+
+After the public repo split, GitHub Actions run `28146316856` in
+`LindsayB610/workshop` published signed Workshop `0.1.21` artifacts to the live
+Netlify update host on 2026-06-25. Future current-version checks should use the
+live `latest.json` manifest rather than this historical evidence section.
 
 Verified:
 
 - Historical GitHub Actions run `27887662889` completed successfully in the
   private development repo before the public Workshop split:
   `https://github.com/LindsayB610/content-redline/actions/runs/27887662889`
-- Hosted `latest.json` returns version `0.1.6`.
-- Hosted `latest.json` includes a non-empty `darwin-aarch64` signature.
-- Hosted updater archive `Workshop.app.tar.gz` returns HTTP 200.
-- Hosted DMG `Workshop_0.1.6_aarch64.dmg` returns HTTP 200.
+- Public GitHub Actions run `28146316856` completed successfully:
+  `https://github.com/LindsayB610/workshop/actions/runs/28146316856`
+- Hosted `latest.json` returned version `0.1.21` after the first public release.
+- Hosted `latest.json` included a non-empty `darwin-aarch64` signature.
+- Hosted updater archive `Workshop.app.tar.gz` returned HTTP 200.
+- Hosted DMG `Workshop_0.1.21_aarch64.dmg` returned HTTP 200.
 - Preserved older app bundle initially reported `CFBundleShortVersionString`
   `0.1.4`.
 - Launching that preserved older app detected version `0.1.5` and exposed a blue

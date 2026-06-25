@@ -106,7 +106,7 @@ function redlineResponse(
   };
 }
 
-describe("Randall Redline parity contracts", () => {
+describe("Redline contract parity", () => {
   it("excludes nav and footer text from body while extracting full-DOM links", () => {
     const page = extractPageFromHtml({
       id: "widgets",

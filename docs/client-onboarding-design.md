@@ -2,7 +2,7 @@
 
 ## Why Onboarding Matters
 
-Randall Redline is strongest when the canonical messaging and GEO prompts are already high quality. Redline needs to solve the step before that: helping a consultant turn messy client context into a source-backed audit packet.
+Redline is strongest when the canonical messaging and GEO prompts are already high quality. It also needs to solve the step before that: helping a consultant turn messy client context into a source-backed audit packet.
 
 The audit engine should not be asked to infer the client's strategy from a website alone. It needs approved positioning, target prompts, buyer language, proof rules, objections, and "do not say this" boundaries.
 

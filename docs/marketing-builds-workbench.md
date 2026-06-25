@@ -64,7 +64,6 @@ Each tool should declare:
 Redline should be the first workbench module because it already has:
 
 - a real client pilot
-- a strong upstream reference in Randall Redline
 - client onboarding needs
 - local artifacts and reports
 - obvious desktop workflows

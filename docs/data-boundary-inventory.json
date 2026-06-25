@@ -86,13 +86,6 @@
       "remediationPhase": 23
     },
     {
-      "path": "reference/randall-redline",
-      "classification": "test-only-mock",
-      "publicSafe": false,
-      "reason": "Ignored upstream reference clone used for parity review. It may contain mock secrets or fixture data and must not be included in the public source package.",
-      "allowedTerms": ["sk-abc12345678901234567890", "sk-deadbeef0123456789012345"]
-    },
-    {
       "path": "apps/marketing-builds-desktop/dist",
       "classification": "release-build-output",
       "publicSafe": false,

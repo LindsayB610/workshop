@@ -1,4 +1,4 @@
-import { FileText, Megaphone as MegaphoneIcon } from "lucide-react";
+import { BellRing, FileText, Megaphone as MegaphoneIcon } from "lucide-react";
 import type { RecentWorkspace, ToolDefinition } from "./types";
 
 export const tools: ToolDefinition[] = [
@@ -108,6 +108,31 @@ export const tools: ToolDefinition[] = [
     dataRoots: ["tools/megaphone"],
     importActions: [],
     exportActions: ["Export post package"],
+    status: "ready",
+  },
+  {
+    id: "pulse",
+    displayName: "Pulse",
+    description: "Track persistent recurring obligations that keep notifying until done.",
+    icon: BellRing,
+    logoVariant: "pulse",
+    installMode: "external",
+    defaultInstalled: true,
+    docsPath: "/docs/tools/pulse.md",
+    defaultWorkspaceRoot: "tools/pulse/demo",
+    workspaceRequirement:
+      "Needs a private Pulse runner config, state file, and notification credentials outside Workshop.",
+    uninstallSafetyCopy: "Disabling Pulse hides the tool only. Your private Pulse runner and state stay untouched.",
+    routes: [
+      { id: "active", label: "Active", path: "/pulse/active", sectionId: "pulse-active" },
+      { id: "schedule", label: "Schedule", path: "/pulse/schedule", sectionId: "pulse-schedule" },
+      { id: "history", label: "History", path: "/pulse/history", sectionId: "pulse-history" },
+      { id: "runner", label: "Runner", path: "/pulse/runner", sectionId: "pulse-runner" },
+    ],
+    requiredLocalCapabilities: ["local-workspace", "connector-status", "run-history"],
+    dataRoots: ["tools/pulse"],
+    importActions: [],
+    exportActions: [],
     status: "ready",
   },
 ];

@@ -16,10 +16,13 @@ describe("Workshop desktop app", () => {
     expect(markup).toContain("Workshop");
     expect(markup).toContain("Redline");
     expect(markup).toContain("Megaphone");
+    expect(markup).toContain("Pulse");
     expect(markup).toContain("Audit client pages against trusted source packets");
     expect(markup).toContain("Plan and shape campaign messages");
+    expect(markup).toContain("Track persistent recurring obligations");
     expect(markup).toContain("Redline tool actions");
     expect(markup).toContain("Megaphone tool actions");
+    expect(markup).toContain("Pulse tool actions");
     expect(markup).not.toContain("Add New Tools");
     expect(markup).not.toContain(["clients", ["para", "sail"].join("")].join("/"));
     expect(markup).not.toContain("Export Reports");

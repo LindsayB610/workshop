@@ -13,23 +13,37 @@ import {
 import { tools } from "./tools";
 
 describe("tool install state", () => {
-  it("defaults bundled Workshop tools to installed", () => {
+  it("defaults visible Workshop tools to installed", () => {
     const state = defaultToolInstallState(tools);
 
-    expect(state.enabledToolIds).toEqual(["redline", "megaphone"]);
+    expect(state.enabledToolIds).toEqual(["redline", "megaphone", "pulse"]);
     expect(getInstalledTools(tools, state).map((tool) => tool.id)).toEqual([
       "redline",
       "megaphone",
+      "pulse",
     ]);
     expect(getAvailableBundledTools(tools, state)).toEqual([]);
   });
 
-  it("normalizes persisted state to known bundled tools", () => {
+  it("normalizes persisted state to known tools", () => {
     expect(
       normalizeToolInstallState(tools, {
-        enabledToolIds: ["redline", "unknown", "redline"],
+        enabledToolIds: ["redline", "pulse", "unknown", "redline"],
       }),
-    ).toEqual({ enabledToolIds: ["redline"] });
+    ).toEqual({ enabledToolIds: ["redline", "pulse"] });
+  });
+
+  it("migrates older persisted installs to include default external tools", () => {
+    const state = normalizeToolInstallState(tools, {
+      enabledToolIds: ["redline", "megaphone"],
+    });
+
+    expect(getInstalledTools(tools, state).map((tool) => tool.id)).toEqual([
+      "redline",
+      "megaphone",
+      "pulse",
+    ]);
+    expect(getAvailableBundledTools(tools, state)).toEqual([]);
   });
 
   it("disables and restores one bundled tool without touching workspace files", () => {
@@ -39,6 +53,7 @@ describe("tool install state", () => {
     expect(disabled.workspaceFilesTouched).toBe(false);
     expect(getInstalledTools(tools, disabled.state).map((tool) => tool.id)).toEqual([
       "megaphone",
+      "pulse",
     ]);
     expect(getAvailableBundledTools(tools, disabled.state).map((tool) => tool.id)).toEqual([
       "redline",
@@ -50,6 +65,7 @@ describe("tool install state", () => {
     expect(getInstalledTools(tools, restored.state).map((tool) => tool.id)).toEqual([
       "redline",
       "megaphone",
+      "pulse",
     ]);
   });
 

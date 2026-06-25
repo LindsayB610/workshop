@@ -58,6 +58,37 @@ describe("tool registry", () => {
     expect(tool?.dataRoots).toEqual(["tools/megaphone"]);
   });
 
+  it("registers Pulse as an external self-hosted Workshop tool", () => {
+    const tool = getToolById("pulse");
+
+    expect(tool?.status).toBe("ready");
+    expect(tool?.installMode).toBe("external");
+    expect(tool?.defaultInstalled).toBe(true);
+    expect(tool?.docsPath).toBe("/docs/tools/pulse.md");
+    expect(tool?.description).toContain("recurring obligations");
+    expect(tool?.workspaceRequirement).toContain("private Pulse runner");
+    expect(tool?.routes.map((route) => route.id)).toEqual([
+      "active",
+      "schedule",
+      "history",
+      "runner",
+    ]);
+    expect(tool?.routes.map((route) => route.path)).toEqual([
+      "/pulse/active",
+      "/pulse/schedule",
+      "/pulse/history",
+      "/pulse/runner",
+    ]);
+    expect(tool?.requiredLocalCapabilities).toEqual([
+      "local-workspace",
+      "connector-status",
+      "run-history",
+    ]);
+    expect(tool?.dataRoots).toEqual(["tools/pulse"]);
+    expect(tool?.importActions).toEqual([]);
+    expect(tool?.exportActions).toEqual([]);
+  });
+
   it("keeps tool data roots isolated", () => {
     expect(dataRootsAreIsolated(tools)).toBe(true);
   });

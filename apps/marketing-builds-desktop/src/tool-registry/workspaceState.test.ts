@@ -24,6 +24,10 @@ describe("tool workspace state", () => {
       mode: "demo",
       root: "clients/demo-megaphone",
     });
+    expect(getWorkspaceSelection(tools, state, "pulse")).toMatchObject({
+      mode: "demo",
+      root: "tools/pulse/demo",
+    });
     expect(JSON.stringify(state).toLowerCase()).not.toContain(privateClientId);
   });
 

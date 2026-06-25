@@ -14,7 +14,7 @@ export type ToolRoute = {
   sectionId?: string;
 };
 
-export type ToolLogoVariant = "redline" | "megaphone";
+export type ToolLogoVariant = "redline" | "megaphone" | "pulse";
 
 export type ToolInstallMode = "bundled" | "external";
 

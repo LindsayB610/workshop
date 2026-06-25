@@ -658,6 +658,35 @@ h4 {
   color: var(--color-red);
 }
 
+.tool-logo-pulse .tool-logo-frame {
+  color: var(--color-red);
+  border-radius: 50%;
+}
+
+.tool-logo-pulse .tool-logo-line-a {
+  width: 1.3rem;
+  top: 0.74rem;
+  left: 0.58rem;
+}
+
+.tool-logo-pulse .tool-logo-line-b {
+  width: 0.9rem;
+  left: 0.78rem;
+  bottom: 0.66rem;
+}
+
+.tool-logo-pulse .tool-logo-dot-a {
+  left: 0.98rem;
+  top: 1.16rem;
+  color: var(--color-yellow);
+}
+
+.tool-logo-pulse .tool-logo-dot-b {
+  left: 0.98rem;
+  bottom: -0.3rem;
+  color: var(--color-pink);
+}
+
 .workbench-shell {
   min-width: 0;
   min-height: 100vh;

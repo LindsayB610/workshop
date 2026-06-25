@@ -16,11 +16,34 @@ export function App() {
     ? installedTools.some((tool) => tool.id === activeTool.id)
     : false;
 
+  function promptForWorkspaceRoot(toolId: string) {
+    const tool = getToolById(toolId);
+    if (!tool) {
+      return;
+    }
+
+    const root = window.prompt(
+      `Set a private ${tool.displayName} workspace root outside this repo.`,
+      getSelection(tool.id).root,
+    );
+    if (root === null) {
+      return;
+    }
+
+    setSelection(tool.id, root);
+  }
+
   return (
     <div className="app-frame">
       {activeTool && activeToolIsInstalled ? (
         <WorkbenchShell activeTool={activeTool} onBackToTools={() => setActiveToolId(null)}>
-          {({ activeRouteId }) => <ToolView activeRouteId={activeRouteId} tool={activeTool} />}
+          {({ activeRouteId }) => (
+            <ToolView
+              activeRouteId={activeRouteId}
+              onSetWorkspaceRequest={promptForWorkspaceRoot}
+              tool={activeTool}
+            />
+          )}
         </WorkbenchShell>
       ) : (
         <ToolShelf

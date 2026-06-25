@@ -15,9 +15,7 @@ export type ToolInstallActionResult = {
 
 export function defaultToolInstallState(toolList: ToolDefinition[]): ToolInstallState {
   return {
-    enabledToolIds: toolList
-      .filter((tool) => tool.installMode === "bundled" && tool.defaultInstalled)
-      .map((tool) => tool.id),
+    enabledToolIds: toolList.filter((tool) => tool.defaultInstalled).map((tool) => tool.id),
   };
 }
 
@@ -25,18 +23,21 @@ export function normalizeToolInstallState(
   toolList: ToolDefinition[],
   storedState?: Partial<ToolInstallState> | null,
 ): ToolInstallState {
-  const bundledToolIds = new Set(
-    toolList.filter((tool) => tool.installMode === "bundled").map((tool) => tool.id),
-  );
+  const knownToolIds = new Set(toolList.map((tool) => tool.id));
   const defaultState = defaultToolInstallState(toolList);
+  const defaultExternalToolIds = toolList
+    .filter((tool) => tool.defaultInstalled && tool.installMode === "external")
+    .map((tool) => tool.id);
 
   if (!storedState || !Array.isArray(storedState.enabledToolIds)) {
     return defaultState;
   }
 
-  const enabledToolIds = storedState.enabledToolIds.filter((toolId, index, toolIds) => {
-    return bundledToolIds.has(toolId) && toolIds.indexOf(toolId) === index;
-  });
+  const enabledToolIds = [...storedState.enabledToolIds, ...defaultExternalToolIds].filter(
+    (toolId, index, toolIds) => {
+      return knownToolIds.has(toolId) && toolIds.indexOf(toolId) === index;
+    },
+  );
 
   return { enabledToolIds };
 }

@@ -270,8 +270,12 @@ artifact upload happen together.
 
 Workshop is licensed under the MIT License. See [LICENSE](LICENSE).
 
-Redline-compatible contracts and parity tests were informed by Randall Degges'
-MIT-licensed `rdegges/redline` project. See
+With gratitude to Randall Degges, whose MIT-licensed
+[`rdegges/redline`](https://github.com/rdegges/redline) project provided a
+strong upstream reference for Redline-compatible contracts, validation behavior,
+and parity tests. Workshop's Redline tool is its own TypeScript implementation,
+but Randall's work helped sharpen the model for what a practical local-first
+content-audit workflow should do. See
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for the upstream notice.
 
 ## Development Notes

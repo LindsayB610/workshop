@@ -76,4 +76,10 @@ describe("ToolShelf", () => {
     expect(styles).toContain(".tool-shelf-header {\n  gap: 1rem;\n  align-items: end;");
     expect(styles).toContain(".tool-shelf-header .brand-mark {\n  margin-bottom: 0.52rem;");
   });
+
+  it("keeps the desktop tool picker as a compact pair instead of stretching across the window", () => {
+    expect(styles).toContain("grid-template-columns: repeat(2, minmax(16rem, 18rem));");
+    expect(styles).toContain("width: min(100%, 37rem);");
+    expect(styles).toContain("justify-content: start;");
+  });
 });

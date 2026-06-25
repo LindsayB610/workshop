@@ -31,10 +31,10 @@ jobs:
       TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.WORKSHOP_TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
@@ -96,7 +96,7 @@ jobs:
         run: npx netlify-cli deploy --prod --no-build --dir "${{ github.workspace }}/apps/marketing-builds-desktop/dist/workshop-update-site" --site "$WORKSHOP_NETLIFY_SITE_ID" --auth "${{ secrets.NETLIFY_AUTH_TOKEN }}"
 
       - name: Upload release artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: workshop-${{ steps.release_version.outputs.version }}-signed-update
           path: |

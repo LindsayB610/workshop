@@ -288,24 +288,16 @@ h4 {
 
 .tool-shelf-header {
   gap: 1rem;
-  align-items: end;
-}
-
-.tool-shelf-header .brand-mark {
-  margin-bottom: 0.52rem;
 }
 
 .tool-shelf-header h1 {
-  font-size: clamp(2.15rem, 6vw, 4.7rem);
-  font-weight: 520;
+  font-size: clamp(2.4rem, 7vw, 5.6rem);
 }
 
 .tool-shelf {
   display: grid;
-  grid-template-columns: repeat(2, minmax(16rem, 18rem));
-  justify-content: start;
-  gap: 1rem;
-  width: min(100%, 37rem);
+  grid-template-columns: repeat(2, minmax(13rem, 1fr));
+  gap: 0.85rem;
 }
 
 .tool-shelf-actions {
@@ -313,6 +305,11 @@ h4 {
   align-items: center;
   gap: 0.8rem;
   min-height: 2.4rem;
+}
+
+.tool-shelf-update:empty,
+.tool-shelf-actions:empty {
+  display: none;
 }
 
 .add-tools-button {
@@ -432,7 +429,7 @@ h4 {
   position: absolute;
   left: 1rem;
   right: 1rem;
-  top: calc(100% + 0.55rem);
+  bottom: calc(100% + 0.55rem);
   z-index: 5;
   padding: 0.65rem 0.75rem;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -443,7 +440,7 @@ h4 {
   line-height: 1.35;
   opacity: 0;
   pointer-events: none;
-  transform: translateY(-0.35rem);
+  transform: translateY(0.35rem);
   transition:
     opacity 140ms ease,
     transform 140ms ease;
@@ -474,6 +471,11 @@ h4 {
   color: var(--dark-text-secondary);
   cursor: pointer;
   list-style: none;
+  opacity: 0;
+  transition:
+    border-color 140ms ease,
+    color 140ms ease,
+    opacity 140ms ease;
 }
 
 .tool-action-menu summary::-webkit-details-marker {
@@ -485,6 +487,12 @@ h4 {
   border-color: rgba(255, 221, 0, 0.45);
   color: var(--dark-text);
   outline: none;
+}
+
+.tool-chiclet-wrap:hover .tool-action-menu summary,
+.tool-action-menu:focus-within summary,
+.tool-action-menu[open] summary {
+  opacity: 1;
 }
 
 .tool-action-menu-panel {

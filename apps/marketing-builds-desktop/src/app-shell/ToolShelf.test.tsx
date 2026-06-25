@@ -67,19 +67,31 @@ describe("ToolShelf", () => {
     expect(markup).toContain("Megaphone tool actions");
   });
 
-  it("positions tool picker hover tooltips below each chiclet", () => {
-    expect(styles).toContain("top: calc(100% + 0.55rem);");
-    expect(styles).not.toContain("bottom: calc(100% + 0.55rem);");
+  it("positions tool picker hover tooltips above each chiclet like the original shelf", () => {
+    expect(styles).toContain("bottom: calc(100% + 0.55rem);");
+    expect(styles).not.toContain("top: calc(100% + 0.55rem);");
   });
 
-  it("bottom-aligns the LB mark with the Workshop title line", () => {
-    expect(styles).toContain(".tool-shelf-header {\n  gap: 1rem;\n  align-items: end;");
-    expect(styles).toContain(".tool-shelf-header .brand-mark {\n  margin-bottom: 0.52rem;");
+  it("keeps the original Workshop title scale and mark alignment", () => {
+    expect(styles).toContain(".tool-shelf-header {\n  gap: 1rem;\n}");
+    expect(styles).toContain("font-size: clamp(2.4rem, 7vw, 5.6rem);");
+    expect(styles).not.toContain(".tool-shelf-header .brand-mark");
   });
 
-  it("keeps the desktop tool picker as a compact pair instead of stretching across the window", () => {
-    expect(styles).toContain("grid-template-columns: repeat(2, minmax(16rem, 18rem));");
-    expect(styles).toContain("width: min(100%, 37rem);");
-    expect(styles).toContain("justify-content: start;");
+  it("keeps the original broad desktop tool picker instead of compacting the cards", () => {
+    expect(styles).toContain("grid-template-columns: repeat(2, minmax(13rem, 1fr));");
+    expect(styles).toContain("width: min(100%, 62rem);");
+    expect(styles).not.toContain("width: min(100%, 37rem);");
+  });
+
+  it("keeps newer action menus visually quiet until hover or keyboard focus", () => {
+    expect(styles).toContain(".tool-chiclet-wrap:hover .tool-action-menu summary");
+    expect(styles).toContain(".tool-action-menu:focus-within summary");
+    expect(styles).toContain("opacity: 0;");
+  });
+
+  it("does not let empty update or action rows distort the original first-page spacing", () => {
+    expect(styles).toContain(".tool-shelf-update:empty,\n.tool-shelf-actions:empty");
+    expect(styles).toContain("display: none;");
   });
 });

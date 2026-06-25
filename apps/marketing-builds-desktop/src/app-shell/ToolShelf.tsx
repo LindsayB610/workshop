@@ -8,8 +8,8 @@ import { tools } from "../tool-registry/tools";
 import type { ToolWorkspaceSelection, WorkspaceValidationResult } from "../tool-registry/workspaceState";
 
 export function ToolShelf({
-  installedTools = tools,
-  availableTools = [],
+  installedTools = [],
+  availableTools = tools,
   catalogInitiallyOpen = false,
   onSelectTool,
   onEnableTool = () => undefined,
@@ -38,7 +38,9 @@ export function ToolShelf({
   onSetWorkspace?: (toolId: string, root: string) => WorkspaceValidationResult;
   getWorkspaceSelection?: (toolId: string) => ToolWorkspaceSelection;
 }) {
-  const [catalogOpen, setCatalogOpen] = useState(catalogInitiallyOpen);
+  const [catalogOpen, setCatalogOpen] = useState(
+    catalogInitiallyOpen || installedTools.length === 0,
+  );
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const hasAvailableTools = availableTools.length > 0;
 
@@ -59,16 +61,16 @@ export function ToolShelf({
       </div>
 
       <div className="tool-shelf-actions">
-        {hasAvailableTools ? (
-          <Button
-            className="add-tools-button"
-            variant="primary"
-            onClick={() => setCatalogOpen((isOpen) => !isOpen)}
-          >
-            <PackagePlus size={18} aria-hidden="true" />
-            <span>Add New Tools</span>
-          </Button>
-        ) : null}
+        <Button
+          className="add-tools-button"
+          variant="primary"
+          onClick={() => setCatalogOpen((isOpen) => !isOpen)}
+          aria-expanded={catalogOpen}
+          aria-controls="tool-catalog"
+        >
+          <PackagePlus size={18} aria-hidden="true" />
+          <span>Add New Tools</span>
+        </Button>
         {statusMessage ? (
           <p className="tool-shelf-status" role="status">
             {statusMessage}
@@ -76,38 +78,49 @@ export function ToolShelf({
         ) : null}
       </div>
 
-      {catalogOpen && hasAvailableTools ? (
-        <section className="tool-catalog" aria-label="Add New Tools catalog">
-          {availableTools.map((tool) => (
-            <article key={tool.id} className="tool-catalog-card">
-              <ToolLogo tool={tool} />
-              <div>
-                <p className="eyebrow">Bundled tool</p>
-                <h2>{tool.displayName}</h2>
-                <p>{tool.description}</p>
-                <small>{tool.workspaceRequirement}</small>
-              </div>
-              <div className="tool-catalog-actions">
-                <a href={tool.docsPath} rel="noreferrer" target="_blank">
-                  View docs
-                </a>
-                <Button
-                  variant="primary"
-                  onClick={() => {
-                    onEnableTool(tool.id);
-                    setStatusMessage(`${tool.displayName} is installed. Local workspaces were not changed.`);
-                    setCatalogOpen(false);
-                  }}
-                >
-                  Install
-                </Button>
-              </div>
-            </article>
-          ))}
+      {catalogOpen ? (
+        <section id="tool-catalog" className="tool-catalog" aria-label="Add New Tools catalog">
+          {hasAvailableTools ? (
+            availableTools.map((tool) => (
+              <article key={tool.id} className="tool-catalog-card">
+                <ToolLogo tool={tool} />
+                <div>
+                  <p className="eyebrow">
+                    {tool.installMode === "external" ? "External app" : "Bundled tool"}
+                  </p>
+                  <h2>{tool.displayName}</h2>
+                  <p>{tool.description}</p>
+                  <small>{tool.workspaceRequirement}</small>
+                </div>
+                <div className="tool-catalog-actions">
+                  <a href={tool.docsPath} rel="noreferrer" target="_blank">
+                    View docs
+                  </a>
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      onEnableTool(tool.id);
+                      setStatusMessage(
+                        `${tool.displayName} is installed. Local workspaces were not changed.`,
+                      );
+                      setCatalogOpen(false);
+                    }}
+                  >
+                    Install
+                  </Button>
+                </div>
+              </article>
+            ))
+          ) : (
+            <p className="tool-catalog-empty">No additional apps are available.</p>
+          )}
         </section>
       ) : null}
 
       <section className="tool-shelf" aria-label="Workshop tools">
+        {installedTools.length === 0 ? (
+          <p className="tool-shelf-empty">Choose apps from Add New Tools.</p>
+        ) : null}
         {installedTools.map((tool) => (
           <ToolChiclet
             key={tool.id}

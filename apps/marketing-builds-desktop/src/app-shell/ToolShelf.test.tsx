@@ -10,34 +10,41 @@ const testDir = path.dirname(fileURLToPath(import.meta.url));
 const styles = readFileSync(path.join(testDir, "../styles/app.css"), "utf8");
 
 describe("ToolShelf", () => {
-  it("renders Workshop as a tool picker with tooltip-backed chiclets", () => {
+  it("renders Workshop as an empty shell with all apps available from the catalog", () => {
     const markup = renderToStaticMarkup(<ToolShelf onSelectTool={() => undefined} />);
 
     expect(markup).toContain("aria-label=\"Workshop tools\"");
-    expect(markup).toContain("class=\"tool-chiclet\"");
-    expect(markup).toContain("aria-describedby=\"redline-tooltip\"");
-    expect(markup).toContain("aria-describedby=\"megaphone-tooltip\"");
-    expect(markup).toContain("role=\"tooltip\"");
+    expect(markup).toContain("aria-label=\"Add New Tools catalog\"");
+    expect(markup).toContain("Choose apps from Add New Tools.");
     expect(markup).toContain("Redline");
     expect(markup).toContain("Megaphone");
-    expect(markup).toContain("Ready");
-    expect(markup).toContain("Redline tool actions");
-    expect(markup).toContain("Megaphone tool actions");
-    expect(markup).toContain("Open workspace");
-    expect(markup).toContain("Set private workspace");
-    expect(markup).toContain("Use demo workspace");
-    expect(markup).toContain("Demo root");
-    expect(markup).toContain("clients/demo-redline");
-    expect(markup).toContain("clients/demo-megaphone");
-    expect(markup).toContain("Reset local state");
-    expect(markup).toContain("Disable tool");
+    expect(markup).toContain("Pulse");
+    expect(markup).toContain("Bundled tool");
+    expect(markup).toContain("External app");
+    expect(markup).toContain("Install");
     expect(markup).toContain("target=\"_blank\"");
     expect(markup).toContain("href=\"/docs/tools/redline.md\"");
     expect(markup).toContain("href=\"/docs/tools/megaphone.md\"");
-    expect(markup).toContain("Local client packets stay untouched");
-    expect(markup).not.toContain("Planned");
-    expect(markup).not.toContain("Add New Tools");
+    expect(markup).toContain("href=\"/docs/tools/pulse.md\"");
+    expect(markup).toContain("Add New Tools");
+    expect(markup).not.toContain("tool-chiclet");
+    expect(markup).not.toContain("Redline tool actions");
+    expect(markup).not.toContain("Megaphone tool actions");
     expect(markup).not.toContain("Updates check on launch.");
+  });
+
+  it("keeps the Add New Tools menu visible when the catalog is empty", () => {
+    const markup = renderToStaticMarkup(
+      <ToolShelf
+        availableTools={[]}
+        catalogInitiallyOpen
+        installedTools={tools}
+        onSelectTool={() => undefined}
+      />,
+    );
+
+    expect(markup).toContain("Add New Tools");
+    expect(markup).toContain("No additional apps are available.");
   });
 
   it("shows the Add New Tools catalog when a bundled tool is disabled", () => {

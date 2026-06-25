@@ -20,22 +20,25 @@ describe("Workshop desktop app", () => {
     expect(markup).toContain("Audit client pages against trusted source packets");
     expect(markup).toContain("Plan and shape campaign messages");
     expect(markup).toContain("Track persistent recurring obligations");
-    expect(markup).toContain("Redline tool actions");
-    expect(markup).toContain("Megaphone tool actions");
-    expect(markup).toContain("Pulse tool actions");
-    expect(markup).not.toContain("Add New Tools");
+    expect(markup).toContain("Choose apps from Add New Tools.");
+    expect(markup).toContain("aria-label=\"Add New Tools catalog\"");
+    expect(markup).toContain("Install");
+    expect(markup).toContain("Add New Tools");
+    expect(markup).not.toContain("Redline tool actions");
+    expect(markup).not.toContain("Megaphone tool actions");
+    expect(markup).not.toContain("Pulse tool actions");
     expect(markup).not.toContain(["clients", ["para", "sail"].join("")].join("/"));
     expect(markup).not.toContain("Export Reports");
     expect(markup).not.toContain("Updates check on launch.");
   });
 
-  it("renders a differentiated logo mark for each tool", () => {
+  it("renders a differentiated logo mark for each available app", () => {
     const markup = renderToStaticMarkup(<App />);
 
     expect(markup).toContain("aria-label=\"Lindsay Brunner brand mark\"");
     expect(markup).toContain("tool-logo-redline");
     expect(markup).toContain("tool-logo-megaphone");
-    expect(markup).toContain("role=\"tooltip\"");
+    expect(markup).toContain("tool-logo-pulse");
   });
 
   it("includes the Lindsay Brunner brand tokens", () => {

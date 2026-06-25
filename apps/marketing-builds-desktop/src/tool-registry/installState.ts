@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ToolDefinition } from "./types";
 
-export const toolInstallStorageKey = "workshop.toolInstallState.v1";
+export const toolInstallStorageKey = "workshop.toolInstallState.v2";
 export const toolLocalStatePrefix = "workshop.toolLocalState.";
 
 export type ToolInstallState = {
@@ -25,19 +25,13 @@ export function normalizeToolInstallState(
 ): ToolInstallState {
   const knownToolIds = new Set(toolList.map((tool) => tool.id));
   const defaultState = defaultToolInstallState(toolList);
-  const defaultExternalToolIds = toolList
-    .filter((tool) => tool.defaultInstalled && tool.installMode === "external")
-    .map((tool) => tool.id);
-
   if (!storedState || !Array.isArray(storedState.enabledToolIds)) {
     return defaultState;
   }
 
-  const enabledToolIds = [...storedState.enabledToolIds, ...defaultExternalToolIds].filter(
-    (toolId, index, toolIds) => {
-      return knownToolIds.has(toolId) && toolIds.indexOf(toolId) === index;
-    },
-  );
+  const enabledToolIds = storedState.enabledToolIds.filter((toolId, index, toolIds) => {
+    return knownToolIds.has(toolId) && toolIds.indexOf(toolId) === index;
+  });
 
   return { enabledToolIds };
 }
@@ -60,13 +54,21 @@ export function getAvailableBundledTools(
   );
 }
 
+export function getAvailableTools(
+  toolList: ToolDefinition[],
+  state: ToolInstallState,
+): ToolDefinition[] {
+  const enabledToolIds = new Set(state.enabledToolIds);
+  return toolList.filter((tool) => !enabledToolIds.has(tool.id));
+}
+
 export function enableTool(
   toolList: ToolDefinition[],
   state: ToolInstallState,
   toolId: string,
 ): ToolInstallActionResult {
   const tool = toolList.find((candidate) => candidate.id === toolId);
-  if (!tool || tool.installMode !== "bundled" || state.enabledToolIds.includes(toolId)) {
+  if (!tool || state.enabledToolIds.includes(toolId)) {
     return { state: normalizeToolInstallState(toolList, state), workspaceFilesTouched: false };
   }
 
@@ -148,7 +150,7 @@ export function useToolInstallState(toolList: ToolDefinition[]) {
     () => ({
       installState,
       installedTools: getInstalledTools(toolList, installState),
-      availableTools: getAvailableBundledTools(toolList, installState),
+      availableTools: getAvailableTools(toolList, installState),
       enableTool: (toolId: string) => {
         setInstallState((currentState) => enableTool(toolList, currentState, toolId).state);
       },

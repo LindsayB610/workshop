@@ -14,7 +14,7 @@ describe("tool registry", () => {
     expect(tool?.status).toBe("ready");
     expect(tool?.logoVariant).toBe("redline");
     expect(tool?.installMode).toBe("bundled");
-    expect(tool?.defaultInstalled).toBe(true);
+    expect(tool?.defaultInstalled).toBe(false);
     expect(tool?.docsPath).toBe("/docs/tools/redline.md");
     expect(tool?.workspaceRequirement).toContain("local client packet");
     expect(tool?.uninstallSafetyCopy).toContain("Local client packets stay untouched");
@@ -41,7 +41,7 @@ describe("tool registry", () => {
     expect(tool?.status).toBe("ready");
     expect(tool?.logoVariant).toBe("megaphone");
     expect(tool?.installMode).toBe("bundled");
-    expect(tool?.defaultInstalled).toBe(true);
+    expect(tool?.defaultInstalled).toBe(false);
     expect(tool?.docsPath).toBe("/docs/tools/megaphone.md");
     expect(tool?.workspaceRequirement).toContain("campaign corpus");
     expect(tool?.uninstallSafetyCopy).toContain("Local corpora and packages stay untouched");
@@ -63,7 +63,7 @@ describe("tool registry", () => {
 
     expect(tool?.status).toBe("ready");
     expect(tool?.installMode).toBe("external");
-    expect(tool?.defaultInstalled).toBe(true);
+    expect(tool?.defaultInstalled).toBe(false);
     expect(tool?.docsPath).toBe("/docs/tools/pulse.md");
     expect(tool?.description).toContain("recurring obligations");
     expect(tool?.workspaceRequirement).toContain("private Pulse runner");

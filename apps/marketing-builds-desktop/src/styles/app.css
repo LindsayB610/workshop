@@ -300,6 +300,12 @@ h4 {
   gap: 0.85rem;
 }
 
+.tool-shelf-empty {
+  margin: 0;
+  color: var(--dark-text-secondary);
+  font-size: 0.95rem;
+}
+
 .tool-shelf-actions {
   display: flex;
   align-items: center;
@@ -345,6 +351,12 @@ h4 {
 
 .tool-catalog-card small {
   color: var(--dark-text-muted);
+}
+
+.tool-catalog-empty {
+  margin: 0;
+  color: var(--dark-text-secondary);
+  font-size: 0.9rem;
 }
 
 .tool-catalog-actions {

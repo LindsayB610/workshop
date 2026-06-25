@@ -4,6 +4,7 @@ import {
   disableTool,
   enableTool,
   getAvailableBundledTools,
+  getAvailableTools,
   getInstalledTools,
   normalizeToolInstallState,
   resetToolLocalState,
@@ -13,16 +14,20 @@ import {
 import { tools } from "./tools";
 
 describe("tool install state", () => {
-  it("defaults visible Workshop tools to installed", () => {
+  it("defaults every Workshop app to available instead of installed", () => {
     const state = defaultToolInstallState(tools);
 
-    expect(state.enabledToolIds).toEqual(["redline", "megaphone", "pulse"]);
-    expect(getInstalledTools(tools, state).map((tool) => tool.id)).toEqual([
+    expect(state.enabledToolIds).toEqual([]);
+    expect(getInstalledTools(tools, state)).toEqual([]);
+    expect(getAvailableBundledTools(tools, state).map((tool) => tool.id)).toEqual([
+      "redline",
+      "megaphone",
+    ]);
+    expect(getAvailableTools(tools, state).map((tool) => tool.id)).toEqual([
       "redline",
       "megaphone",
       "pulse",
     ]);
-    expect(getAvailableBundledTools(tools, state)).toEqual([]);
   });
 
   it("normalizes persisted state to known tools", () => {
@@ -33,7 +38,7 @@ describe("tool install state", () => {
     ).toEqual({ enabledToolIds: ["redline", "pulse"] });
   });
 
-  it("migrates older persisted installs to include default external tools", () => {
+  it("preserves older persisted installs without adding default apps", () => {
     const state = normalizeToolInstallState(tools, {
       enabledToolIds: ["redline", "megaphone"],
     });
@@ -41,31 +46,38 @@ describe("tool install state", () => {
     expect(getInstalledTools(tools, state).map((tool) => tool.id)).toEqual([
       "redline",
       "megaphone",
-      "pulse",
     ]);
-    expect(getAvailableBundledTools(tools, state)).toEqual([]);
+    expect(getAvailableTools(tools, state).map((tool) => tool.id)).toEqual(["pulse"]);
   });
 
-  it("disables and restores one bundled tool without touching workspace files", () => {
+  it("installs and disables one bundled app without touching workspace files", () => {
     const initialState = defaultToolInstallState(tools);
-    const disabled = disableTool(tools, initialState, "redline");
-
-    expect(disabled.workspaceFilesTouched).toBe(false);
-    expect(getInstalledTools(tools, disabled.state).map((tool) => tool.id)).toEqual([
-      "megaphone",
-      "pulse",
-    ]);
-    expect(getAvailableBundledTools(tools, disabled.state).map((tool) => tool.id)).toEqual([
-      "redline",
-    ]);
-
-    const restored = enableTool(tools, disabled.state, "redline");
+    const restored = enableTool(tools, initialState, "redline");
 
     expect(restored.workspaceFilesTouched).toBe(false);
     expect(getInstalledTools(tools, restored.state).map((tool) => tool.id)).toEqual([
       "redline",
+    ]);
+
+    const disabled = disableTool(tools, restored.state, "redline");
+
+    expect(disabled.workspaceFilesTouched).toBe(false);
+    expect(getInstalledTools(tools, disabled.state)).toEqual([]);
+    expect(getAvailableBundledTools(tools, disabled.state).map((tool) => tool.id)).toEqual([
+      "redline",
       "megaphone",
-      "pulse",
+    ]);
+  });
+
+  it("installs an external app launcher without touching workspace files", () => {
+    const initialState = defaultToolInstallState(tools);
+    const installed = enableTool(tools, initialState, "pulse");
+
+    expect(installed.workspaceFilesTouched).toBe(false);
+    expect(getInstalledTools(tools, installed.state).map((tool) => tool.id)).toEqual(["pulse"]);
+    expect(getAvailableTools(tools, installed.state).map((tool) => tool.id)).toEqual([
+      "redline",
+      "megaphone",
     ]);
   });
 

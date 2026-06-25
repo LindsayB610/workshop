@@ -266,6 +266,14 @@ artifact upload happen together.
 - [docs/workshop-updates.md](docs/workshop-updates.md):
   signed desktop update workflow
 
+## License And Attribution
+
+Workshop is licensed under the MIT License. See [LICENSE](LICENSE).
+
+Redline-compatible contracts and parity tests were informed by Randall Degges'
+MIT-licensed `rdegges/redline` project. See
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for the upstream notice.
+
 ## Development Notes
 
 - Keep generated build outputs out of git.

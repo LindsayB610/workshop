@@ -59,6 +59,20 @@ Current hardening:
 See the public setup docs below for install, private workspace, and tool authoring
 guidance.
 
+## Choose Your Path
+
+Use Workshop when you want the desktop shell, local workspace picker, bundled
+demo data, and one place to run multiple Marketing Builds tools.
+
+Use Redline directly when you only need the CLI or package for source-backed
+page and draft review.
+
+Use Megaphone directly when you only need the package workflow for LinkedIn
+corpus, brief, draft, review, and post-package generation.
+
+For a first run, start with Workshop's checked-in demo data. For real work,
+create a private workspace outside the repo and point Workshop at that root.
+
 ## Repository Layout
 
 ```text
@@ -192,6 +206,10 @@ Run the Workshop frontend dev server:
 npm run desktop:dev
 ```
 
+Then open the local dev URL, choose `Add New Tools` if no tools are installed,
+and install Redline or Megaphone from the picker. Use each tool's three-dot menu
+to select a private workspace when you are ready to use real client data.
+
 Run Tauri commands for Workshop:
 
 ```sh
@@ -256,6 +274,8 @@ artifact upload happen together.
 
 - [docs/public-quickstart.md](docs/public-quickstart.md): public demo and
   private-workspace setup
+- [docs/private-workspaces.md](docs/private-workspaces.md): private workspace
+  layout, selector behavior, runtime guardrails, and git rules
 - [docs/public-clean-clone-install.md](docs/public-clean-clone-install.md):
   clone/install/test/package proof for public Workshop users
 - [docs/public-release-checklist.md](docs/public-release-checklist.md):

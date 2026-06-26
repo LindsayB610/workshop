@@ -490,7 +490,7 @@ export function MegaphoneTool({
           {packageCreateResult ? (
             <p className="action-note">
               {packageCreateResult.status === "created"
-                ? `Created ${packageCreateResult.files.length} files from ${packageCreateResult.packageRoot}.`
+                ? `Created and saved ${packageCreateResult.files.length} files from ${packageCreateResult.packageRoot}.`
                 : packageCreateResult.message}
             </p>
           ) : null}

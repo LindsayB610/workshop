@@ -169,6 +169,18 @@ function megaphoneWorkspaceRoot(): string | undefined {
   return readWorkspaceRootForTool(tools, "megaphone");
 }
 
+async function persistMegaphonePostPackage(
+  clientId: string,
+  files: MegaphonePostPackageFile[],
+): Promise<void> {
+  await invoke<number>("megaphone_write_post_package_files", {
+    clientId,
+    files,
+    overwrite: true,
+    workspaceRoot: megaphoneWorkspaceRoot(),
+  });
+}
+
 export async function loadMegaphoneWorkspaceIndex(): Promise<MegaphoneWorkspaceIndexResult> {
   if (typeof window === "undefined" || !window.__TAURI_INTERNALS__) {
     return {
@@ -285,6 +297,8 @@ export async function createMegaphonePostPackage(
       contentPillar: workspace.calendarItems[0]?.pillar,
       workspaceRoot: megaphoneWorkspaceRoot(),
     });
+
+    await persistMegaphonePostPackage(postPackage.clientId, postPackage.files);
 
     return {
       status: "created",
@@ -485,6 +499,8 @@ export async function createMegaphoneAiPostPackage(
       model: workspace.aiDrafting.model,
       workspaceRoot: megaphoneWorkspaceRoot(),
     });
+
+    await persistMegaphonePostPackage(postPackage.clientId, postPackage.files);
 
     return {
       status: "created",

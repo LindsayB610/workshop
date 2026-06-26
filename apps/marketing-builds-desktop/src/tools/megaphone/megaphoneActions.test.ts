@@ -296,14 +296,16 @@ clients:
   });
 
   it("creates post packages from the loaded client folder through Tauri", async () => {
-    vi.stubGlobal("window", { __TAURI_INTERNALS__: {} });
+    stubTauriWindowWithWorkspace("/Users/example/workshop-private");
     const workspace = getMegaphoneWorkspace("demo-megaphone");
-    invokeMock.mockResolvedValue({
-      clientId: "demo-megaphone",
-      packageRoot:
-        "clients/demo-megaphone/post-packages/public-endpoint-vs-private-endpoint-decision-tree",
-      files: sampleFiles,
-    });
+    invokeMock
+      .mockResolvedValueOnce({
+        clientId: "demo-megaphone",
+        packageRoot:
+          "clients/demo-megaphone/post-packages/public-endpoint-vs-private-endpoint-decision-tree",
+        files: sampleFiles,
+      })
+      .mockResolvedValueOnce(sampleFiles.length);
 
     await expect(
       createMegaphonePostPackage(workspace, {
@@ -327,7 +329,7 @@ clients:
         "clients/demo-megaphone/post-packages/public-endpoint-vs-private-endpoint-decision-tree",
       files: sampleFiles,
     });
-    expect(invokeMock).toHaveBeenCalledWith("megaphone_create_post_package", {
+    expect(invokeMock).toHaveBeenNthCalledWith(1, "megaphone_create_post_package", {
       clientId: "demo-megaphone",
       clientPath: "clients/demo-megaphone",
       topic: "source signal scorecard for service handoffs",
@@ -337,6 +339,13 @@ clients:
       allowAdjacentExamples: false,
       proofRisk: "medium",
       contentPillar: "operational_control",
+      workspaceRoot: "/Users/example/workshop-private",
+    });
+    expect(invokeMock).toHaveBeenNthCalledWith(2, "megaphone_write_post_package_files", {
+      clientId: "demo-megaphone",
+      files: sampleFiles,
+      overwrite: true,
+      workspaceRoot: "/Users/example/workshop-private",
     });
   });
 
@@ -446,20 +455,23 @@ clients:
   });
 
   it("creates AI-assisted post packages from the loaded client folder through Tauri", async () => {
-    vi.stubGlobal("window", { __TAURI_INTERNALS__: {} });
+    stubTauriWindowWithWorkspace("/Users/example/workshop-private");
     const workspace = withAiModel(getMegaphoneWorkspace("demo-megaphone"), "gpt-5");
-    invokeMock.mockResolvedValue({
-      clientId: "demo-megaphone",
-      packageRoot:
-        "clients/demo-megaphone/post-packages/public-endpoint-vs-private-endpoint-decision-tree",
-      files: [
-        ...sampleFiles,
-        {
-          path: "clients/demo-megaphone/post-packages/public-endpoint-vs-private-endpoint-decision-tree/ai-generation.md",
-          contents: "# AI Draft Generation\n\n- Mode: ai\n",
-        },
-      ],
-    });
+    const aiFiles = [
+      ...sampleFiles,
+      {
+        path: "clients/demo-megaphone/post-packages/public-endpoint-vs-private-endpoint-decision-tree/ai-generation.md",
+        contents: "# AI Draft Generation\n\n- Mode: ai\n",
+      },
+    ];
+    invokeMock
+      .mockResolvedValueOnce({
+        clientId: "demo-megaphone",
+        packageRoot:
+          "clients/demo-megaphone/post-packages/public-endpoint-vs-private-endpoint-decision-tree",
+        files: aiFiles,
+      })
+      .mockResolvedValueOnce(aiFiles.length);
 
     await expect(
       createMegaphoneAiPostPackage(workspace, {
@@ -480,7 +492,7 @@ clients:
       status: "created",
       clientId: "demo-megaphone",
     });
-    expect(invokeMock).toHaveBeenCalledWith("megaphone_create_ai_post_package", {
+    expect(invokeMock).toHaveBeenNthCalledWith(1, "megaphone_create_ai_post_package", {
       clientId: "demo-megaphone",
       clientPath: "clients/demo-megaphone",
       topic: "source signal scorecard for service handoffs",
@@ -491,6 +503,13 @@ clients:
       proofRisk: "medium",
       contentPillar: "operational_control",
       model: "gpt-5",
+      workspaceRoot: "/Users/example/workshop-private",
+    });
+    expect(invokeMock).toHaveBeenNthCalledWith(2, "megaphone_write_post_package_files", {
+      clientId: "demo-megaphone",
+      files: aiFiles,
+      overwrite: true,
+      workspaceRoot: "/Users/example/workshop-private",
     });
   });
 

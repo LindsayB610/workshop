@@ -9,7 +9,7 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Panel } from "../../components/ui/panel";
@@ -19,6 +19,7 @@ import {
   exportMegaphoneOnboardingPacket,
   exportMegaphonePostPackage,
   loadMegaphoneClientFolder,
+  loadMegaphoneWorkspaceIndex,
   openMegaphoneArtifact,
   type MegaphoneClientLoadResult,
   type MegaphoneAiConnectionResult,
@@ -29,6 +30,7 @@ import {
   type MegaphonePackageCreateResult,
   type MegaphoneChatResult,
   type MegaphoneChatTurn,
+  type MegaphoneWorkspaceIndexResult,
   chatWithMegaphoneAi,
   clearMegaphoneAiCredential,
   createMegaphoneAiPostPackage,
@@ -38,12 +40,14 @@ import {
 import {
   buildMegaphoneArtifacts,
   buildMegaphoneArtifactsFromPaths,
+  buildPrivateMegaphoneWorkspace,
   bridgeMegaphoneWorkspace,
   defaultMegaphoneClientId,
   getMegaphoneWorkspace,
   megaphoneWorkspaces,
   type MegaphonePostPackageFile,
   type MegaphonePipelineStage,
+  type MegaphoneWorkspace,
 } from "./megaphoneData";
 
 const selectablePostTypes = [
@@ -91,15 +95,31 @@ const megaphoneScreens = [
 
 type MegaphoneScreen = (typeof megaphoneScreens)[number];
 
+type MegaphoneToolProps = ToolViewProps & {
+  initialWorkspaceIndexResult?: MegaphoneWorkspaceIndexResult | null;
+};
+
 function isMegaphoneScreen(routeId: string): routeId is MegaphoneScreen {
   return megaphoneScreens.some((screen) => screen === routeId);
 }
 
-export function MegaphoneTool({ activeRouteId }: ToolViewProps) {
+export function MegaphoneTool({
+  activeRouteId,
+  initialWorkspaceIndexResult = null,
+}: MegaphoneToolProps) {
   const activeScreen: MegaphoneScreen =
     activeRouteId && isMegaphoneScreen(activeRouteId) ? activeRouteId : "sources";
   const [activeClientId, setActiveClientId] = useState(defaultMegaphoneClientId);
-  const seedWorkspace = getMegaphoneWorkspace(activeClientId);
+  const [workspaceIndexResult, setWorkspaceIndexResult] =
+    useState<MegaphoneWorkspaceIndexResult | null>(initialWorkspaceIndexResult);
+  const indexedWorkspaces =
+    workspaceIndexResult?.status === "loaded"
+      ? workspaceIndexResult.clients.map(buildPrivateMegaphoneWorkspace)
+      : [];
+  const workspaceOptions = mergeWorkspaceOptions(megaphoneWorkspaces, indexedWorkspaces);
+  const seedWorkspace =
+    workspaceOptions.find((candidate) => candidate.clientId === activeClientId) ??
+    getMegaphoneWorkspace(activeClientId);
   const [selectedPostType, setSelectedPostType] = useState(seedWorkspace.activePostType);
   const [allowAdjacentExamples, setAllowAdjacentExamples] = useState(
     seedWorkspace.allowAdjacentExamples,
@@ -148,6 +168,23 @@ export function MegaphoneTool({ activeRouteId }: ToolViewProps) {
   const createdPacketOutputs = workspace.onboarding.steps.flatMap(
     (step) => step.expectedOutputs,
   );
+
+  useEffect(() => {
+    if (initialWorkspaceIndexResult) {
+      return;
+    }
+
+    let mounted = true;
+    void loadMegaphoneWorkspaceIndex().then((result) => {
+      if (mounted) {
+        setWorkspaceIndexResult(result);
+      }
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, [initialWorkspaceIndexResult]);
   const hasCreatedPacketPlan = createdPacketClientId === activeWorkspace.clientId;
   const generatedArtifacts =
     postPackageFiles.length > 0
@@ -157,7 +194,9 @@ export function MegaphoneTool({ activeRouteId }: ToolViewProps) {
         );
 
   function selectClient(clientId: string) {
-    const nextWorkspace = getMegaphoneWorkspace(clientId);
+    const nextWorkspace =
+      workspaceOptions.find((candidate) => candidate.clientId === clientId) ??
+      getMegaphoneWorkspace(clientId);
     setActiveClientId(clientId);
     setSelectedPostType(nextWorkspace.activePostType);
     setAllowAdjacentExamples(nextWorkspace.allowAdjacentExamples);
@@ -331,7 +370,7 @@ export function MegaphoneTool({ activeRouteId }: ToolViewProps) {
               </Badge>
             </div>
             <div className="client-switcher" aria-label="Megaphone client workspaces">
-              {megaphoneWorkspaces.map((candidate) => (
+              {workspaceOptions.map((candidate) => (
                 <Button
                   key={candidate.clientId}
                   onClick={() => selectClient(candidate.clientId)}
@@ -342,6 +381,13 @@ export function MegaphoneTool({ activeRouteId }: ToolViewProps) {
               ))}
             </div>
           </div>
+
+          {workspaceIndexResult?.status === "loaded" && indexedWorkspaces.length > 0 ? (
+            <p className="workspace-index-status" role="status">
+              {indexedWorkspaces.length} private Megaphone{" "}
+              {indexedWorkspaces.length === 1 ? "client" : "clients"} found in workspace.yaml.
+            </p>
+          ) : null}
 
           <div className="summary-details">
             <div>
@@ -865,6 +911,17 @@ export function MegaphoneTool({ activeRouteId }: ToolViewProps) {
       </section>
     </div>
   );
+}
+
+function mergeWorkspaceOptions(
+  bundledWorkspaces: MegaphoneWorkspace[],
+  indexedWorkspaces: MegaphoneWorkspace[],
+): MegaphoneWorkspace[] {
+  const bundledIds = new Set(bundledWorkspaces.map((workspace) => workspace.clientId));
+  return [
+    ...bundledWorkspaces,
+    ...indexedWorkspaces.filter((workspace) => !bundledIds.has(workspace.clientId)),
+  ];
 }
 
 function PipelineStage({ stage }: { stage: MegaphonePipelineStage }) {

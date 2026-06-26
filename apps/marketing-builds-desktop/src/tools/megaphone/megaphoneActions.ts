@@ -1,6 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
 import { tools } from "../../tool-registry/tools";
-import { readWorkspaceRootForTool } from "../../tool-registry/workspaceState";
+import {
+  parsePrivateWorkspaceIndex,
+  readWorkspaceRootForTool,
+  type PrivateWorkspaceClient,
+} from "../../tool-registry/workspaceState";
 import type { MegaphonePostPackageFile, MegaphoneWorkspace } from "./megaphoneData";
 
 export type MegaphoneClientLoadResult =
@@ -28,6 +32,16 @@ type MegaphoneLoadedClientFolder = Omit<
   Extract<MegaphoneClientLoadResult, { status: "loaded" }>,
   "status"
 >;
+
+export type MegaphoneWorkspaceIndexResult =
+  | {
+      status: "loaded";
+      clients: PrivateWorkspaceClient[];
+    }
+  | {
+      status: "unavailable";
+      message: string;
+    };
 
 export type MegaphoneExportResult =
   | {
@@ -153,6 +167,57 @@ function messageFromError(error: unknown, fallback: string): string {
 
 function megaphoneWorkspaceRoot(): string | undefined {
   return readWorkspaceRootForTool(tools, "megaphone");
+}
+
+export async function loadMegaphoneWorkspaceIndex(): Promise<MegaphoneWorkspaceIndexResult> {
+  if (typeof window === "undefined" || !window.__TAURI_INTERNALS__) {
+    return {
+      status: "unavailable",
+      message: "Private workspace indexes are available in the packaged Workshop app.",
+    };
+  }
+
+  const workspaceRoot = megaphoneWorkspaceRoot();
+  if (!workspaceRoot) {
+    return {
+      status: "unavailable",
+      message: "Choose a private Megaphone workspace before reading workspace.yaml.",
+    };
+  }
+
+  try {
+    const contents = await invoke<string | null>("read_private_workspace_index", {
+      workspaceRoot,
+    });
+    if (!contents) {
+      return {
+        status: "unavailable",
+        message: "No workspace.yaml was found in the selected private workspace.",
+      };
+    }
+
+    const parsed = parsePrivateWorkspaceIndex(contents);
+    if (!parsed.ok) {
+      return {
+        status: "unavailable",
+        message: parsed.message,
+      };
+    }
+
+    return {
+      status: "loaded",
+      clients: parsed.index.clients.filter(
+        (client) =>
+          client.tool === "megaphone" &&
+          (client.status === "active" || client.status === "draft"),
+      ),
+    };
+  } catch (error) {
+    return {
+      status: "unavailable",
+      message: messageFromError(error, "Workshop could not read workspace.yaml."),
+    };
+  }
 }
 
 export async function loadMegaphoneClientFolder(

@@ -8,10 +8,12 @@ import {
   exportMegaphonePostPackage,
   getMegaphoneAiCredentialStatus,
   loadMegaphoneClientFolder,
+  loadMegaphoneWorkspaceIndex,
   openMegaphoneArtifact,
   saveMegaphoneAiCredential,
   testMegaphoneAiConnection,
 } from "./megaphoneActions";
+import { toolWorkspaceStorageKey } from "../../tool-registry/workspaceState";
 import {
   getMegaphoneWorkspace,
   type MegaphonePostPackageFile,
@@ -41,6 +43,33 @@ function withAiModel(workspace: MegaphoneWorkspace, model: string): MegaphoneWor
       model,
     },
   };
+}
+
+function stubTauriWindowWithWorkspace(root: string) {
+  const storage = new Map<string, string>();
+  storage.set(
+    toolWorkspaceStorageKey,
+    JSON.stringify({
+      selections: [
+        {
+          toolId: "megaphone",
+          mode: "external",
+          root,
+          label: "Private workspace",
+          updatedAt: "2026-06-26T00:00:00.000Z",
+        },
+      ],
+    }),
+  );
+
+  vi.stubGlobal("window", {
+    __TAURI_INTERNALS__: {},
+    localStorage: {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => storage.set(key, value),
+      removeItem: (key: string) => storage.delete(key),
+    },
+  });
 }
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -92,6 +121,69 @@ describe("Megaphone local artifact actions", () => {
     });
     expect(invokeMock).toHaveBeenCalledWith("megaphone_load_client_folder", {
       path: "clients/demo-megaphone",
+    });
+  });
+
+  it("loads Megaphone clients from a selected private workspace index", async () => {
+    stubTauriWindowWithWorkspace("/Users/example/workshop-private");
+    invokeMock.mockResolvedValue(`
+version: 1
+workspaceType: workshop-private
+clients:
+  - clientId: acme-megaphone
+    root: clients/acme-megaphone
+    tool: megaphone
+    status: active
+  - clientId: draft-megaphone
+    root: clients/draft-megaphone
+    tool: megaphone
+    status: draft
+  - clientId: old-megaphone
+    root: clients/old-megaphone
+    tool: megaphone
+    status: archived
+  - clientId: acme-redline
+    root: clients/acme-redline
+    tool: redline
+    status: active
+`);
+
+    await expect(loadMegaphoneWorkspaceIndex()).resolves.toEqual({
+      status: "loaded",
+      clients: [
+        {
+          clientId: "acme-megaphone",
+          root: "clients/acme-megaphone",
+          tool: "megaphone",
+          status: "active",
+        },
+        {
+          clientId: "draft-megaphone",
+          root: "clients/draft-megaphone",
+          tool: "megaphone",
+          status: "draft",
+        },
+      ],
+    });
+    expect(invokeMock).toHaveBeenCalledWith("read_private_workspace_index", {
+      workspaceRoot: "/Users/example/workshop-private",
+    });
+  });
+
+  it("reports invalid Megaphone private workspace indexes", async () => {
+    stubTauriWindowWithWorkspace("/Users/example/workshop-private");
+    invokeMock.mockResolvedValue(`
+version: 1
+workspaceType: workshop-private
+clients:
+  - clientId: acme-megaphone
+    root: /Users/example/workshop-private/clients/acme-megaphone
+    tool: megaphone
+`);
+
+    await expect(loadMegaphoneWorkspaceIndex()).resolves.toEqual({
+      status: "unavailable",
+      message: "Workspace client roots must be relative to the workspace root.",
     });
   });
 

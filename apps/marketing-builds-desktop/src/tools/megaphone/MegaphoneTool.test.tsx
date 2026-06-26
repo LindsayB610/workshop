@@ -7,6 +7,7 @@ import { getToolById } from "../../tool-registry/tools";
 import { MegaphoneTool } from "./MegaphoneTool";
 import {
   buildMegaphoneArtifacts,
+  buildPrivateMegaphoneWorkspace,
   bridgeMegaphoneWorkspace,
   getMegaphoneWorkspace,
 } from "./megaphoneData";
@@ -36,6 +37,33 @@ describe("MegaphoneTool", () => {
     expect(markup).not.toContain("Post package stages");
     expect(markup).not.toContain("Generated Artifacts");
     expect(markup).not.toContain("Local AI Drafting");
+  });
+
+  it("renders private workspace.yaml clients in the Megaphone switcher", () => {
+    if (!megaphoneTool) {
+      throw new Error("Megaphone tool is not registered.");
+    }
+
+    const markup = renderToStaticMarkup(
+      <MegaphoneTool
+        tool={megaphoneTool}
+        initialWorkspaceIndexResult={{
+          status: "loaded",
+          clients: [
+            {
+              clientId: "acme-megaphone",
+              root: "clients/acme-megaphone",
+              tool: "megaphone",
+              status: "active",
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(markup).toContain("Acme Megaphone");
+    expect(markup).toContain("1 private Megaphone client found in workspace.yaml.");
+    expect(markup).toContain("Northstar Demo Co.");
   });
 
   it("keeps secondary Megaphone screens out of the default sources screen", () => {
@@ -140,6 +168,24 @@ describe("MegaphoneTool", () => {
     expect(JSON.stringify(demoInfluencer.onboarding.exportFiles)).toContain("client-mode.md");
     expect(JSON.stringify(demoInfluencer).toLowerCase()).not.toContain("brightbeam");
     expect(JSON.stringify(demoInfluencer).toLowerCase()).not.toContain("demo-megaphone");
+  });
+
+  it("creates honest seed workspaces for private indexed clients", () => {
+    const workspace = buildPrivateMegaphoneWorkspace({
+      clientId: "acme-megaphone",
+      root: "clients/acme-megaphone",
+      tool: "megaphone",
+      status: "draft",
+    });
+
+    expect(workspace.clientName).toBe("Acme Megaphone");
+    expect(workspace.packetPath).toBe("clients/acme-megaphone");
+    expect(workspace.readiness).toBe("source_review_needed");
+    expect(workspace.measurementSignals[0]).toMatchObject({
+      label: "Private index",
+      value: "draft",
+    });
+    expect(workspace.warnings[0]).toContain("workspace.yaml");
   });
 
   it("bridges loaded client packet summaries into the visible workspace", () => {

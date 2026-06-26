@@ -174,6 +174,28 @@ fn explicit_workspace_roots(workspace_root: Option<&str>) -> Result<Vec<PathBuf>
     }
 }
 
+fn read_private_workspace_index_from_context(
+    workspace_root: Option<&str>,
+) -> Result<Option<String>, String> {
+    let roots = explicit_workspace_roots(workspace_root)?;
+    let Some(root) = roots.first() else {
+        return Ok(None);
+    };
+    let index_path = root.join("workspace.yaml");
+
+    if !index_path.exists() {
+        return Ok(None);
+    }
+
+    if !index_path.is_file() {
+        return Err("Private workspace index must be a workspace.yaml file.".into());
+    }
+
+    fs::read_to_string(index_path)
+        .map(Some)
+        .map_err(|error| format!("Could not read private workspace index: {error}"))
+}
+
 fn normalize_megaphone_write_path(path: &str, client_id: &str) -> Result<PathBuf, String> {
     let normalized = normalize_megaphone_path(path)?;
     let client_root = PathBuf::from("clients").join(client_id);
@@ -1349,6 +1371,11 @@ fn redline_write_target_snapshot_files(
     redline_write_target_snapshot_files_to_root(&root, &client_id, &files, overwrite)
 }
 
+#[tauri::command]
+fn read_private_workspace_index(workspace_root: Option<String>) -> Result<Option<String>, String> {
+    read_private_workspace_index_from_context(workspace_root.as_deref())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -1364,6 +1391,7 @@ pub fn run() {
             megaphone_test_ai_connection,
             megaphone_write_onboarding_files,
             megaphone_write_post_package_files,
+            read_private_workspace_index,
             redline_open_path,
             redline_fetch_live_url,
             redline_write_target_snapshot_files,
@@ -1427,6 +1455,43 @@ mod tests {
 
         let _ = fs::remove_dir_all(root);
         let _ = fs::remove_dir_all(private_root);
+    }
+
+    #[test]
+    fn reads_optional_private_workspace_index_from_selected_root() {
+        let root = unique_temp_root("workspace-index");
+        fs::create_dir_all(root.join("clients/acme-megaphone"))
+            .expect("workspace client directory should be created");
+        let index = "version: 1\nworkspaceType: workshop-private\nclients: []\n";
+        fs::write(root.join("workspace.yaml"), index).expect("workspace index should be written");
+
+        assert_eq!(
+            read_private_workspace_index_from_context(Some(
+                root.to_str().expect("temp path should be utf8")
+            ))
+            .expect("workspace index should be readable"),
+            Some(index.to_string())
+        );
+
+        let missing_root = unique_temp_root("workspace-index-missing");
+        fs::create_dir_all(&missing_root).expect("missing-index root should be created");
+        assert_eq!(
+            read_private_workspace_index_from_context(Some(
+                missing_root.to_str().expect("temp path should be utf8")
+            ))
+            .expect("missing workspace index should be optional"),
+            None
+        );
+
+        assert_eq!(
+            read_private_workspace_index_from_context(None)
+                .expect("empty workspace root should be optional"),
+            None
+        );
+        assert!(read_private_workspace_index_from_context(Some("clients/demo-megaphone")).is_err());
+
+        let _ = fs::remove_dir_all(root);
+        let _ = fs::remove_dir_all(missing_root);
     }
 
     #[test]

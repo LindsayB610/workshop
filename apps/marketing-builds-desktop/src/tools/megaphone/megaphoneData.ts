@@ -1,3 +1,5 @@
+import type { PrivateWorkspaceClient } from "../../tool-registry/workspaceState";
+
 export type MegaphoneReadinessState =
   | "ready_to_brief"
   | "brief_with_caveats"
@@ -627,6 +629,85 @@ export function getMegaphoneWorkspace(clientId: string): MegaphoneWorkspace {
     megaphoneWorkspaces.find((workspace) => workspace.clientId === clientId) ??
     megaphoneWorkspaces[0]
   );
+}
+
+export function buildPrivateMegaphoneWorkspace(
+  client: PrivateWorkspaceClient,
+): MegaphoneWorkspace {
+  const label = client.clientId
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+
+  return {
+    ...megaphoneWorkspaces[0],
+    clientId: client.clientId,
+    clientName: label,
+    clientType: "brand",
+    packetPath: client.root,
+    readiness: "source_review_needed",
+    sourceCount: 0,
+    researchFiles: 0,
+    activeBriefTopic: "Load the private client folder to inspect source-backed topics",
+    activePostType: "evaluation_guide",
+    allowAdjacentExamples: false,
+    exampleCorpusStatus: "not_imported",
+    activeAudience: "buyer, operator",
+    proofRisk: "medium",
+    pipeline: [
+      {
+        id: "source-packet",
+        label: "Source packet",
+        status: "review",
+        detail: "Load the indexed private client folder to read packet data from disk.",
+      },
+      {
+        id: "brief",
+        label: "Brief",
+        status: "blocked",
+        detail: "Briefing waits for a loaded private Megaphone client packet.",
+      },
+      {
+        id: "draft",
+        label: "Draft",
+        status: "blocked",
+        detail: "Drafting waits for a loaded private Megaphone client packet.",
+      },
+      {
+        id: "visual",
+        label: "Visual",
+        status: "blocked",
+        detail: "Visual guidance waits for a loaded private Megaphone client packet.",
+      },
+      {
+        id: "measurement",
+        label: "Measurement",
+        status: "blocked",
+        detail: "Measurement guidance waits for a loaded private Megaphone client packet.",
+      },
+    ],
+    calendarItems: [],
+    calendarWarnings: [],
+    measurementSignals: [
+      {
+        label: "Private index",
+        value: client.status,
+        caveat: "Loaded from workspace.yaml; load the client folder for packet details.",
+      },
+    ],
+    onboarding: {
+      ...megaphoneWorkspaces[0].onboarding,
+      draftClientName: label,
+      readinessPreview: "source_review_needed",
+      generatedPacketPath: client.root,
+      steps: [],
+      exportFiles: [],
+    },
+    bridgeStatus: "seed",
+    warnings: [
+      "This client was discovered in workspace.yaml. Load the private client folder to inspect packet data.",
+    ],
+  };
 }
 
 export function bridgeMegaphoneWorkspace(

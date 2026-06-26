@@ -1,7 +1,27 @@
 import { expect, test, type Page } from "@playwright/test";
 
+async function installTool(page: Page, toolName: "Redline" | "Megaphone") {
+  const readyButton = page.getByRole("button", { name: new RegExp(`${toolName} Ready`) });
+  if ((await readyButton.count()) > 0) {
+    return;
+  }
+
+  const catalog = page.getByLabel("Add New Tools catalog");
+  if ((await catalog.count()) === 0) {
+    await page.getByRole("button", { name: "Add New Tools" }).click();
+  }
+  await expect(catalog).toBeVisible();
+  await catalog
+    .locator("article")
+    .filter({ has: page.getByRole("heading", { name: toolName }) })
+    .getByRole("button", { name: "Install" })
+    .click();
+  await expect(readyButton).toBeVisible();
+}
+
 async function openRedline(page: Page) {
   await page.goto("/");
+  await installTool(page, "Redline");
   await page
     .getByRole("button", {
       name: /Redline Ready Audit client pages against trusted source packets/,
@@ -34,6 +54,8 @@ test.describe("Redline Workshop integration", () => {
 
   test("disabling Redline hides it until Add New Tools restores it", async ({ page }) => {
     await page.goto("/");
+    await installTool(page, "Redline");
+    await installTool(page, "Megaphone");
 
     await page.getByLabel("Redline tool actions").click();
     await page.getByRole("menuitem", { name: "Disable tool" }).click();
@@ -46,11 +68,17 @@ test.describe("Redline Workshop integration", () => {
     await expect(page.getByLabel("Add New Tools catalog")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Redline" })).toBeVisible();
 
-    await page.getByRole("button", { name: "Install" }).click();
+    await page
+      .getByLabel("Add New Tools catalog")
+      .locator("article")
+      .filter({ has: page.getByRole("heading", { name: "Redline" }) })
+      .getByRole("button", { name: "Install" })
+      .click();
     await expect(page.getByRole("button", { name: /Redline Ready/ })).toBeVisible();
     await expect(page.getByRole("button", { name: /Megaphone Ready/ })).toBeVisible();
     await expect(page.getByText(/Redline is installed/)).toBeVisible();
-    await expect(page.getByRole("button", { name: "Add New Tools" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Add New Tools" })).toBeVisible();
+    await expect(page.getByLabel("Add New Tools catalog")).toHaveCount(0);
   });
 
   test("tool action menu opens docs, workspace, and resets local UI state", async ({
@@ -58,6 +86,7 @@ test.describe("Redline Workshop integration", () => {
     page,
   }) => {
     await page.goto("/");
+    await installTool(page, "Redline");
     await page.evaluate(() => {
       window.localStorage.setItem("workshop.toolLocalState.redline.activeClient", "fixture");
       window.localStorage.setItem("workshop.toolLocalState.megaphone.activeClient", "demo-megaphone");

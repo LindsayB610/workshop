@@ -1,7 +1,27 @@
 import { expect, test, type Page } from "@playwright/test";
 
+async function installMegaphone(page: Page) {
+  const readyButton = page.getByRole("button", { name: /Megaphone Ready/ });
+  if ((await readyButton.count()) > 0) {
+    return;
+  }
+
+  const catalog = page.getByLabel("Add New Tools catalog");
+  if ((await catalog.count()) === 0) {
+    await page.getByRole("button", { name: "Add New Tools" }).click();
+  }
+  await expect(catalog).toBeVisible();
+  await catalog
+    .locator("article")
+    .filter({ has: page.getByRole("heading", { name: "Megaphone" }) })
+    .getByRole("button", { name: "Install" })
+    .click();
+  await expect(readyButton).toBeVisible();
+}
+
 async function openMegaphone(page: Page) {
   await page.goto("/");
+  await installMegaphone(page);
   await page
     .getByRole("button", {
       name: "Megaphone Ready Plan and shape campaign messages across channels from one source brief.",

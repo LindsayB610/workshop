@@ -41,6 +41,15 @@ describe("Workshop desktop app", () => {
     expect(markup).toContain("tool-logo-pulse");
   });
 
+  it("scales tool logos as a whole mark in workbench headers", () => {
+    expect(styles).toContain("--tool-logo-size: 4.25rem");
+    expect(styles).toContain("--tool-logo-frame-size: 2.65rem");
+    expect(styles).toContain(".workspace-title .tool-logo");
+    expect(styles).toContain("--tool-logo-size: 3.2rem");
+    expect(styles).toContain("--tool-logo-frame-size: 2rem");
+    expect(styles).not.toContain(".workspace-title .tool-logo-frame");
+  });
+
   it("includes the Lindsay Brunner brand tokens", () => {
     expect(styles).toContain("--color-red: #ff0037");
     expect(styles).toContain("--color-pink: #ff1b8d");

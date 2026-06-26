@@ -3,8 +3,11 @@ import type { ToolDefinition } from "./types";
 
 export const toolInstallStorageKey = "workshop.toolInstallState.v2";
 export const toolLocalStatePrefix = "workshop.toolLocalState.";
+export const toolInstallStateSchemaVersion = 3;
+const legacyBundledToolIds = ["redline", "megaphone"];
 
 export type ToolInstallState = {
+  schemaVersion: number;
   enabledToolIds: string[];
 };
 
@@ -15,6 +18,7 @@ export type ToolInstallActionResult = {
 
 export function defaultToolInstallState(toolList: ToolDefinition[]): ToolInstallState {
   return {
+    schemaVersion: toolInstallStateSchemaVersion,
     enabledToolIds: toolList.filter((tool) => tool.defaultInstalled).map((tool) => tool.id),
   };
 }
@@ -29,11 +33,15 @@ export function normalizeToolInstallState(
     return defaultState;
   }
 
-  const enabledToolIds = storedState.enabledToolIds.filter((toolId, index, toolIds) => {
+  const legacyEnabledToolIds =
+    storedState.schemaVersion === toolInstallStateSchemaVersion
+      ? storedState.enabledToolIds
+      : [...legacyBundledToolIds, ...storedState.enabledToolIds];
+  const enabledToolIds = legacyEnabledToolIds.filter((toolId, index, toolIds) => {
     return knownToolIds.has(toolId) && toolIds.indexOf(toolId) === index;
   });
 
-  return { enabledToolIds };
+  return { schemaVersion: toolInstallStateSchemaVersion, enabledToolIds };
 }
 
 export function getInstalledTools(
@@ -74,6 +82,7 @@ export function enableTool(
 
   return {
     state: normalizeToolInstallState(toolList, {
+      schemaVersion: toolInstallStateSchemaVersion,
       enabledToolIds: [...state.enabledToolIds, toolId],
     }),
     workspaceFilesTouched: false,
@@ -87,6 +96,7 @@ export function disableTool(
 ): ToolInstallActionResult {
   return {
     state: normalizeToolInstallState(toolList, {
+      schemaVersion: toolInstallStateSchemaVersion,
       enabledToolIds: state.enabledToolIds.filter((enabledToolId) => enabledToolId !== toolId),
     }),
     workspaceFilesTouched: false,

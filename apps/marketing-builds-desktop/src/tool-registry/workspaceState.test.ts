@@ -5,6 +5,7 @@ import {
   getWorkspaceSelection,
   normalizeToolWorkspaceState,
   normalizeWorkspaceRoot,
+  parsePrivateWorkspaceIndex,
   resetToolWorkspaceSelection,
   setToolWorkspaceSelection,
   toolWorkspaceStorageKey,
@@ -95,5 +96,112 @@ describe("tool workspace state", () => {
   it("keeps recent workspace state in local UI storage only", () => {
     expect(toolWorkspaceStorageKey).toBe("workshop.toolWorkspaceState.v1");
     expect(toolWorkspaceStorageKey).not.toContain("clients/");
+  });
+
+  it("parses the local private workspace index contract", () => {
+    const parsed = parsePrivateWorkspaceIndex(`
+version: 1
+workspaceType: megaphone-private
+clients:
+  - clientId: acme-megaphone
+    root: clients/acme-megaphone
+    tool: megaphone
+    status: active
+  - clientId: beta-redline
+    root: clients/beta-redline
+    tool: redline
+    status: draft
+`);
+
+    expect(parsed).toEqual({
+      ok: true,
+      index: {
+        version: 1,
+        workspaceType: "megaphone-private",
+        clients: [
+          {
+            clientId: "acme-megaphone",
+            root: "clients/acme-megaphone",
+            tool: "megaphone",
+            status: "active",
+          },
+          {
+            clientId: "beta-redline",
+            root: "clients/beta-redline",
+            tool: "redline",
+            status: "draft",
+          },
+        ],
+      },
+    });
+  });
+
+  it("rejects unsafe private workspace index client roots", () => {
+    expect(
+      parsePrivateWorkspaceIndex(`
+version: 1
+workspaceType: megaphone-private
+clients:
+  - clientId: acme-megaphone
+    root: /Users/example/megaphone-private/clients/acme-megaphone
+    tool: megaphone
+`),
+    ).toMatchObject({ ok: false });
+
+    expect(
+      parsePrivateWorkspaceIndex(`
+version: 1
+workspaceType: megaphone-private
+clients:
+  - clientId: acme-megaphone
+    root: clients/acme-megaphone/../other-client
+    tool: megaphone
+`),
+    ).toMatchObject({ ok: false });
+
+    expect(
+      parsePrivateWorkspaceIndex(`
+version: 1
+workspaceType: megaphone-private
+clients:
+  - clientId: acme-megaphone
+    root: clients/other-client
+    tool: megaphone
+`),
+    ).toMatchObject({
+      ok: false,
+      message: "Workspace client acme-megaphone root must be clients/acme-megaphone.",
+    });
+  });
+
+  it("rejects duplicate or unsupported private workspace index clients", () => {
+    expect(
+      parsePrivateWorkspaceIndex(`
+version: 1
+workspaceType: megaphone-private
+clients:
+  - clientId: acme-megaphone
+    root: clients/acme-megaphone
+    tool: megaphone
+  - clientId: acme-megaphone
+    root: clients/acme-megaphone
+    tool: redline
+`),
+    ).toMatchObject({ ok: false, message: "Duplicate workspace client id: acme-megaphone." });
+
+    expect(
+      parsePrivateWorkspaceIndex(`
+version: 1
+workspaceType: megaphone-private
+clients:
+  - clientId: acme-megaphone
+    root: clients/acme-megaphone
+    tool: megaphone
+    status: ready
+`),
+    ).toMatchObject({
+      ok: false,
+      message: "Workspace client acme-megaphone has an unsupported status.",
+    });
   });
 });

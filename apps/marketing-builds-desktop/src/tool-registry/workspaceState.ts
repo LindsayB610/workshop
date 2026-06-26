@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { parse as parseYaml } from "yaml";
 import type { ToolDefinition } from "./types";
 
 export const toolWorkspaceStorageKey = "workshop.toolWorkspaceState.v1";
@@ -17,10 +18,35 @@ export type ToolWorkspaceState = {
   selections: ToolWorkspaceSelection[];
 };
 
+export type PrivateWorkspaceClientStatus = "active" | "draft" | "archived";
+
+export type PrivateWorkspaceClient = {
+  clientId: string;
+  root: string;
+  tool: string;
+  status: PrivateWorkspaceClientStatus;
+};
+
+export type PrivateWorkspaceIndex = {
+  version: 1;
+  workspaceType: string;
+  clients: PrivateWorkspaceClient[];
+};
+
 export type WorkspaceValidationResult =
   | {
       ok: true;
       normalizedRoot: string;
+    }
+  | {
+      ok: false;
+      message: string;
+    };
+
+export type WorkspaceIndexParseResult =
+  | {
+      ok: true;
+      index: PrivateWorkspaceIndex;
     }
   | {
       ok: false;
@@ -69,6 +95,112 @@ export function normalizeWorkspaceRoot(root: string): WorkspaceValidationResult 
   }
 
   return { ok: true, normalizedRoot: trimmed };
+}
+
+function normalizeWorkspaceClientRoot(root: string): WorkspaceValidationResult {
+  const normalized = normalizeWorkspaceRoot(root);
+  if (!normalized.ok) {
+    return normalized;
+  }
+
+  const { normalizedRoot } = normalized;
+  if (normalizedRoot.startsWith("/")) {
+    return { ok: false, message: "Workspace client roots must be relative to the workspace root." };
+  }
+
+  if (!/^clients\/[^/]+$/.test(normalizedRoot)) {
+    return { ok: false, message: "Workspace client roots must look like clients/<client-id>." };
+  }
+
+  return { ok: true, normalizedRoot };
+}
+
+export function parsePrivateWorkspaceIndex(contents: string): WorkspaceIndexParseResult {
+  let parsed: unknown;
+  try {
+    parsed = parseYaml(contents);
+  } catch {
+    return { ok: false, message: "workspace.yaml is not valid YAML." };
+  }
+
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return { ok: false, message: "workspace.yaml must contain a mapping." };
+  }
+
+  const record = parsed as Record<string, unknown>;
+  if (record.version !== 1) {
+    return { ok: false, message: "workspace.yaml version must be 1." };
+  }
+
+  if (typeof record.workspaceType !== "string" || !record.workspaceType.trim()) {
+    return { ok: false, message: "workspace.yaml requires a workspaceType." };
+  }
+
+  if (!Array.isArray(record.clients)) {
+    return { ok: false, message: "workspace.yaml requires a clients list." };
+  }
+
+  const clients: PrivateWorkspaceClient[] = [];
+  const seenClientIds = new Set<string>();
+  for (const rawClient of record.clients) {
+    if (!rawClient || typeof rawClient !== "object" || Array.isArray(rawClient)) {
+      return { ok: false, message: "Each workspace client must be a mapping." };
+    }
+
+    const client = rawClient as Record<string, unknown>;
+    if (typeof client.clientId !== "string" || !/^[a-z0-9][a-z0-9-]*$/.test(client.clientId)) {
+      return { ok: false, message: "Workspace client ids must be lowercase slugs." };
+    }
+
+    if (seenClientIds.has(client.clientId)) {
+      return { ok: false, message: `Duplicate workspace client id: ${client.clientId}.` };
+    }
+    seenClientIds.add(client.clientId);
+
+    if (typeof client.root !== "string") {
+      return { ok: false, message: `Workspace client ${client.clientId} requires a root.` };
+    }
+
+    const normalizedRoot = normalizeWorkspaceClientRoot(client.root);
+    if (!normalizedRoot.ok) {
+      return { ok: false, message: normalizedRoot.message };
+    }
+
+    if (normalizedRoot.normalizedRoot !== `clients/${client.clientId}`) {
+      return {
+        ok: false,
+        message: `Workspace client ${client.clientId} root must be clients/${client.clientId}.`,
+      };
+    }
+
+    if (typeof client.tool !== "string" || !/^[a-z][a-z0-9-]*$/.test(client.tool)) {
+      return { ok: false, message: `Workspace client ${client.clientId} requires a tool slug.` };
+    }
+
+    const status = typeof client.status === "string" ? client.status : "active";
+    if (status !== "active" && status !== "draft" && status !== "archived") {
+      return {
+        ok: false,
+        message: `Workspace client ${client.clientId} has an unsupported status.`,
+      };
+    }
+
+    clients.push({
+      clientId: client.clientId,
+      root: normalizedRoot.normalizedRoot,
+      tool: client.tool,
+      status,
+    });
+  }
+
+  return {
+    ok: true,
+    index: {
+      version: 1,
+      workspaceType: record.workspaceType.trim(),
+      clients,
+    },
+  };
 }
 
 export function normalizeToolWorkspaceState(

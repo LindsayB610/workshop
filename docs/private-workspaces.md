@@ -7,6 +7,7 @@ Recommended layout:
 
 ```text
 ~/Documents/workshop-private/
+  workspace.yaml
   clients/
     acme-redline/
     acme-megaphone/
@@ -58,6 +59,37 @@ Megaphone private root:
       sources/
       post-packages/
 ```
+
+## Workspace Index
+
+`workspace.yaml` is the local index Workshop and the tool packages use to agree
+on available private clients:
+
+```yaml
+version: 1
+workspaceType: workshop-private
+clients:
+  - clientId: acme-redline
+    root: clients/acme-redline
+    tool: redline
+    status: active
+  - clientId: acme-megaphone
+    root: clients/acme-megaphone
+    tool: megaphone
+    status: active
+```
+
+Workshop validates this index contract before it is used by the app:
+
+- `version` must be `1`.
+- each client `root` must be relative and must match `clients/<client-id>`;
+- client ids and tool ids must be lowercase slugs;
+- duplicate client ids, traversal paths, absolute client roots, and unsupported
+  statuses are rejected.
+
+The current packaged app still loads the selected client folder through the
+tool's normal `clients/<client-id>` path. The next UI step is to surface valid
+`workspace.yaml` clients directly in the tool picker/client switcher.
 
 ## Git Rules
 

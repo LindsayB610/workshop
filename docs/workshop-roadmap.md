@@ -31,7 +31,7 @@ decision.
 | 1 | Complete | Full clean-clone rehearsal | Install, tests, build, E2E, and a native app bundle passed inside a staged public tree. | Evidence feeds the Phase 4 release handoff. |
 | 2 | Complete | Legacy-reference policy | Option A: remove legacy client-specific public references. | Policy is recorded and enforced by the scanner. |
 | 3 | Complete | Implement and verify the policy | Legacy modules/fixtures were removed and generic coverage replaced them. | Proceed to release-readiness handoff. |
-| 4 | Complete — owner approval pending | Release-readiness handoff | Local checklist, workflow, CI-secret presence, and release evidence are recorded. | Owner reviews the handoff, then approves any commit, tag, deploy, or release separately. |
+| 4 | Complete | Release-readiness handoff | Local checklist, workflow, CI-secret presence, and release evidence are recorded. | Workshop v0.1.27 published on 2026-07-21. |
 | Product A | Ongoing | Registered tools | Maintain Redline, Megaphone, and Pulse contracts. | Covered by tool-manifest and tool-specific tests. |
 | Product B | Planned | Slate | Build the local-only inventory viewer under its own plan. | Slate Phase 0 and Phase 1 must pass before registration. |
 | Product C | Deferred | SEO review surface | Design a shared automation-output review experience. | Do not register SEO Tools before that product brief exists. |
@@ -212,7 +212,7 @@ public boundary behaves exactly as intended.
 
 ## Phase 4 — Release-readiness handoff
 
-**Status: complete — handoff ready for owner approval**
+**Status: complete — release workflow dispatched**
 
 ### Goal
 
@@ -236,7 +236,8 @@ Turn the passing rehearsal and boundary decision into a release-ready handoff.
 ### Explicit non-actions
 
 This phase does not automatically commit, tag, publish, deploy, or release
-Workshop. Those are owner-approved actions after the handoff is reviewed.
+Workshop without an explicit user instruction. The user approved and initiated
+that release flow on 2026-07-21; Workshop v0.1.27 was published successfully.
 
 ### Exit criteria
 

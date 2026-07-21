@@ -2,14 +2,14 @@
 
 ## Decision state
 
-**Ready for owner approval.** This is a release-readiness handoff, not a
-release. No commit, tag, GitHub Actions workflow dispatch, Netlify deployment,
-or updater publication was performed.
+**Published successfully.** The user approved the release after reviewing this
+handoff. Commit `95dd19e` was pushed to `main`, and **Release Workshop**
+published Workshop v0.1.27 on 2026-07-21. The CI build, signing, Netlify
+deployment, and artifact publication all passed.
 
-The reviewed baseline is the current working tree rooted at commit `3c1294a`.
-It intentionally contains the Phase 0–4 consolidation and public-boundary
-changes; `git diff --check` passes. The owner must review, commit, and push the
-intended scope before dispatching the release workflow.
+The reviewed baseline is commit `95dd19e` on `main`, containing the Phase 0–4
+consolidation and public-boundary changes. `git diff --check` passed before the
+commit and the release workflow completed successfully against that commit.
 
 ## Verified environment
 
@@ -71,12 +71,12 @@ GitHub contains the required named secrets (values were not read):
 - `WORKSHOP_TAURI_SIGNING_PRIVATE_KEY`
 - `WORKSHOP_TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
 
-## Owner actions for an actual release
+## Published release evidence
 
-1. Review the working-tree diff and commit/push the intended release scope.
-2. Choose release notes and, if needed, a version override.
-3. Manually dispatch **Release Workshop** in GitHub Actions.
-4. Confirm the signed updater payload, `latest.json`, DMG, and uploaded
-   artifacts.
-5. Install or update Workshop and confirm the updater detects the release.
+- Version: `0.1.27`
+- Workflow: [Release Workshop run 29868107076](https://github.com/LindsayB610/workshop/actions/runs/29868107076)
+- Updater manifest: [latest.json](https://workshop-updates-lindsaybrunner.netlify.app/latest.json)
+- Signed updater payload: [Workshop.app.tar.gz](https://workshop-updates-lindsaybrunner.netlify.app/Workshop.app.tar.gz)
 
+The remaining optional follow-through is to install or update Workshop and
+confirm that the updater detects v0.1.27 on a user machine.

@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { tools } from "./tools";
 import {
@@ -12,6 +14,9 @@ import {
 } from "./workspaceState";
 
 const privateClientId = ["para", "sail"].join("");
+const workspaceExamplePath = fileURLToPath(
+  new URL("../../../../workspace.example.yaml", import.meta.url),
+);
 
 describe("tool workspace state", () => {
   it("defaults bundled tools to sanitized demo workspaces", () => {
@@ -101,7 +106,7 @@ describe("tool workspace state", () => {
   it("parses the local private workspace index contract", () => {
     const parsed = parsePrivateWorkspaceIndex(`
 version: 1
-workspaceType: megaphone-private
+workspaceType: workshop-private
 clients:
   - clientId: acme-megaphone
     root: clients/acme-megaphone
@@ -117,7 +122,7 @@ clients:
       ok: true,
       index: {
         version: 1,
-        workspaceType: "megaphone-private",
+        workspaceType: "workshop-private",
         clients: [
           {
             clientId: "acme-megaphone",
@@ -140,7 +145,7 @@ clients:
     expect(
       parsePrivateWorkspaceIndex(`
 version: 1
-workspaceType: megaphone-private
+workspaceType: workshop-private
 clients:
   - clientId: acme-megaphone
     root: /Users/example/megaphone-private/clients/acme-megaphone
@@ -151,7 +156,7 @@ clients:
     expect(
       parsePrivateWorkspaceIndex(`
 version: 1
-workspaceType: megaphone-private
+workspaceType: workshop-private
 clients:
   - clientId: acme-megaphone
     root: clients/acme-megaphone/../other-client
@@ -162,7 +167,7 @@ clients:
     expect(
       parsePrivateWorkspaceIndex(`
 version: 1
-workspaceType: megaphone-private
+workspaceType: workshop-private
 clients:
   - clientId: acme-megaphone
     root: clients/other-client
@@ -178,7 +183,7 @@ clients:
     expect(
       parsePrivateWorkspaceIndex(`
 version: 1
-workspaceType: megaphone-private
+workspaceType: workshop-private
 clients:
   - clientId: acme-megaphone
     root: clients/acme-megaphone
@@ -192,7 +197,7 @@ clients:
     expect(
       parsePrivateWorkspaceIndex(`
 version: 1
-workspaceType: megaphone-private
+workspaceType: workshop-private
 clients:
   - clientId: acme-megaphone
     root: clients/acme-megaphone
@@ -202,6 +207,28 @@ clients:
     ).toMatchObject({
       ok: false,
       message: "Workspace client acme-megaphone has an unsupported status.",
+    });
+  });
+
+  it("requires the shared workshop-private workspace type", () => {
+    expect(
+      parsePrivateWorkspaceIndex(`
+version: 1
+workspaceType: megaphone-private
+clients: []
+`),
+    ).toMatchObject({
+      ok: false,
+      message: "workspace.yaml workspaceType must be workshop-private.",
+    });
+  });
+
+  it("accepts the checked-in public workspace example", () => {
+    expect(parsePrivateWorkspaceIndex(readFileSync(workspaceExamplePath, "utf8"))).toMatchObject({
+      ok: true,
+      index: {
+        workspaceType: "workshop-private",
+      },
     });
   });
 });

@@ -3,6 +3,10 @@
 Use this before publishing the dedicated public Workshop repo/source tree or
 cutting a public updater release.
 
+The staged-boundary check, full clean-clone rehearsal, legacy-reference
+sanitization, and Phase 4 handoff are complete. Use this checklist again for
+each owner-approved release; see `docs/release-readiness-handoff-2026-07-21.md`.
+
 ## Source Boundary
 
 - `clients/` contains only classified demo/template fixtures in the public tree.
@@ -38,15 +42,16 @@ cargo test --manifest-path apps/marketing-builds-desktop/src-tauri/Cargo.toml
 git diff --check
 ```
 
-For a full local public-source rehearsal:
+For a full local public-source rehearsal of the staged app bundle:
 
 ```sh
 npm run public:clean-clone -- --run-commands --keep
 ```
 
 That rehearsal disables updater artifact signing only inside the staged public
-clone. The release workflow must still build signed updater artifacts with the
-private signing key configured in CI.
+clone and verifies the app bundle rather than a DMG. The release workflow must
+still build the signed updater artifacts and DMG with the private signing key
+configured in CI.
 
 ## Release Workflow
 

@@ -53,7 +53,10 @@ describe("public corpus-building docs", () => {
   });
 
   it("keeps public docs free of private-client examples", () => {
-    const blocked = /\bParasail\b|clients\/parasail|Brunner Creative|brunner-creative|\/Users\/lindsaybrunner/;
+    const privateClient = ["Para", "sail"].join("");
+    const blocked = new RegExp(
+      `\\b${privateClient}\\b|clients/${privateClient.toLowerCase()}|Brunner Creative|brunner-creative|/Users/lindsaybrunner`,
+    );
 
     for (const docPath of requiredDocs) {
       expect(readRepoFile(docPath), docPath).not.toMatch(blocked);

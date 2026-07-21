@@ -4,17 +4,22 @@ Workshop tools live under `apps/marketing-builds-desktop/src/tools/<tool-id>/`.
 
 To add a tool:
 
-1. Add a `ToolDefinition` in `src/tool-registry/tools.ts`.
-2. Assign `installMode`, `defaultInstalled`, `docsPath`,
+1. Add its stable runtime and private-workspace contract to
+   `src/tool-registry/toolManifest.ts`.
+2. Add its presentation details in `src/tool-registry/tools.ts`.
+3. Assign `installMode`, `defaultInstalled`, `docsPath`,
    `workspaceRequirement`, and `uninstallSafetyCopy` so the Workshop catalog can
    install, hide, and restore the tool without touching user data.
-3. Assign a `logoVariant` and keep the mark in the shared Workshop logo family.
-4. Create a tool view component under `src/tools/<tool-id>/`.
-5. Register the component in `src/tools/toolViews.tsx`.
-6. Keep tool-specific state inside the tool view unless it must be shared across
+4. Assign a `logoVariant` and keep the mark in the shared Workshop logo family.
+5. Create a tool view component under `src/tools/<tool-id>/`.
+6. Register the component in `src/tools/toolViews.tsx`.
+7. Keep tool-specific state inside the tool view unless it must be shared across
    tools.
-7. Keep tool-specific styles prefixed by the tool id or a short namespace, such
+8. Keep tool-specific styles prefixed by the tool id or a short namespace, such
    as `redline-*` or `cr-*`.
+
+See [`tool-integration-contract.md`](../../../../docs/tool-integration-contract.md)
+for the runtime and private-workspace requirements.
 
 Tool view components receive:
 

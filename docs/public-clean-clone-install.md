@@ -52,17 +52,17 @@ build outputs, then verifies:
 - README first-run commands are present;
 - the public boundary scanner has no blocking findings.
 
-For a heavier local rehearsal that runs install, public-safe tests, e2e, and
-native packaging inside the staged public tree:
+For a heavier local rehearsal that runs install, public-safe tests, E2E, and a
+native app-bundle build inside the staged public tree:
 
 ```sh
 npm run public:clean-clone -- --run-commands --keep
 ```
 
 The staged rehearsal disables updater artifact signing inside the temporary
-clone. Public contributors can prove the app packages without needing the
-private release signing key; signed updater artifacts are still created only by
-the release workflow.
+clone and verifies `Workshop.app`, not DMG creation. Public contributors can
+prove the app bundles without needing the private release signing key; signed
+updater artifacts and DMG creation remain release-workflow checks.
 
 ## Run Workshop
 

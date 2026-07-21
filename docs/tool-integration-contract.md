@@ -1,0 +1,45 @@
+# Workshop Tool Integration Contract
+
+Workshop integrates tools through a stable, framework-neutral manifest in
+`apps/marketing-builds-desktop/src/tool-registry/toolManifest.ts`. The manifest
+is the source of truth for a registered tool's stable id, display name, routes,
+capabilities, runtime entry point, and required private-workspace fields. The
+React registry supplies only presentation details such as icons and install
+defaults.
+
+## Current integration mechanisms
+
+| Tool | Runtime kind | Entry point | Private-workspace contract |
+| --- | --- | --- | --- |
+| Redline | `bundled-core` | `@redline/core` | `workspace.yaml`, then a selected client `client.yaml` |
+| Megaphone | `bridge-cli` | `@megaphone/core/bridgeCli` | `workspace.yaml`, then a selected client `client.yaml` |
+| Pulse | `external-runner` | `@marketing-builds/pulse` | `pulses.yaml`, `.env`, and `state/` under the selected runner root |
+
+The shell owns navigation, presentation, install state, and the constrained
+native adapter. A tool owns its domain behavior, data contracts, and generated
+local artifacts. The shell must not import or persist private client data.
+
+## Runtime rules
+
+- `bundled-core` is a package contract consumed by Workshop's current bundled
+  Redline adapter. Replacing that implementation with a published canonical
+  package must preserve this manifest entry point and pass the adapter tests.
+- `bridge-cli` invokes the standalone Megaphone bridge through Workshop's
+  constrained native layer; it does not copy Megaphone corpora into Workshop.
+- `external-runner` means Workshop is a view/launcher only. Pulse remains the
+  source of truth for schedules, credentials, notifications, and state.
+- Slate is not yet registered. Its own Phase 0 and Phase 1 must first define
+  and test its two-file local-source contract.
+
+## Required checks
+
+Any manifest change must include a focused registry test. Before release, run:
+
+```sh
+npm test
+npm run typecheck
+npm run privacy:scan -- --inventory docs/data-boundary-inventory.json --strict
+```
+
+Private configuration failures must make only the affected tool unavailable;
+they must not silently fall back to unrelated data or block other tools.

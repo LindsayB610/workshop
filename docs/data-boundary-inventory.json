@@ -45,8 +45,7 @@
       "path": "packages",
       "classification": "app-code",
       "publicSafe": "conditional",
-      "reason": "Core Redline code is public-source candidate; legacy private-client audit helpers remain classified until the clean public clone proof removes or privatizes them.",
-      "remediationPhase": 23
+      "reason": "Core Redline code is public-source candidate; client packets must use synthetic fixtures in the public repository."
     },
     {
       "path": "clients/fixture",
@@ -79,13 +78,6 @@
       "reason": "Empty Megaphone corpus template without real examples or source material."
     },
     {
-      "path": "clients/parasail",
-      "classification": "private-excluded",
-      "publicSafe": false,
-      "reason": "Real pilot client packet containing canonical strategy, Notion snapshots, targets, and generated reports. Must not ship in a public repo or bundled app.",
-      "remediationPhase": 23
-    },
-    {
       "path": "apps/marketing-builds-desktop/dist",
       "classification": "release-build-output",
       "publicSafe": false,
@@ -106,16 +98,16 @@
   ],
   "blockedTerms": [
     {
-      "id": "pilot-client-parasail",
-      "pattern": "\\bParasail\\b|parasail\\.io|clients/parasail",
-      "severity": "private-client",
-      "reason": "Real pilot client context must be replaced with demo data before public release."
-    },
-    {
       "id": "personal-local-path",
       "pattern": "/Users/lindsaybrunner",
       "severity": "local-path",
       "reason": "Local absolute paths should not appear in public examples or bundled config."
+    },
+    {
+      "id": "legacy-client-identifier",
+      "pattern": "\\bpara[s]ail\\b|para[s]ail\\.io|clients/para[s]ail",
+      "severity": "private-client",
+      "reason": "The former real-client identifier must not reappear in public source, docs, fixtures, or paths."
     },
     {
       "id": "notion-snapshot-content",

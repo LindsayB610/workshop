@@ -11,6 +11,9 @@ Recommended layout:
   clients/
     acme-redline/
     acme-megaphone/
+  pulse/
+    pulses.yaml
+    state/
 ```
 
 Each tool still expects a `clients/<client-id>` folder under the selected root.
@@ -60,6 +63,21 @@ Megaphone private root:
       post-packages/
 ```
 
+Pulse private root:
+
+```text
+<workspace-root>/pulse/
+  pulses.yaml
+  .env
+  state/
+  backups/
+  logs/
+```
+
+Select `<workspace-root>/pulse` for Pulse. Pulse keeps its definitions,
+credentials, and state there; Workshop accesses it only through the registered
+external-runner contract and must not copy it into shared client folders.
+
 ## Workspace Index
 
 `workspace.yaml` is the local index Workshop and the tool packages use to agree
@@ -86,6 +104,10 @@ Workshop validates this index contract before it is used by the app:
 - client ids and tool ids must be lowercase slugs;
 - duplicate client ids, traversal paths, absolute client roots, and unsupported
   statuses are rejected.
+
+`workspace.yaml` indexes client-scoped Redline and Megaphone folders. Pulse is
+a runner-scoped workspace, so it is selected directly at `<workspace-root>/pulse`
+and is not a `clients/<client-id>` entry.
 
 The current packaged app still loads the selected client folder through the
 tool's normal `clients/<client-id>` path. The next UI step is to surface valid

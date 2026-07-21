@@ -42,7 +42,7 @@ Workshop repo:
 These classes must not ship in the public Workshop repo, public package, or
 default app bundle:
 
-- Real client folders, including `clients/parasail`.
+- Real client folders.
 - Notion, Slack, Google Docs, transcript, or call-note snapshots from a real
   client.
 - Generated client reports, edit briefs, source-readiness reports, or agent
@@ -60,15 +60,14 @@ The source of truth is `docs/data-boundary-inventory.json`.
 
 Current high-risk items are intentionally classified, not ignored:
 
-- `clients/parasail` is `private-excluded` and must be removed from public
-  source/bundles before the public split ships.
+- Real client packets belong in the private workspace and must not be copied
+  into public source or bundles.
 - `apps/marketing-builds-desktop/src-tauri/tauri.conf.json` now bundles only
   classified demo/template client resources. Private client roots must be
   selected at runtime through local workspace state.
-- App-visible fixtures, smoke tests, and README examples now use Phase 20
-  demo/template data. Private planning history and legacy core audit modules
-  remain classified until the public-doc and external-workspace phases split
-  public Workshop source from private development context.
+- App-visible fixtures, smoke tests, and README examples use only synthetic
+  demo/template data. Legacy client-specific audit modules and fixtures were
+  removed during the public-boundary sanitization.
 
 ## Scanner Contract
 
@@ -83,10 +82,9 @@ inventory, scans repository files, and reports:
 - unclassified client-like folders, and
 - Tauri resources that bundle private client roots.
 
-The scanner is strict for unreviewed or explicitly unsafe findings. It may
-still return reviewed findings for classified private material in this private
-  development tree; the public clean-clone proof stages a sanitized Workshop
-  tree where those private folders are absent.
+The scanner is strict for unreviewed or explicitly unsafe findings. Reviewed
+findings are limited to intentional synthetic report artifacts and scanner
+regression guards; neither contains private client material.
 
 ## Future-Agent Rules
 
@@ -94,25 +92,21 @@ still return reviewed findings for classified private material in this private
   directly.
 - New Redline or Megaphone examples must use demo/template data unless the work
   is explicitly private and classified in the inventory.
-- Do not add new `clients/<real-client>` or corpus folders without adding an
-  inventory entry marked `private-excluded`.
+- Do not add real-client folders or corpora to this repository. Put them in a
+  private workspace; use a temporary or sanitized demo fixture for tests.
 - Do not add Tauri resources that point at `clients`, `megaphone/clients`,
   corpora, local workspaces, or generated reports.
 - If a test needs realistic data, prefer generated temporary fixtures or
   sanitized demo fixtures.
-- If a public doc needs to mention a real historical client, keep the reference
-  brief, avoid source excerpts, and add an inventory allowlist reason.
+- Do not add real historical client references to public docs. Use a generic
+  description or a fictional demo instead.
 
 ## Remediation Map
 
-- Phase 19: add the tool catalog and installed-tool state without deleting local
-  user workspaces.
-- Phase 20: replace app-visible Redline and Megaphone private fixtures with
-  sanitized demo clients and templates.
-- Phase 21: add public corpus-building docs that explain how users create their
-  own private local context.
-- Phase 22: move real user/client data outside the repo and harden runtime
-  workspace selection.
-- Phase 23: prove a clean public clone can install, test, package, and update
-  Workshop without private data. Complete through `npm run public:check`,
-  `docs/public-clean-clone-install.md`, and `docs/public-release-checklist.md`.
+- Historical phases 19–23: complete. They introduced the tool catalog,
+  demo/template resources, external private-workspace selection, clean-clone
+  proof, and the removal of legacy client-specific references.
+- Remaining release work is tracked as Phase 4 in
+  `docs/workshop-roadmap.md`.
+
+The current roadmap and release status live in `docs/workshop-roadmap.md`.

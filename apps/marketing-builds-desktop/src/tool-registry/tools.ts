@@ -1,141 +1,38 @@
 import { BellRing, FileText, Megaphone as MegaphoneIcon } from "lucide-react";
+import { getToolManifest } from "./toolManifest";
 import type { RecentWorkspace, ToolDefinition } from "./types";
 
 export const tools: ToolDefinition[] = [
   {
-    id: "redline",
-    displayName: "Redline",
-    description: "Audit client pages against trusted source packets and prepare reports.",
+    ...getRequiredToolManifest("redline"),
     icon: FileText,
     logoVariant: "redline",
     installMode: "bundled",
     defaultInstalled: false,
-    docsPath: "/docs/tools/redline.md",
-    defaultWorkspaceRoot: "clients/demo-redline",
-    workspaceRequirement: "Needs a local client packet with sources, targets, reports, and proof notes.",
-    uninstallSafetyCopy: "Disabling Redline hides the tool only. Local client packets stay untouched.",
-    routes: [
-      { id: "audit", label: "Audit", path: "/redline/audit", sectionId: "redline-audit" },
-      { id: "review", label: "Review", path: "/redline/review", sectionId: "redline-review" },
-      { id: "packet", label: "Packet", path: "/redline/packet", sectionId: "redline-packet" },
-      {
-        id: "onboarding",
-        label: "Onboarding",
-        path: "/redline/onboarding",
-        sectionId: "redline-onboarding",
-      },
-    ],
-    requiredLocalCapabilities: [
-      "local-workspace",
-      "file-import",
-      "connector-status",
-      "run-history",
-      "report-export",
-    ],
-    dataRoots: [
-      "clients/{clientId}",
-      "clients/{clientId}/sources",
-      "clients/{clientId}/targets",
-      "clients/{clientId}/reports",
-    ],
-    importActions: ["Import source snapshot", "Select audit target"],
-    exportActions: ["Export report bundle", "Export edit brief"],
-    status: "ready",
   },
   {
-    id: "megaphone",
-    displayName: "Megaphone",
-    description: "Plan and shape campaign messages across channels from one source brief.",
+    ...getRequiredToolManifest("megaphone"),
     icon: MegaphoneIcon,
     logoVariant: "megaphone",
     installMode: "bundled",
     defaultInstalled: false,
-    docsPath: "/docs/tools/megaphone.md",
-    defaultWorkspaceRoot: "clients/demo-megaphone",
-    workspaceRequirement: "Needs a local campaign corpus with source notes, examples, and package outputs.",
-    uninstallSafetyCopy: "Disabling Megaphone hides the tool only. Local corpora and packages stay untouched.",
-    routes: [
-      {
-        id: "sources",
-        label: "Sources",
-        path: "/megaphone/sources",
-        sectionId: "megaphone-sources",
-      },
-      {
-        id: "onboarding",
-        label: "Onboarding",
-        path: "/megaphone/onboarding",
-        sectionId: "megaphone-onboarding",
-      },
-      {
-        id: "strategy",
-        label: "Strategy",
-        path: "/megaphone/strategy",
-        sectionId: "megaphone-strategy",
-      },
-      {
-        id: "briefs",
-        label: "Briefs",
-        path: "/megaphone/briefs",
-        sectionId: "megaphone-briefs",
-      },
-      {
-        id: "drafts",
-        label: "Drafts",
-        path: "/megaphone/drafts",
-        sectionId: "megaphone-drafts",
-      },
-      {
-        id: "calendar",
-        label: "Calendar",
-        path: "/megaphone/calendar",
-        sectionId: "megaphone-calendar",
-      },
-      {
-        id: "measurement",
-        label: "Measurement",
-        path: "/megaphone/measurement",
-        sectionId: "megaphone-measurement",
-      },
-    ],
-    requiredLocalCapabilities: [
-      "local-workspace",
-      "file-import",
-      "connector-status",
-      "run-history",
-      "report-export",
-    ],
-    dataRoots: ["tools/megaphone"],
-    importActions: [],
-    exportActions: ["Export post package"],
-    status: "ready",
   },
   {
-    id: "pulse",
-    displayName: "Pulse",
-    description: "Track persistent recurring obligations that keep notifying until done.",
+    ...getRequiredToolManifest("pulse"),
     icon: BellRing,
     logoVariant: "pulse",
     installMode: "external",
     defaultInstalled: false,
-    docsPath: "/docs/tools/pulse.md",
-    defaultWorkspaceRoot: "tools/pulse/demo",
-    workspaceRequirement:
-      "Needs a private Pulse runner config, state file, and notification credentials outside Workshop.",
-    uninstallSafetyCopy: "Disabling Pulse hides the tool only. Your private Pulse runner and state stay untouched.",
-    routes: [
-      { id: "active", label: "Active", path: "/pulse/active", sectionId: "pulse-active" },
-      { id: "schedule", label: "Schedule", path: "/pulse/schedule", sectionId: "pulse-schedule" },
-      { id: "history", label: "History", path: "/pulse/history", sectionId: "pulse-history" },
-      { id: "runner", label: "Runner", path: "/pulse/runner", sectionId: "pulse-runner" },
-    ],
-    requiredLocalCapabilities: ["local-workspace", "connector-status", "run-history"],
-    dataRoots: ["tools/pulse"],
-    importActions: [],
-    exportActions: [],
-    status: "ready",
   },
 ];
+
+function getRequiredToolManifest(toolId: string) {
+  const manifest = getToolManifest(toolId);
+  if (!manifest) {
+    throw new Error(`Missing Workshop tool manifest: ${toolId}`);
+  }
+  return manifest;
+}
 
 export const recentWorkspaces: RecentWorkspace[] = [
   {

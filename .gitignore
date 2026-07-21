@@ -13,5 +13,6 @@ apps/*/test-results/
 .DS_Store
 reference/
 workshop-private/
+workspace.yaml
 clients/private-*/
 clients/*-private/

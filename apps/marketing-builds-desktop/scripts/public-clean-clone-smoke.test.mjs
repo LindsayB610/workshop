@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import {
   allowedPublicClientDirs,
   disableUpdaterArtifactsForPublicBuild,
+  isStagedAppBundleBuildCommand,
   listPublicClientDirs,
   runPublicCleanCloneSmoke,
   stagePublicClone,
@@ -162,6 +163,12 @@ describe("public clean clone smoke", () => {
     rmSync(publicRoot, { recursive: true, force: true });
   });
 
+  it("recognizes only the staged app-bundle command as the updater-disabled package step", () => {
+    expect(isStagedAppBundleBuildCommand("npm run desktop:tauri -- build -- --bundles app")).toBe(true);
+    expect(isStagedAppBundleBuildCommand("npm run desktop:tauri -- build")).toBe(false);
+    expect(isStagedAppBundleBuildCommand("npm run build")).toBe(false);
+  });
+
   it("documents the full install, test, e2e, and package command plan", async () => {
     const sourceRoot = await createFixtureRepo();
     const publicRoot = await mkdtemp(path.join(tmpdir(), "workshop-public-clone-out-"));
@@ -178,7 +185,7 @@ describe("public clean clone smoke", () => {
       "npm test",
       "npm run build",
       "npm run test:e2e --workspace @marketing-builds/desktop",
-      "npm run desktop:tauri -- build",
+      "npm run desktop:tauri -- build -- --bundles app",
     ]);
     expect(
       JSON.parse(readFileSync(path.join(publicRoot, "workshop-public-clone-smoke.json"), "utf8"))

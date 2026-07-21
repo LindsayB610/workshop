@@ -1,5 +1,4 @@
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -8,7 +7,6 @@ import {
   summarizeCanonicalReadiness,
 } from "../src/canonical.js";
 import { loadClientPacket } from "../src/loadClientPacket.js";
-import { privateFixtureIt } from "./privateFixtures.js";
 
 async function createFixtureClient(overrides?: {
   clientIdMismatch?: boolean;
@@ -90,96 +88,8 @@ async function createFixtureClient(overrides?: {
 }
 
 describe("loadClientPacket", () => {
-  privateFixtureIt("loads the checked-in Parasail Phase 1 packet", async () => {
-    const testDir = path.dirname(fileURLToPath(import.meta.url));
-    const clientDir = path.resolve(testDir, "../../../clients/parasail");
-
-    const packet = await loadClientPacket(clientDir);
-
-    expect(packet.client.name).toBe("Parasail");
-    expect(packet.client.requiredCanonicalModules).toEqual([
-      "icp",
-      "positioning",
-      "buyer-language",
-      "proof-library",
-      "objections",
-      "content-priorities",
-    ]);
-    expect(packet.validation).toEqual({ valid: true, issues: [] });
-  });
-
-  privateFixtureIt("parses Parasail freshness and trust metadata", async () => {
-    const testDir = path.dirname(fileURLToPath(import.meta.url));
-    const clientDir = path.resolve(testDir, "../../../clients/parasail");
-
-    const packet = await loadClientPacket(clientDir);
-    const proofLibrary = packet.manifest.sources.find(
-      (source) => source.id === "parasail-source-proof-library",
-    );
-    const baselineAudit = packet.manifest.sources.find(
-      (source) => source.id === "parasail-source-homepage-baseline-audit",
-    );
-
-    expect(proofLibrary).toEqual(
-      expect.objectContaining({
-        trustLevel: "provisional",
-        fetchedAt: "2026-06-20T00:00:00.000Z",
-      }),
-    );
-    expect(baselineAudit).toEqual(
-      expect.objectContaining({
-        trustLevel: "trusted",
-        lastEditedAt: "2026-06-02T00:00:00.000Z",
-      }),
-    );
-  });
-
-  privateFixtureIt("summarizes Parasail readiness across strong, partial, and missing states", async () => {
-    const testDir = path.dirname(fileURLToPath(import.meta.url));
-    const clientDir = path.resolve(testDir, "../../../clients/parasail");
-    const packet = await loadClientPacket(clientDir);
-
-    const readiness = summarizeCanonicalReadiness(packet.manifest, [
-      ...packet.client.requiredCanonicalModules,
-      "geo-readiness",
-    ]);
-
-    expect(readiness.strong).toEqual(
-      expect.arrayContaining([
-        "icp",
-        "positioning",
-        "buyer-language",
-        "objections",
-        "content-priorities",
-      ]),
-    );
-    expect(readiness.partial).toEqual(["proof-library"]);
-    expect(readiness.missing).toEqual(["geo-readiness"]);
-  });
-
-  privateFixtureIt("loads Parasail-specific canonical content only when the Parasail packet is loaded", async () => {
-    const testDir = path.dirname(fileURLToPath(import.meta.url));
-    const parasailDir = path.resolve(testDir, "../../../clients/parasail");
-    const parasailPacket = await loadClientPacket(parasailDir);
-    const parasailModules = await loadCanonicalModules(parasailPacket);
-
-    expect(parasailModules.map((module) => module.moduleId)).toEqual(
-      expect.arrayContaining(["icp", "positioning", "buyer-language"]),
-    );
-    expect(parasailModules.map((module) => module.content).join("\n")).toContain(
-      "AI-native startups",
-    );
-
-    const fixturePacket = await loadClientPacket(await createFixtureClient());
-    const fixtureModules = await loadCanonicalModules(fixturePacket);
-
-    expect(fixtureModules.map((module) => module.content).join("\n")).not.toContain(
-      "Parasail",
-    );
-  });
-
-  it("loads the checked-in fixture client without Parasail source leakage", async () => {
-    const testDir = path.dirname(fileURLToPath(import.meta.url));
+  it("loads the checked-in fixture client", async () => {
+    const testDir = path.dirname(new URL(import.meta.url).pathname);
     const fixtureDir = path.resolve(testDir, "../../../clients/fixture");
 
     const packet = await loadClientPacket(fixtureDir);
@@ -187,7 +97,7 @@ describe("loadClientPacket", () => {
 
     expect(packet.client.clientId).toBe("fixture");
     expect(packet.validation).toEqual({ valid: true, issues: [] });
-    expect(modules.map((module) => module.content).join("\n")).not.toContain("Parasail");
+    expect(modules.map((module) => module.content).join("\n")).toContain("Fixture");
   });
 
   it("loads a valid client packet", async () => {

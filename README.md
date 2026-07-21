@@ -30,7 +30,7 @@ canonical modules, example corpora, or explicit proof rules.
 
 ## Current Status
 
-Implemented through Phase 23:
+Completed foundation:
 
 - Client packet contract and validation.
 - Sanitized Redline demo client and workspace template.
@@ -39,15 +39,15 @@ Implemented through Phase 23:
   setup, troubleshooting, and future tool contributors.
 - External local workspace selection for keeping real client data outside the
   repo while the packaged app ships only demo/template resources.
-- Public clean-clone proof for installing, testing, packaging, and updating
-  Workshop without private client data.
+- Staged public-source boundary validation: the clean-clone check excludes
+  private folders and permits only demo/template resources.
 - Source readiness and trust/freshness checks.
 - Snapshot-first source workflow for local client packets.
 - Single-page extraction, judge validation, quote checks, and report generation.
 - Multi-page crawl primitives.
 - Human and agent-ready report bundle outputs.
 - Edit brief generation from agent edit plans.
-- Workshop desktop app with Redline as the first sub-tool.
+- Workshop desktop app with registered Redline, Megaphone, and Pulse tools.
 - Signed Tauri updater configuration and release-manifest tooling.
 
 Current hardening:
@@ -55,6 +55,10 @@ Current hardening:
 - Workshop opens with fictional demo data so a fresh clone can run without real
   client context. Real client packets should live outside the public repo and be
   selected from a local private workspace.
+
+The clean-clone rehearsal, legacy-reference sanitization, and release-readiness
+handoff are complete. Publishing remains an owner-approved step; see
+[docs/workshop-roadmap.md](docs/workshop-roadmap.md).
 
 See the public setup docs below for install, private workspace, and tool authoring
 guidance.
@@ -246,7 +250,9 @@ Workshop is the local Tauri app. It is intended to host multiple Marketing
 Builds tools over time:
 
 - Redline
-- future independent sub-tools
+- Megaphone
+- Pulse (a private external-runner view)
+- Slate (planned; not yet registered)
 
 Redline is the first tool. The current desktop screen shows the Northstar Demo
 Co. audit packet or the fixture isolation packet, source readiness, findings,

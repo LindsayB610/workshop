@@ -170,6 +170,16 @@ clients:
     });
   });
 
+  it("reports a missing workspace index without falling back to bundled clients", async () => {
+    stubTauriWindowWithWorkspace("/Users/example/workshop-private");
+    invokeMock.mockResolvedValue(null);
+
+    await expect(loadMegaphoneWorkspaceIndex()).resolves.toEqual({
+      status: "unavailable",
+      message: "No workspace.yaml was found in the selected private workspace.",
+    });
+  });
+
   it("reports invalid Megaphone private workspace indexes", async () => {
     stubTauriWindowWithWorkspace("/Users/example/workshop-private");
     invokeMock.mockResolvedValue(`

@@ -1,13 +1,68 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { getToolManifest, toolManifests } from "./toolManifest";
 import { dataRootsAreIsolated, getToolById, tools } from "./tools";
 
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = path.resolve(testDir, "../..");
 
 describe("tool registry", () => {
+  it("declares stable runtime and private-workspace contracts for registered tools", () => {
+    expect(toolManifests.map((manifest) => manifest.id)).toEqual([
+      "redline",
+      "megaphone",
+      "pulse",
+    ]);
+
+    expect(getToolManifest("redline")).toMatchObject({
+      displayName: "Redline",
+      runtime: { kind: "bundled-core", entryPoint: "@redline/core" },
+      privateWorkspace: { kind: "client-index", requiredFields: ["workspace.yaml", "client.yaml"] },
+    });
+    expect(getToolManifest("megaphone")).toMatchObject({
+      runtime: { kind: "bridge-cli", entryPoint: "@megaphone/core/bridgeCli" },
+    });
+    expect(getToolManifest("pulse")).toMatchObject({
+      runtime: { kind: "external-runner", entryPoint: "@marketing-builds/pulse" },
+      privateWorkspace: { kind: "runner-root", requiredFields: ["pulses.yaml", ".env", "state/"] },
+    });
+  });
+
+  it("keeps the UI registry aligned with the manifest", () => {
+    expect(tools.map((tool) => tool.id)).toEqual(toolManifests.map((manifest) => manifest.id));
+    for (const tool of tools) {
+      const manifest = getToolManifest(tool.id);
+      expect(manifest).toBeDefined();
+      expect(tool.runtime).toEqual(manifest?.runtime);
+      expect(tool.privateWorkspace).toEqual(manifest?.privateWorkspace);
+    }
+  });
+
+  it("matches declared runtime entry points to their adapter implementations", () => {
+    const desktopPackage = JSON.parse(
+      readFileSync(path.join(appRoot, "package.json"), "utf8"),
+    ) as { dependencies?: Record<string, string> };
+    const nativeAdapter = readFileSync(path.join(appRoot, "src-tauri", "src", "lib.rs"), "utf8");
+    const pulsePackagePath = path.resolve(appRoot, "../../../pulse/package.json");
+    const pulsePackage = existsSync(pulsePackagePath)
+      ? (JSON.parse(readFileSync(pulsePackagePath, "utf8")) as { name?: string })
+      : undefined;
+
+    const redline = getToolManifest("redline");
+    const megaphone = getToolManifest("megaphone");
+    const pulse = getToolManifest("pulse");
+
+    expect(desktopPackage.dependencies?.[redline?.runtime.entryPoint ?? ""]).toBeDefined();
+    expect(megaphone?.runtime.entryPoint).toBe("@megaphone/core/bridgeCli");
+    expect(nativeAdapter).toContain("packages/core/dist/bridgeCli.js");
+    expect(pulse?.runtime.entryPoint).toBe("@marketing-builds/pulse");
+    if (pulsePackage) {
+      expect(pulse?.runtime.entryPoint).toBe(pulsePackage.name);
+    }
+  });
+
   it("registers Redline as a ready sub-tool", () => {
     const tool = getToolById("redline");
 

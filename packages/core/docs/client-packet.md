@@ -28,8 +28,8 @@ Future phases add more canonical modules, source snapshots, audit targets, runs,
 ## `client.yaml`
 
 ```yaml
-clientId: parasail
-name: Parasail
+clientId: demo-client
+name: Demo Client
 description: Optional human-readable note
 canonicalModules:
   - positioning
@@ -47,12 +47,12 @@ Rules:
 
 ```json
 {
-  "clientId": "parasail",
+  "clientId": "demo-client",
   "generatedAt": "2026-06-20T00:00:00.000Z",
   "sources": [
     {
-      "id": "parasail-positioning-source",
-      "clientId": "parasail",
+      "id": "demo-client-positioning-source",
+      "clientId": "demo-client",
       "type": "local",
       "tier": "canonical",
       "trustLevel": "provisional",
@@ -64,10 +64,10 @@ Rules:
   "canonicalRegistry": [
     {
       "moduleId": "positioning",
-      "clientId": "parasail",
+      "clientId": "demo-client",
       "path": "canonical/positioning.md",
       "readiness": "partial",
-      "provenance": ["parasail-positioning-source"]
+      "provenance": ["demo-client-positioning-source"]
     }
   ]
 }

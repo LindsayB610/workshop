@@ -18,14 +18,20 @@ export type ToolLogoVariant = "redline" | "megaphone" | "pulse";
 
 export type ToolInstallMode = "bundled" | "external";
 
-export type ToolDefinition = {
+export type ToolRuntime = {
+  kind: "bundled-core" | "bridge-cli" | "external-runner";
+  entryPoint: string;
+};
+
+export type ToolPrivateWorkspace = {
+  kind: "client-index" | "runner-root";
+  requiredFields: string[];
+};
+
+export type ToolManifest = {
   id: string;
   displayName: string;
   description: string;
-  icon: LucideIcon;
-  logoVariant: ToolLogoVariant;
-  installMode: ToolInstallMode;
-  defaultInstalled: boolean;
   docsPath: string;
   defaultWorkspaceRoot: string;
   workspaceRequirement: string;
@@ -36,6 +42,15 @@ export type ToolDefinition = {
   importActions: string[];
   exportActions: string[];
   status: "ready" | "planned";
+  runtime: ToolRuntime;
+  privateWorkspace: ToolPrivateWorkspace;
+};
+
+export type ToolDefinition = ToolManifest & {
+  icon: LucideIcon;
+  logoVariant: ToolLogoVariant;
+  installMode: ToolInstallMode;
+  defaultInstalled: boolean;
 };
 
 export type RecentWorkspace = {

@@ -60,7 +60,7 @@ const defaultCommandPlan = [
   ["npm", ["test"]],
   ["npm", ["run", "build"]],
   ["npm", ["run", "test:e2e", "--workspace", "@marketing-builds/desktop"]],
-  ["npm", ["run", "desktop:tauri", "--", "build"]],
+  ["npm", ["run", "desktop:tauri", "--", "build", "--", "--bundles", "app"]],
 ];
 
 export function toPosix(value) {
@@ -228,7 +228,7 @@ export function runCommandPlan(root, options = {}) {
 
   for (const [command, args] of commands) {
     const commandText = [command, ...args].join(" ");
-    if (options.disableUpdaterArtifactsBeforePackage && commandText === "npm run desktop:tauri -- build") {
+    if (options.disableUpdaterArtifactsBeforePackage && isStagedAppBundleBuildCommand(commandText)) {
       publicBuildConfigPath = disableUpdaterArtifactsForPublicBuild(root);
     }
     const result = runCommand(root, command, args, options);
@@ -239,6 +239,10 @@ export function runCommandPlan(root, options = {}) {
   }
 
   return { results, publicBuildConfigPath };
+}
+
+export function isStagedAppBundleBuildCommand(commandText) {
+  return commandText === "npm run desktop:tauri -- build -- --bundles app";
 }
 
 export function parseArgs(argv) {

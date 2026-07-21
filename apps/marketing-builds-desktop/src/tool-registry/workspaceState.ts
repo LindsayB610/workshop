@@ -29,7 +29,7 @@ export type PrivateWorkspaceClient = {
 
 export type PrivateWorkspaceIndex = {
   version: 1;
-  workspaceType: string;
+  workspaceType: "workshop-private";
   clients: PrivateWorkspaceClient[];
 };
 
@@ -132,8 +132,8 @@ export function parsePrivateWorkspaceIndex(contents: string): WorkspaceIndexPars
     return { ok: false, message: "workspace.yaml version must be 1." };
   }
 
-  if (typeof record.workspaceType !== "string" || !record.workspaceType.trim()) {
-    return { ok: false, message: "workspace.yaml requires a workspaceType." };
+  if (record.workspaceType !== "workshop-private") {
+    return { ok: false, message: "workspace.yaml workspaceType must be workshop-private." };
   }
 
   if (!Array.isArray(record.clients)) {
@@ -197,7 +197,7 @@ export function parsePrivateWorkspaceIndex(contents: string): WorkspaceIndexPars
     ok: true,
     index: {
       version: 1,
-      workspaceType: record.workspaceType.trim(),
+      workspaceType: "workshop-private",
       clients,
     },
   };

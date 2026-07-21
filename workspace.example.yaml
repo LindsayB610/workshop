@@ -1,0 +1,13 @@
+# Public example only. Copy this file to a private workspace as workspace.yaml.
+# Do not commit a filled-in workspace index or any client material.
+version: 1
+workspaceType: workshop-private
+clients:
+  - clientId: acme-redline
+    root: clients/acme-redline
+    tool: redline
+    status: active
+  - clientId: acme-megaphone
+    root: clients/acme-megaphone
+    tool: megaphone
+    status: draft

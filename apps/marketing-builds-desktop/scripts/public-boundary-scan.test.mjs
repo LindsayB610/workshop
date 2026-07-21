@@ -43,11 +43,7 @@ describe("public boundary scanner", () => {
       classification: "template",
       publicSafe: true,
     });
-    expect(classifyPath(`clients/${privateClientId}/source-manifest.json`, inventory)).toMatchObject({
-      classification: "private-excluded",
-      publicSafe: false,
-      remediationPhase: 23,
-    });
+    expect(classifyPath(`clients/${privateClientId}/source-manifest.json`, inventory)).toBeNull();
   });
 
   it("keeps demo and template folders free of private-client findings", () => {
@@ -62,7 +58,7 @@ describe("public boundary scanner", () => {
     expect(demoPrivateFindings).toEqual([]);
   });
 
-  it("detects private client terms, source snapshots, and generated reports", async () => {
+  it("rejects unclassified client folders, source snapshots, and generated reports", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "workshop-public-boundary-"));
     mkdirSync(path.join(root, "docs"), { recursive: true });
     mkdirSync(path.join(root, "clients", privateClientId, "sources/notion"), { recursive: true });
@@ -86,17 +82,22 @@ describe("public boundary scanner", () => {
       expect.arrayContaining([
         expect.objectContaining({
           type: "blocked-term",
-          status: "reviewed-private-excluded",
+          ruleId: "legacy-client-identifier",
+          status: "unreviewed",
         }),
         expect.objectContaining({
           type: "blocked-path",
           ruleId: "notion-snapshot-content",
-          status: "reviewed-private-excluded",
+          status: "unreviewed",
         }),
         expect.objectContaining({
           type: "blocked-path",
           ruleId: "generated-client-report",
-          status: "reviewed-private-excluded",
+          status: "unreviewed",
+        }),
+        expect.objectContaining({
+          type: "unclassified-client-folder",
+          status: "unreviewed",
         }),
       ]),
     );

@@ -8,8 +8,6 @@ export * from "./loadClientPacket.js";
 export * from "./liveTargetSnapshot.js";
 export * from "./notionSnapshot.js";
 export * from "./onboarding.js";
-export * from "./parasailPilot.js";
-export * from "./parasailLaunchDelta.js";
 export * from "./promptTemplates.js";
 export * from "./proofApproval.js";
 export * from "./report.js";

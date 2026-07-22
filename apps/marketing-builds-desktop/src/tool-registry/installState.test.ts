@@ -14,12 +14,12 @@ import {
 import { tools } from "./tools";
 
 describe("tool install state", () => {
-  it("defaults every Workshop app to available instead of installed", () => {
+  it("defaults Slate to installed while keeping other Workshop apps available", () => {
     const state = defaultToolInstallState(tools);
 
-    expect(state.schemaVersion).toBe(3);
-    expect(state.enabledToolIds).toEqual([]);
-    expect(getInstalledTools(tools, state)).toEqual([]);
+    expect(state.schemaVersion).toBe(4);
+    expect(state.enabledToolIds).toEqual(["slate"]);
+    expect(getInstalledTools(tools, state).map((tool) => tool.id)).toEqual(["slate"]);
     expect(getAvailableBundledTools(tools, state).map((tool) => tool.id)).toEqual([
       "redline",
       "megaphone",
@@ -34,10 +34,10 @@ describe("tool install state", () => {
   it("normalizes current persisted state to known tools", () => {
     expect(
       normalizeToolInstallState(tools, {
-        schemaVersion: 3,
+        schemaVersion: 4,
         enabledToolIds: ["redline", "pulse", "unknown", "redline"],
       }),
-    ).toEqual({ schemaVersion: 3, enabledToolIds: ["redline", "pulse"] });
+    ).toEqual({ schemaVersion: 4, enabledToolIds: ["redline", "pulse"] });
   });
 
   it("migrates unversioned install state without uninstalling legacy bundled tools", () => {
@@ -45,12 +45,27 @@ describe("tool install state", () => {
       normalizeToolInstallState(tools, {
         enabledToolIds: [],
       }),
-    ).toEqual({ schemaVersion: 3, enabledToolIds: ["redline", "megaphone"] });
+    ).toEqual({ schemaVersion: 4, enabledToolIds: ["slate", "redline", "megaphone"] });
     expect(
       normalizeToolInstallState(tools, {
         enabledToolIds: ["pulse"],
       }),
-    ).toEqual({ schemaVersion: 3, enabledToolIds: ["redline", "megaphone", "pulse"] });
+    ).toEqual({ schemaVersion: 4, enabledToolIds: ["slate", "redline", "megaphone", "pulse"] });
+  });
+
+  it("adds Slate during the version-three install-state migration without re-enabling disabled tools", () => {
+    expect(
+      normalizeToolInstallState(tools, {
+        schemaVersion: 3,
+        enabledToolIds: ["redline", "pulse"],
+      }),
+    ).toEqual({ schemaVersion: 4, enabledToolIds: ["slate", "redline", "pulse"] });
+    expect(
+      normalizeToolInstallState(tools, {
+        schemaVersion: 3,
+        enabledToolIds: [],
+      }),
+    ).toEqual({ schemaVersion: 4, enabledToolIds: ["slate"] });
   });
 
   it("preserves older persisted installs and carries them into the current schema", () => {
@@ -59,6 +74,7 @@ describe("tool install state", () => {
     });
 
     expect(getInstalledTools(tools, state).map((tool) => tool.id)).toEqual([
+      "slate",
       "redline",
       "megaphone",
     ]);
@@ -71,13 +87,14 @@ describe("tool install state", () => {
 
     expect(restored.workspaceFilesTouched).toBe(false);
     expect(getInstalledTools(tools, restored.state).map((tool) => tool.id)).toEqual([
+      "slate",
       "redline",
     ]);
 
     const disabled = disableTool(tools, restored.state, "redline");
 
     expect(disabled.workspaceFilesTouched).toBe(false);
-    expect(getInstalledTools(tools, disabled.state)).toEqual([]);
+    expect(getInstalledTools(tools, disabled.state).map((tool) => tool.id)).toEqual(["slate"]);
     expect(getAvailableBundledTools(tools, disabled.state).map((tool) => tool.id)).toEqual([
       "redline",
       "megaphone",
@@ -89,7 +106,7 @@ describe("tool install state", () => {
     const installed = enableTool(tools, initialState, "pulse");
 
     expect(installed.workspaceFilesTouched).toBe(false);
-    expect(getInstalledTools(tools, installed.state).map((tool) => tool.id)).toEqual(["pulse"]);
+    expect(getInstalledTools(tools, installed.state).map((tool) => tool.id)).toEqual(["slate", "pulse"]);
     expect(getAvailableTools(tools, installed.state).map((tool) => tool.id)).toEqual([
       "redline",
       "megaphone",

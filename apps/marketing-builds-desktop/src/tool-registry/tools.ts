@@ -1,8 +1,15 @@
-import { BellRing, FileText, Megaphone as MegaphoneIcon } from "lucide-react";
+import { BellRing, FileText, ListTodo, Megaphone as MegaphoneIcon } from "lucide-react";
 import { getToolManifest } from "./toolManifest";
 import type { RecentWorkspace, ToolDefinition } from "./types";
 
 export const tools: ToolDefinition[] = [
+  {
+    ...getRequiredToolManifest("slate"),
+    icon: ListTodo,
+    logoVariant: "slate",
+    installMode: "bundled",
+    defaultInstalled: true,
+  },
   {
     ...getRequiredToolManifest("redline"),
     icon: FileText,

@@ -14,12 +14,12 @@ export type ToolRoute = {
   sectionId?: string;
 };
 
-export type ToolLogoVariant = "redline" | "megaphone" | "pulse";
+export type ToolLogoVariant = "redline" | "megaphone" | "pulse" | "slate";
 
 export type ToolInstallMode = "bundled" | "external";
 
 export type ToolRuntime = {
-  kind: "bundled-core" | "bridge-cli" | "external-runner";
+  kind: "bundled-core" | "bridge-cli" | "external-runner" | "native-bridge";
   entryPoint: string;
 };
 

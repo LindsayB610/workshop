@@ -14,31 +14,22 @@ describe("Workshop desktop app", () => {
 
     expect(markup).toContain("Marketing builds");
     expect(markup).toContain("Workshop");
-    expect(markup).toContain("Redline");
-    expect(markup).toContain("Megaphone");
-    expect(markup).toContain("Pulse");
-    expect(markup).toContain("Audit client pages against trusted source packets");
-    expect(markup).toContain("Plan and shape campaign messages");
-    expect(markup).toContain("Track persistent recurring obligations");
-    expect(markup).toContain("Choose apps from Add New Tools.");
-    expect(markup).toContain("aria-label=\"Add New Tools catalog\"");
-    expect(markup).toContain("Install");
+    expect(markup).toContain("Slate");
+    expect(markup).toContain("Keep a clear local view of the UC task ledger and chest freezer inventory.");
     expect(markup).toContain("Add New Tools");
-    expect(markup).not.toContain("Redline tool actions");
-    expect(markup).not.toContain("Megaphone tool actions");
-    expect(markup).not.toContain("Pulse tool actions");
+    expect(markup).not.toContain("Redline");
+    expect(markup).not.toContain("Megaphone");
+    expect(markup).not.toContain("Pulse");
     expect(markup).not.toContain(["clients", ["para", "sail"].join("")].join("/"));
     expect(markup).not.toContain("Export Reports");
     expect(markup).not.toContain("Updates check on launch.");
   });
 
-  it("renders a differentiated logo mark for each available app", () => {
+  it("renders Slate's differentiated logo mark on the default shelf", () => {
     const markup = renderToStaticMarkup(<App />);
 
     expect(markup).toContain("aria-label=\"Lindsay Brunner brand mark\"");
-    expect(markup).toContain("tool-logo-redline");
-    expect(markup).toContain("tool-logo-megaphone");
-    expect(markup).toContain("tool-logo-pulse");
+    expect(markup).toContain("tool-logo-slate");
   });
 
   it("scales tool logos as a whole mark in workbench headers", () => {

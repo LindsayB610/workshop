@@ -3,7 +3,7 @@ import type { ToolDefinition } from "./types";
 
 export const toolInstallStorageKey = "workshop.toolInstallState.v2";
 export const toolLocalStatePrefix = "workshop.toolLocalState.";
-export const toolInstallStateSchemaVersion = 3;
+export const toolInstallStateSchemaVersion = 4;
 const legacyBundledToolIds = ["redline", "megaphone"];
 
 export type ToolInstallState = {
@@ -33,11 +33,14 @@ export function normalizeToolInstallState(
     return defaultState;
   }
 
-  const legacyEnabledToolIds =
+  const defaultInstalledToolIds = toolList.filter((tool) => tool.defaultInstalled).map((tool) => tool.id);
+  const migratedEnabledToolIds =
     storedState.schemaVersion === toolInstallStateSchemaVersion
       ? storedState.enabledToolIds
-      : [...legacyBundledToolIds, ...storedState.enabledToolIds];
-  const enabledToolIds = legacyEnabledToolIds.filter((toolId, index, toolIds) => {
+      : storedState.schemaVersion === 3
+        ? [...defaultInstalledToolIds, ...storedState.enabledToolIds]
+        : [...defaultInstalledToolIds, ...legacyBundledToolIds, ...storedState.enabledToolIds];
+  const enabledToolIds = migratedEnabledToolIds.filter((toolId, index, toolIds) => {
     return knownToolIds.has(toolId) && toolIds.indexOf(toolId) === index;
   });
 

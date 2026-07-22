@@ -4,4 +4,5 @@ export type ToolViewProps = {
   tool: ToolDefinition;
   activeRouteId?: string;
   onSetWorkspaceRequest?: (toolId: string) => void;
+  workspaceRoot?: string;
 };

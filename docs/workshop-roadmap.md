@@ -33,7 +33,7 @@ decision.
 | 3 | Complete | Implement and verify the policy | Legacy modules/fixtures were removed and generic coverage replaced them. | Proceed to release-readiness handoff. |
 | 4 | Complete | Release-readiness handoff | Local checklist, workflow, CI-secret presence, and release evidence are recorded. | Workshop v0.1.27 published on 2026-07-21. |
 | Product A | Ongoing | Registered tools | Maintain Redline, Megaphone, and Pulse contracts. | Covered by tool-manifest and tool-specific tests. |
-| Product B | Planned | Slate | Build the local-only inventory viewer under its own plan. | Slate Phase 0 and Phase 1 must pass before registration. |
+| Product B | In progress | Slate | Local UC viewer, freezer table, and native two-file bridge are registered; automated validation is complete. | Complete the visible desktop refresh and recovery acceptance check. |
 | Product C | Deferred | SEO review surface | Design a shared automation-output review experience. | Do not register SEO Tools before that product brief exists. |
 
 ## Phase 0 — Release baseline
@@ -55,8 +55,8 @@ does not reopen completed product development.
   current development tree.
 - The staged public-source check permits only the approved demo/template client
   folders and reports no blocking boundary findings.
-- Slate has its own implementation plan but is not registered; SEO Tools is
-  intentionally deferred.
+- Slate is registered with its local UC and freezer views plus the native source
+  bridge. SEO Tools is intentionally deferred.
 
 ### Ongoing guardrails
 
@@ -262,14 +262,14 @@ an updated private-workspace doc where behavior changes.
 
 ## Product B — Slate
 
-**Status: planned; outside the public-release critical path**
+**Status: in progress; outside the public-release critical path**
 
 Slate’s authoritative plan is
 `apps/marketing-builds-desktop/src/tools/slate/PROJECT_PLAN.md`.
 
-- Begin with Slate Phase 0 discovery of the two approved local Markdown inputs.
-- Complete Slate Phase 1 path-boundary and rendering tests before writing the
-  bridge or registering the tool.
+- Phases 0–4 are complete: the source contract, TDD baseline, native bridge,
+  local watcher, UC view, and freezer table are registered.
+- Complete the visible desktop refresh and recovery acceptance check.
 - Keep Guppi inventory content, paths, screenshots, and generated output out
   of Workshop and out of `workshop-private`.
 

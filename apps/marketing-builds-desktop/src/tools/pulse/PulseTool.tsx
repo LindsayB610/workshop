@@ -1,4 +1,5 @@
-import { BellRing, CheckCircle2, Clock3, FileClock, FolderOpen, RadioTower } from "lucide-react";
+import { BellRing, CheckCircle2, Clock3, FileClock, RadioTower, RefreshCw } from "lucide-react";
+import { useState } from "react";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Panel } from "../../components/ui/panel";
@@ -7,25 +8,83 @@ import type { ToolViewProps } from "../types";
 const pulseRoutes = ["active", "schedule", "history", "runner"] as const;
 
 type PulseRoute = (typeof pulseRoutes)[number];
+type PulseOccurrence = {
+  id: string;
+  pulseId: string;
+  dueAt: string;
+  state: "scheduled" | "due" | "done";
+  completedAt?: string;
+  completionNote?: string;
+};
+type PulseSnapshot = {
+  pulses: Array<{ id: string; title: string; instructions?: string }>;
+  state: { occurrences: PulseOccurrence[]; events: Array<{ type: string; occurrenceId?: string; at: string }> };
+  checkedAt: string;
+  runnerHealth?: { status: string; checkedAt: string };
+};
 
 function isPulseRoute(routeId: string): routeId is PulseRoute {
   return pulseRoutes.some((route) => route === routeId);
 }
 
-export function PulseTool({ activeRouteId, onSetWorkspaceRequest, tool }: ToolViewProps) {
-  const activeRoute: PulseRoute =
-    activeRouteId && isPulseRoute(activeRouteId) ? activeRouteId : "active";
+export function PulseTool({ activeRouteId, tool }: ToolViewProps) {
+  const activeRoute: PulseRoute = activeRouteId && isPulseRoute(activeRouteId) ? activeRouteId : "active";
+  const [apiUrl, setApiUrl] = useState("");
+  const [apiToken, setApiToken] = useState("");
+  const [snapshot, setSnapshot] = useState<PulseSnapshot | null>(null);
+  const [status, setStatus] = useState("Connect your private Pulse runner to load live state.");
+  const pulseById = new Map(snapshot?.pulses.map((pulse) => [pulse.id, pulse]) ?? []);
+
+  async function loadSnapshot() {
+    if (!apiUrl.trim() || !apiToken.trim()) {
+      setStatus("Enter the private runner URL and API token.");
+      return;
+    }
+    setStatus("Loading private runner state…");
+    try {
+      const response = await fetch(`${apiUrl.replace(/\/$/, "")}/api/v1/snapshot`, {
+        headers: { authorization: `Bearer ${apiToken}` },
+      });
+      if (!response.ok) {
+        throw new Error(response.status === 401 ? "The runner rejected that API token." : `Runner returned ${response.status}.`);
+      }
+      setSnapshot((await response.json()) as PulseSnapshot);
+      setStatus("Live state loaded. Workshop does not save your runner token.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Workshop could not reach the private runner.");
+    }
+  }
+
+  async function markDone(occurrenceId: string) {
+    if (!apiUrl.trim() || !apiToken.trim()) return;
+    setStatus("Recording completion…");
+    try {
+      const response = await fetch(
+        `${apiUrl.replace(/\/$/, "")}/api/v1/occurrences/${encodeURIComponent(occurrenceId)}/done`,
+        { method: "POST", headers: { authorization: `Bearer ${apiToken}` } },
+      );
+      if (!response.ok) throw new Error(`Runner returned ${response.status}.`);
+      await loadSnapshot();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Workshop could not mark this occurrence Done.");
+    }
+  }
+
+  const occurrences = snapshot?.state.occurrences ?? [];
+  const due = occurrences.filter((occurrence) => occurrence.state === "due");
+  const scheduled = occurrences.filter((occurrence) => occurrence.state === "scheduled").sort(byDueAt);
+  const done = occurrences.filter((occurrence) => occurrence.state === "done").sort(byCompletedAt);
 
   return (
     <div className="pulse-tool">
       <Panel className="workspace-summary workspace-summary-compact" id="pulse-summary">
         <div>
-          <p className="eyebrow">Self-hosted runner</p>
+          <p className="eyebrow">Private runner</p>
           <h2>Pulse</h2>
           <p>{tool.description}</p>
         </div>
         <div className="workspace-summary-actions">
-          <Badge tone="yellow">Private runner required</Badge>
+          <Badge tone="yellow">Android push via ntfy</Badge>
           <a className="mb-button mb-button-secondary" href={tool.docsPath} target="_blank" rel="noreferrer">
             <FileClock size={16} aria-hidden="true" />
             <span>Docs</span>
@@ -33,102 +92,35 @@ export function PulseTool({ activeRouteId, onSetWorkspaceRequest, tool }: ToolVi
         </div>
       </Panel>
 
-      {activeRoute === "active" ? <ActivePulsePanel /> : null}
-      {activeRoute === "schedule" ? <PulseSchedulePanel /> : null}
-      {activeRoute === "history" ? <PulseHistoryPanel /> : null}
-      {activeRoute === "runner" ? (
-        <PulseRunnerPanel onSetWorkspaceRequest={() => onSetWorkspaceRequest?.(tool.id)} />
-      ) : null}
+      <Panel className="workspace-summary" id="pulse-runner-connection">
+        <div className="section-heading-row">
+          <div><p className="eyebrow">Connection</p><h2>Private runner</h2></div>
+          <RadioTower size={22} aria-hidden="true" />
+        </div>
+        <div className="pulse-connection-fields">
+          <label>Runner URL<input value={apiUrl} onChange={(event) => setApiUrl(event.target.value)} placeholder="https://your-private-runner.example" /></label>
+          <label>API token<input type="password" value={apiToken} onChange={(event) => setApiToken(event.target.value)} placeholder="Private bearer token" /></label>
+          <Button variant="secondary" onClick={() => void loadSnapshot()}><RefreshCw size={16} aria-hidden="true" /><span>Load live state</span></Button>
+        </div>
+        <p className="workspace-index-status" role="status">{status}</p>
+      </Panel>
+
+      {activeRoute === "active" ? <OccurrencePanel icon={<BellRing size={22} aria-hidden="true" />} title="Due occurrences" empty="No active occurrences loaded." occurrences={due} pulseById={pulseById} onDone={markDone} /> : null}
+      {activeRoute === "schedule" ? <OccurrencePanel icon={<Clock3 size={22} aria-hidden="true" />} title="Upcoming occurrences" empty="No upcoming occurrences loaded." occurrences={scheduled} pulseById={pulseById} /> : null}
+      {activeRoute === "history" ? <OccurrencePanel icon={<CheckCircle2 size={22} aria-hidden="true" />} title="Completion history" empty="No completion history loaded." occurrences={done} pulseById={pulseById} /> : null}
+      {activeRoute === "runner" ? <RunnerPanel snapshot={snapshot} /> : null}
     </div>
   );
 }
 
-function ActivePulsePanel() {
-  return (
-    <Panel className="workspace-summary" id="pulse-active">
-      <div className="section-heading-row">
-        <div>
-          <p className="eyebrow">Active</p>
-          <h2>Due occurrences</h2>
-        </div>
-        <BellRing size={22} aria-hidden="true" />
-      </div>
-      <div className="empty-tool">
-        <BellRing size={22} aria-hidden="true" />
-        <h3>No active occurrences loaded</h3>
-        <p>Connect a private Pulse runner workspace to review due items from local state.</p>
-      </div>
-    </Panel>
-  );
+function OccurrencePanel({ icon, title, empty, occurrences, pulseById, onDone }: { icon: React.ReactNode; title: string; empty: string; occurrences: PulseOccurrence[]; pulseById: Map<string, { id: string; title: string; instructions?: string }>; onDone?: (id: string) => Promise<void> }) {
+  return <Panel className="workspace-summary" id={`pulse-${title.toLowerCase().replaceAll(" ", "-")}`}><div className="section-heading-row"><div><p className="eyebrow">Pulse</p><h2>{title}</h2></div>{icon}</div>{occurrences.length === 0 ? <div className="empty-tool"><BellRing size={22} aria-hidden="true" /><h3>{empty}</h3></div> : <ul className="compact-list">{occurrences.map((occurrence) => <li key={occurrence.id}><strong>{pulseById.get(occurrence.pulseId)?.title ?? occurrence.pulseId}</strong><span>{occurrence.state === "done" ? `Completed ${formatDate(occurrence.completedAt)}` : `Due ${formatDate(occurrence.dueAt)}`}{occurrence.completionNote ? ` · ${occurrence.completionNote}` : ""}</span>{onDone ? <Button variant="secondary" onClick={() => void onDone(occurrence.id)}>Done</Button> : null}</li>)}</ul>}</Panel>;
 }
 
-function PulseSchedulePanel() {
-  return (
-    <Panel className="workspace-summary" id="pulse-schedule">
-      <div className="section-heading-row">
-        <div>
-          <p className="eyebrow">Schedule</p>
-          <h2>Upcoming occurrences</h2>
-        </div>
-        <Clock3 size={22} aria-hidden="true" />
-      </div>
-      <ul className="compact-list">
-        <li>
-          <strong>Private config</strong>
-          <span>Pulse definitions stay in the self-hosted runner config, not Workshop.</span>
-        </li>
-        <li>
-          <strong>Recurring schedules</strong>
-          <span>Workshop displays schedule state after a local Pulse data root is selected.</span>
-        </li>
-      </ul>
-    </Panel>
-  );
+function RunnerPanel({ snapshot }: { snapshot: PulseSnapshot | null }) {
+  return <Panel className="workspace-summary" id="pulse-runner"><div className="section-heading-row"><div><p className="eyebrow">Runner</p><h2>Runner status</h2></div><RadioTower size={22} aria-hidden="true" /></div><div className="metric-grid"><div><strong>Connection</strong><span>{snapshot ? "Live private runner" : "Not connected"}</span></div><div><strong>Last checked</strong><span>{snapshot ? formatDate(snapshot.checkedAt) : "—"}</span></div><div><strong>Runner health</strong><span>{snapshot?.runnerHealth?.status ?? "Unknown"}</span></div></div></Panel>;
 }
 
-function PulseHistoryPanel() {
-  return (
-    <Panel className="workspace-summary" id="pulse-history">
-      <div className="section-heading-row">
-        <div>
-          <p className="eyebrow">History</p>
-          <h2>Completion history</h2>
-        </div>
-        <CheckCircle2 size={22} aria-hidden="true" />
-      </div>
-      <p>Completion history belongs to the private Pulse state file. Workshop does not copy it into shared tool data.</p>
-    </Panel>
-  );
-}
-
-function PulseRunnerPanel({ onSetWorkspaceRequest }: { onSetWorkspaceRequest: () => void }) {
-  return (
-    <Panel className="workspace-summary" id="pulse-runner">
-      <div className="section-heading-row">
-        <div>
-          <p className="eyebrow">Runner</p>
-          <h2>Runner status</h2>
-        </div>
-        <RadioTower size={22} aria-hidden="true" />
-      </div>
-      <div className="metric-grid">
-        <div>
-          <strong>Private runner</strong>
-          <span>Not connected in Workshop preview</span>
-        </div>
-        <div>
-          <strong>Local config path</strong>
-          <span>Select a private Pulse workspace root from the tool menu.</span>
-        </div>
-        <div>
-          <strong>Data boundary</strong>
-          <span>Workshop hosts the view; Pulse remains the source of truth.</span>
-        </div>
-      </div>
-      <Button variant="secondary" onClick={onSetWorkspaceRequest}>
-        <FolderOpen size={16} aria-hidden="true" />
-        <span>Select local config path</span>
-      </Button>
-    </Panel>
-  );
-}
+function byDueAt(a: PulseOccurrence, b: PulseOccurrence) { return Date.parse(a.dueAt) - Date.parse(b.dueAt); }
+function byCompletedAt(a: PulseOccurrence, b: PulseOccurrence) { return Date.parse(b.completedAt ?? b.dueAt) - Date.parse(a.completedAt ?? a.dueAt); }
+function formatDate(value: string | undefined) { return value ? new Date(value).toLocaleString() : "—"; }

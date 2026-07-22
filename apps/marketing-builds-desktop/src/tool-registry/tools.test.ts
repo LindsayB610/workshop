@@ -11,6 +11,7 @@ const appRoot = path.resolve(testDir, "../..");
 describe("tool registry", () => {
   it("declares stable runtime and private-workspace contracts for registered tools", () => {
     expect(toolManifests.map((manifest) => manifest.id)).toEqual([
+      "slate",
       "redline",
       "megaphone",
       "pulse",
@@ -20,6 +21,11 @@ describe("tool registry", () => {
       displayName: "Redline",
       runtime: { kind: "bundled-core", entryPoint: "@redline/core" },
       privateWorkspace: { kind: "client-index", requiredFields: ["workspace.yaml", "client.yaml"] },
+    });
+    expect(getToolManifest("slate")).toMatchObject({
+      displayName: "Slate",
+      runtime: { kind: "native-bridge", entryPoint: "tauri:slate_read_source" },
+      privateWorkspace: { kind: "runner-root", requiredFields: ["slate.config.json"] },
     });
     expect(getToolManifest("megaphone")).toMatchObject({
       runtime: { kind: "bridge-cli", entryPoint: "@megaphone/core/bridgeCli" },

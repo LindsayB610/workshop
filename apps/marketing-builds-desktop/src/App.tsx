@@ -42,6 +42,7 @@ export function App() {
               activeRouteId={activeRouteId}
               onSetWorkspaceRequest={promptForWorkspaceRoot}
               tool={activeTool}
+              workspaceRoot={getSelection(activeTool.id).root}
             />
           )}
         </WorkbenchShell>

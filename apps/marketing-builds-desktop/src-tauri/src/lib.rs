@@ -1,9 +1,13 @@
+use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use tauri::Manager;
+use std::sync::Mutex;
+use std::time::UNIX_EPOCH;
+use tauri::{Emitter, Manager};
 
 const REDLINE_CURL_FINAL_URL_MARKER: &str = "\n__WORKSHOP_FINAL_URL__=";
 
@@ -68,6 +72,32 @@ struct MegaphoneBridgeEnvelope<T> {
     ok: bool,
     data: Option<T>,
     error: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SlateConfig {
+    version: u8,
+    uc_path: String,
+    freezer_path: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SlateSourceSnapshot {
+    contents: String,
+    updated_at: u128,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SlateSourceChange {
+    root: String,
+    source: String,
+}
+
+struct SlateWatchState {
+    watchers: Mutex<HashMap<PathBuf, RecommendedWatcher>>,
 }
 
 fn normalize_redline_path(path: &str) -> Result<PathBuf, String> {
@@ -172,6 +202,119 @@ fn explicit_workspace_roots(workspace_root: Option<&str>) -> Result<Vec<PathBuf>
         Some(root) if !root.trim().is_empty() => Ok(vec![normalize_workspace_root(root)?]),
         _ => Ok(Vec::new()),
     }
+}
+
+fn parse_slate_config(contents: &str) -> Result<SlateConfig, String> {
+    let config: SlateConfig = serde_json::from_str(contents)
+        .map_err(|error| format!("Slate configuration is not valid: {error}"))?;
+
+    if config.version != 1 {
+        return Err("Slate configuration version must be 1.".into());
+    }
+
+    if config.uc_path == config.freezer_path {
+        return Err("Slate requires two distinct source files.".into());
+    }
+
+    Ok(config)
+}
+
+fn validate_slate_source_location(path: &str) -> Result<PathBuf, String> {
+    let requested = Path::new(path);
+    if !requested.is_absolute() {
+        return Err("Slate source paths must be absolute local paths.".into());
+    }
+    if requested.extension().and_then(|extension| extension.to_str()) != Some("md") {
+        return Err("Slate source files must be Markdown files.".into());
+    }
+    if requested
+        .components()
+        .any(|component| matches!(component, std::path::Component::ParentDir))
+    {
+        return Err("Slate source paths cannot contain traversal segments.".into());
+    }
+
+    Ok(requested.to_path_buf())
+}
+
+fn validate_slate_source_path(path: &str) -> Result<PathBuf, String> {
+    let requested = validate_slate_source_location(path)?;
+    let metadata = fs::symlink_metadata(&requested)
+        .map_err(|error| format!("Slate source file is unavailable: {error}"))?;
+    if metadata.file_type().is_symlink() {
+        return Err("Slate source files cannot be symlinks.".into());
+    }
+    if !metadata.is_file() {
+        return Err("Slate source paths must refer to regular files.".into());
+    }
+
+    Ok(requested)
+}
+
+fn slate_snapshot(path: &Path) -> Result<SlateSourceSnapshot, String> {
+    let contents = fs::read_to_string(path)
+        .map_err(|error| format!("Could not read Slate source: {error}"))?;
+    let modified = fs::metadata(path)
+        .and_then(|metadata| metadata.modified())
+        .map_err(|error| format!("Could not inspect Slate source: {error}"))?
+        .duration_since(UNIX_EPOCH)
+        .map_err(|error| format!("Could not timestamp Slate source: {error}"))?
+        .as_millis();
+
+    Ok(SlateSourceSnapshot {
+        contents,
+        updated_at: modified,
+    })
+}
+
+fn slate_config_from_root(slate_root: &str) -> Result<SlateConfig, String> {
+    let root = normalize_workspace_root(slate_root)?;
+    let config_path = root.join("slate.config.json");
+    let config_metadata = fs::symlink_metadata(&config_path)
+        .map_err(|error| format!("Slate configuration is unavailable: {error}"))?;
+    if config_metadata.file_type().is_symlink() || !config_metadata.is_file() {
+        return Err("Slate configuration must be a regular slate.config.json file.".into());
+    }
+
+    let config_contents = fs::read_to_string(config_path)
+        .map_err(|error| format!("Could not read Slate configuration: {error}"))?;
+    parse_slate_config(&config_contents)
+}
+
+fn slate_source_locations_from_root(slate_root: &str) -> Result<(PathBuf, PathBuf), String> {
+    let config = slate_config_from_root(slate_root)?;
+    Ok((
+        validate_slate_source_location(&config.uc_path)?,
+        validate_slate_source_location(&config.freezer_path)?,
+    ))
+}
+
+fn slate_source_from_root(slate_root: &str, source: &str) -> Result<SlateSourceSnapshot, String> {
+    let config = slate_config_from_root(slate_root)?;
+    let source_path = match source {
+        "uc" => &config.uc_path,
+        "freezer" => &config.freezer_path,
+        _ => return Err("Slate source must be uc or freezer.".into()),
+    };
+    slate_snapshot(&validate_slate_source_path(source_path)?)
+}
+
+fn slate_source_for_changed_path(
+    watched_sources: &HashMap<PathBuf, String>,
+    changed_path: &Path,
+) -> Option<String> {
+    watched_sources.get(changed_path).cloned()
+}
+
+fn slate_sources_from_event(
+    watched_sources: &HashMap<PathBuf, String>,
+    event: &notify::Event,
+) -> Vec<String> {
+    event
+        .paths
+        .iter()
+        .filter_map(|path| slate_source_for_changed_path(watched_sources, path))
+        .collect()
 }
 
 fn read_private_workspace_index_from_context(
@@ -1376,9 +1519,67 @@ fn read_private_workspace_index(workspace_root: Option<String>) -> Result<Option
     read_private_workspace_index_from_context(workspace_root.as_deref())
 }
 
+#[tauri::command]
+fn slate_read_source(slate_root: String, source: String) -> Result<SlateSourceSnapshot, String> {
+    slate_source_from_root(&slate_root, &source)
+}
+
+#[tauri::command]
+fn slate_start_watch(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, SlateWatchState>,
+    slate_root: String,
+) -> Result<(), String> {
+    let (uc_path, freezer_path) = slate_source_locations_from_root(&slate_root)?;
+    let root = normalize_workspace_root(&slate_root)?;
+    let mut watchers = state
+        .watchers
+        .lock()
+        .map_err(|_| "Slate watcher state is unavailable.".to_string())?;
+    if watchers.contains_key(&root) {
+        return Ok(());
+    }
+
+    let mut watched_sources = HashMap::new();
+    watched_sources.insert(uc_path.clone(), "uc".to_string());
+    watched_sources.insert(freezer_path.clone(), "freezer".to_string());
+    let watched_directories: HashSet<PathBuf> = watched_sources
+        .keys()
+        .filter_map(|path| path.parent().map(Path::to_path_buf))
+        .collect();
+    let app_handle = app.clone();
+    let event_root = root.to_string_lossy().to_string();
+    let mut watcher = notify::recommended_watcher(move |event: notify::Result<notify::Event>| {
+        let Ok(event) = event else {
+            return;
+        };
+        for source in slate_sources_from_event(&watched_sources, &event) {
+            let _ = app_handle.emit(
+                "slate://source-changed",
+                SlateSourceChange {
+                    root: event_root.clone(),
+                    source,
+                },
+            );
+        }
+    })
+    .map_err(|error| format!("Could not start Slate source watcher: {error}"))?;
+
+    for directory in watched_directories {
+        watcher
+            .watch(&directory, RecursiveMode::NonRecursive)
+            .map_err(|error| format!("Could not watch Slate source directory: {error}"))?;
+    }
+    watchers.insert(root, watcher);
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(SlateWatchState {
+            watchers: Mutex::new(HashMap::new()),
+        })
         .invoke_handler(tauri::generate_handler![
             megaphone_create_post_package,
             megaphone_create_ai_post_package,
@@ -1395,7 +1596,9 @@ pub fn run() {
             redline_open_path,
             redline_fetch_live_url,
             redline_write_target_snapshot_files,
-            redline_write_packet_files
+            redline_write_packet_files,
+            slate_read_source,
+            slate_start_watch
         ])
         .setup(|app| {
             #[cfg(desktop)]
@@ -1422,6 +1625,98 @@ mod tests {
             .expect("system time should be after epoch")
             .as_nanos();
         std::env::temp_dir().join(format!("workshop-redline-{label}-{nanos}"))
+    }
+
+    #[test]
+    fn reads_only_the_two_configured_slate_sources() {
+        let root = unique_temp_root("slate-sources");
+        let source_root = root.join("sources");
+        fs::create_dir_all(&source_root).expect("Slate source directory should be created");
+        let uc = source_root.join("uc.md");
+        let freezer = source_root.join("freezer.md");
+        fs::write(&uc, "# UC\n").expect("UC source should be written");
+        fs::write(&freezer, "# Freezer\n").expect("freezer source should be written");
+        fs::write(
+            root.join("slate.config.json"),
+            serde_json::json!({
+                "version": 1,
+                "ucPath": uc,
+                "freezerPath": freezer,
+            })
+            .to_string(),
+        )
+        .expect("Slate config should be written");
+
+        assert_eq!(
+            slate_source_from_root(root.to_str().expect("temp root should be utf8"), "uc")
+                .expect("UC source should load independently")
+                .contents,
+            "# UC\n"
+        );
+        assert_eq!(
+            slate_source_from_root(root.to_str().expect("temp root should be utf8"), "freezer")
+                .expect("freezer source should load independently")
+                .contents,
+            "# Freezer\n"
+        );
+        assert!(slate_source_from_root(root.to_str().expect("temp root should be utf8"), "other").is_err());
+
+        fs::remove_file(&freezer).expect("freezer source should be removable");
+        assert_eq!(
+            slate_source_from_root(root.to_str().expect("temp root should be utf8"), "uc")
+                .expect("UC refresh should not depend on the freezer source")
+                .contents,
+            "# UC\n"
+        );
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn rejects_slate_configured_source_paths_with_traversal() {
+        let root = unique_temp_root("slate-traversal");
+        fs::create_dir_all(&root).expect("Slate root should be created");
+        fs::write(
+            root.join("slate.config.json"),
+            r#"{"version":1,"ucPath":"/tmp/../uc.md","freezerPath":"/tmp/freezer.md"}"#,
+        )
+        .expect("Slate config should be written");
+
+        assert!(slate_source_from_root(root.to_str().expect("temp root should be utf8"), "uc").is_err());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn filters_slate_watch_events_to_the_exact_configured_sources() {
+        let uc = PathBuf::from("/private/uc/uc.md");
+        let freezer = PathBuf::from("/private/freezer/freezer.md");
+        let watched_sources = HashMap::from([
+            (uc.clone(), "uc".to_string()),
+            (freezer.clone(), "freezer".to_string()),
+        ]);
+
+        assert_eq!(slate_source_for_changed_path(&watched_sources, &uc), Some("uc".into()));
+        assert_eq!(
+            slate_source_for_changed_path(&watched_sources, &freezer),
+            Some("freezer".into())
+        );
+        assert_eq!(
+            slate_source_for_changed_path(&watched_sources, Path::new("/private/uc/other.md")),
+            None
+        );
+    }
+
+    #[test]
+    fn atomic_save_rename_event_resolves_to_the_configured_source() {
+        let uc = PathBuf::from("/private/uc/uc.md");
+        let watched_sources = HashMap::from([(uc.clone(), "uc".to_string())]);
+        let event = notify::Event::new(notify::EventKind::Modify(
+            notify::event::ModifyKind::Name(notify::event::RenameMode::Both),
+        ))
+        .add_path("/private/uc/.uc.md.tmp".into())
+        .add_path(uc);
+
+        assert_eq!(slate_sources_from_event(&watched_sources, &event), vec!["uc"]);
     }
 
     #[test]

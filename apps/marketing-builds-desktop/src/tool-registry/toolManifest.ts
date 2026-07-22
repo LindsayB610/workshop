@@ -2,6 +2,26 @@ import type { ToolManifest } from "./types";
 
 export const toolManifests: ToolManifest[] = [
   {
+    id: "slate",
+    displayName: "Slate",
+    description: "Keep a clear local view of the UC task ledger and chest freezer inventory.",
+    docsPath: "/docs/tools/slate.md",
+    defaultWorkspaceRoot: "",
+    workspaceRequirement: "Needs the private Slate folder that contains slate.config.json and its two approved local sources.",
+    uninstallSafetyCopy: "Disabling Slate hides the tool only. Its local configuration and source files stay untouched.",
+    routes: [
+      { id: "uc", label: "UC", path: "/slate/uc", sectionId: "slate-uc" },
+      { id: "freezer", label: "Freezer", path: "/slate/freezer", sectionId: "slate-freezer" },
+    ],
+    requiredLocalCapabilities: ["local-workspace"],
+    dataRoots: ["tools/slate"],
+    importActions: [],
+    exportActions: [],
+    status: "ready",
+    runtime: { kind: "native-bridge", entryPoint: "tauri:slate_read_source" },
+    privateWorkspace: { kind: "runner-root", requiredFields: ["slate.config.json"] },
+  },
+  {
     id: "redline",
     displayName: "Redline",
     description: "Audit client pages against trusted source packets and prepare reports.",
@@ -66,8 +86,8 @@ export const toolManifests: ToolManifest[] = [
     description: "Track persistent recurring obligations that keep notifying until done.",
     docsPath: "/docs/tools/pulse.md",
     defaultWorkspaceRoot: "tools/pulse/demo",
-    workspaceRequirement: "Needs a private Pulse runner config, state file, and notification credentials outside Workshop.",
-    uninstallSafetyCopy: "Disabling Pulse hides the tool only. Your private Pulse runner and state stay untouched.",
+    workspaceRequirement: "Needs a private Pulse runner URL and API token; its config, state, and ntfy credentials stay outside Workshop.",
+    uninstallSafetyCopy: "Disabling Pulse hides the Workshop UI only. Your private Pulse runner and state stay untouched.",
     routes: [
       { id: "active", label: "Active", path: "/pulse/active", sectionId: "pulse-active" },
       { id: "schedule", label: "Schedule", path: "/pulse/schedule", sectionId: "pulse-schedule" },

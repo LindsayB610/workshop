@@ -13,7 +13,7 @@ defaults.
 | --- | --- | --- | --- |
 | Redline | `bundled-core` | `@redline/core` | `workspace.yaml`, then a selected client `client.yaml` |
 | Megaphone | `bridge-cli` | `@megaphone/core/bridgeCli` | `workspace.yaml`, then a selected client `client.yaml` |
-| Pulse | `external-runner` | `@marketing-builds/pulse` | `pulses.yaml`, `.env`, and `state/` under the selected runner root |
+| Pulse | `external-runner` | `@marketing-builds/pulse` | Private runner URL plus API bearer token; runner owns `pulses.yaml`, `.env`, and state |
 
 The shell owns navigation, presentation, install state, and the constrained
 native adapter. A tool owns its domain behavior, data contracts, and generated
@@ -26,10 +26,14 @@ local artifacts. The shell must not import or persist private client data.
   package must preserve this manifest entry point and pass the adapter tests.
 - `bridge-cli` invokes the standalone Megaphone bridge through Workshop's
   constrained native layer; it does not copy Megaphone corpora into Workshop.
-- `external-runner` means Workshop is a view/launcher only. Pulse remains the
-  source of truth for schedules, credentials, notifications, and state.
-- Slate is not yet registered. Its own Phase 0 and Phase 1 must first define
-  and test its two-file local-source contract.
+- `external-runner` means Workshop owns the Pulse management UI while Pulse
+  remains the source of truth for schedules, credentials, Android push delivery,
+  and state. Workshop uses Pulse's authenticated `/api/v1/snapshot` and
+  `/api/v1/occurrences/:id/done` contract; it must not copy runner state into
+  the Workshop repository or persist the API bearer token.
+- Slate uses the native `slate_read_source` bridge against its selected private
+  root. It reads and watches only the two Markdown files named by
+  `slate.config.json`; UC and freezer storage each have a local-only view.
 
 ## Required checks
 

@@ -252,7 +252,7 @@ Builds tools over time:
 - Redline
 - Megaphone
 - Pulse (a private external-runner view)
-- Slate (planned; not yet registered)
+- Slate (local UC task-ledger and chest freezer inventory view)
 
 Redline is the first tool. The current desktop screen shows the Northstar Demo
 Co. audit packet or the fixture isolation packet, source readiness, findings,

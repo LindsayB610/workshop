@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "ucPath": "/absolute/path/to/uc.md",
+  "freezerPath": "/absolute/path/to/freezer-storage.md"
+}

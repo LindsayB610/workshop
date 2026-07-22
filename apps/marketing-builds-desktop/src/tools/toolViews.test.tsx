@@ -45,36 +45,28 @@ describe("tool views", () => {
 
     expect(activeMarkup).toContain("Pulse");
     expect(activeMarkup).toContain("Due occurrences");
-    expect(activeMarkup).toContain("No active occurrences loaded");
+    expect(activeMarkup).toContain("Runner URL");
+    expect(activeMarkup).toContain("Load live state");
+    expect(activeMarkup).toContain("Android push via ntfy");
     expect(activeMarkup).toContain("/docs/tools/pulse.md");
     expect(runnerMarkup).toContain("Runner status");
     expect(runnerMarkup).toContain("Private runner");
-    expect(runnerMarkup).toContain("Local config path");
+    expect(runnerMarkup).toContain("Last checked");
     expect(runnerMarkup).not.toContain("empty-tool");
   });
 
-  it("wires Pulse runner path selection to the workspace callback", () => {
-    const pulse = getToolById("pulse");
-    const onSetWorkspaceRequest = vi.fn();
+  it("renders Slate through the shared tool view registry with local setup guidance", () => {
+    const slate = getToolById("slate");
 
-    if (!pulse) {
-      throw new Error("Pulse tool is not registered.");
+    if (!slate) {
+      throw new Error("Slate tool is not registered.");
     }
 
-    const button = findButtonByText(
-      <ToolView
-        activeRouteId="runner"
-        onSetWorkspaceRequest={onSetWorkspaceRequest}
-        tool={pulse}
-      />,
-      "Select local config path",
-    );
+    const markup = renderToStaticMarkup(<ToolView activeRouteId="uc" tool={slate} />);
 
-    const buttonProps = button?.props as { onClick?: () => void } | undefined;
-
-    expect(buttonProps?.onClick).toBeTypeOf("function");
-    buttonProps?.onClick?.();
-    expect(onSetWorkspaceRequest).toHaveBeenCalledWith("pulse");
+    expect(markup).toContain("Connect Slate’s private folder");
+    expect(markup).toContain("Select Slate folder");
+    expect(markup).not.toContain("empty-tool");
   });
 
   it("exposes the fallback view for every registered tool id", () => {

@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { createSlateRefreshHandler, mergeSlateSourceResults, shouldHandleSlateSourceChange, SlateContent, withSlateSourceError } from "./SlateTool";
+import { createSlateRefreshHandler, mergeSlateSourceResults, shouldHandleSlateSourceChange, SlateContent, SlateSetup, withSlateSourceError } from "./SlateTool";
 import type { SlateSourceBundle } from "./slateBridge";
 
 const bundle: SlateSourceBundle = {
@@ -12,10 +12,26 @@ const bundle: SlateSourceBundle = {
 };
 
 describe("Slate tool presentation", () => {
+  it("uses an explicit private-folder field instead of an invisible browser prompt", () => {
+    const markup = renderToStaticMarkup(<SlateSetup root="" onRootChange={vi.fn()} onConnect={vi.fn()} />);
+
+    expect(markup).toContain('aria-label="Slate private folder"');
+    expect(markup).toContain("slate.config.json");
+    expect(markup).toContain("disabled=\"\"");
+  });
+
+  it("enables the explicit connect action for an absolute private folder", () => {
+    const markup = renderToStaticMarkup(<SlateSetup root="/private/slate" onRootChange={vi.fn()} onConnect={vi.fn()} />);
+
+    expect(markup).toContain("Connect Slate");
+    expect(markup).not.toContain("disabled=\"\"");
+  });
+
   it("renders loaded UC content with semantic nested ordered lists and formatted context", () => {
     const markup = renderToStaticMarkup(<SlateContent activeTab="uc" bundle={bundle} error={null} loading={false} onRefresh={() => undefined} />);
 
-    expect(markup).toContain("Current ledger");
+    expect(markup).toContain("UC task ledger");
+    expect(markup).toContain("Watching local files");
     expect(markup).toContain('<ul class="slate-list">');
     expect(markup).toContain('<ol class="slate-list">');
     expect(markup).toContain('href="https://example.com/one"');

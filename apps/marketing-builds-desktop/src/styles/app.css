@@ -1798,7 +1798,7 @@ h4 {
   padding-bottom: 6rem;
 }
 
-.slate-summary,
+.slate-header,
 .slate-panel-heading,
 .slate-summary-actions,
 .slate-updated,
@@ -1807,10 +1807,21 @@ h4 {
   align-items: center;
 }
 
-.slate-summary,
+.slate-header,
 .slate-panel-heading {
   justify-content: space-between;
   gap: 1rem;
+}
+
+.slate-header {
+  padding: 0.55rem 0 0.85rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.slate-header h1 {
+  margin: 0.15rem 0 0;
+  font-size: clamp(1.65rem, 3vw, 2.2rem);
+  letter-spacing: -0.04em;
 }
 
 .slate-summary-actions {
@@ -1835,20 +1846,40 @@ h4 {
 
 .slate-sections {
   display: grid;
-  gap: 0.8rem;
-  margin-top: 1rem;
+  gap: 0.65rem;
+  margin-top: 1.2rem;
 }
 
 .slate-section {
-  padding: 0.85rem 0.95rem;
-  border-left: 2px solid rgba(255, 221, 0, 0.3);
-  border-radius: 0 0.4rem 0.4rem 0;
-  background: rgba(255, 255, 255, 0.025);
+  padding: 0.95rem 1rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.7rem;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.018));
 }
 
 .slate-section-level-1 {
-  border-left-color: var(--color-pink);
-  background: rgba(255, 27, 141, 0.06);
+  border-color: rgba(255, 27, 141, 0.34);
+  background: linear-gradient(135deg, rgba(255, 27, 141, 0.12), rgba(255, 255, 255, 0.025));
+}
+
+.slate-section-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+}
+
+.slate-section-title > span {
+  width: 0.45rem;
+  height: 0.45rem;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--color-yellow);
+  box-shadow: 0 0 0 4px rgba(255, 221, 0, 0.1);
+}
+
+.slate-section-level-1 .slate-section-title > span {
+  background: var(--color-pink);
+  box-shadow: 0 0 0 4px rgba(255, 27, 141, 0.12);
 }
 
 .slate-section h2,
@@ -1859,16 +1890,26 @@ h4 {
 }
 
 .slate-context {
-  margin-bottom: 0.6rem;
+  margin: 0.45rem 0 0.7rem 1rem;
   color: var(--dark-text-secondary);
+}
+
+.slate-panel-note {
+  margin: 0.16rem 0 0;
+  color: var(--dark-text-secondary);
+  font-size: 0.9rem;
 }
 
 .slate-list {
   display: grid;
-  gap: 0.38rem;
-  margin: 0;
-  padding-left: 1.15rem;
+  gap: 0.45rem;
+  margin: 0.25rem 0 0;
+  padding-left: 1.25rem;
   color: var(--dark-text);
+}
+
+.slate-list > li::marker {
+  color: var(--color-yellow);
 }
 
 .slate-list .slate-list {
@@ -1891,6 +1932,70 @@ h4 {
   min-height: 16rem;
 }
 
+.slate-setup {
+  display: grid;
+  gap: 1rem;
+  max-width: 48rem;
+  padding: clamp(1.25rem, 4vw, 2.25rem);
+}
+
+.slate-setup-mark {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border-radius: 0.7rem;
+  background: rgba(255, 27, 141, 0.14);
+  color: var(--color-pink);
+}
+
+.slate-setup h2 {
+  margin: 0.15rem 0 0.5rem;
+}
+
+.slate-setup p {
+  max-width: 39rem;
+  margin: 0;
+  color: var(--dark-text-secondary);
+}
+
+.slate-root-field {
+  display: grid;
+  gap: 0.4rem;
+  color: var(--dark-text);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.slate-root-field input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.75rem 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 0.5rem;
+  outline: none;
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--dark-text);
+  font: inherit;
+}
+
+.slate-root-field input:focus {
+  border-color: var(--color-yellow);
+  box-shadow: 0 0 0 3px rgba(255, 221, 0, 0.12);
+}
+
+.slate-setup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.slate-setup-actions > span {
+  color: var(--dark-text-muted);
+  font-size: 0.82rem;
+}
+
 .slate-table-scroll {
   overflow-x: auto;
   margin-top: 1rem;
@@ -1905,7 +2010,7 @@ h4 {
 
 .slate-storage-table th,
 .slate-storage-table td {
-  padding: 0.7rem 0.65rem;
+  padding: 0.8rem 0.7rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.09);
   vertical-align: top;
 }
@@ -1920,6 +2025,10 @@ h4 {
 .slate-storage-table tbody th {
   color: var(--dark-text);
   font-weight: 600;
+}
+
+.slate-storage-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.035);
 }
 
 .slate-storage-label {

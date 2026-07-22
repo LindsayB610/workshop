@@ -64,8 +64,9 @@ describe("tool views", () => {
 
     const markup = renderToStaticMarkup(<ToolView activeRouteId="uc" tool={slate} />);
 
-    expect(markup).toContain("Connect Slate’s private folder");
-    expect(markup).toContain("Select Slate folder");
+    expect(markup).toContain("Where is your Slate folder?");
+    expect(markup).toContain("Slate private folder");
+    expect(markup).toContain("Connect Slate");
     expect(markup).not.toContain("empty-tool");
   });
 

@@ -16,9 +16,14 @@ export function App() {
     ? installedTools.some((tool) => tool.id === activeTool.id)
     : false;
 
-  function promptForWorkspaceRoot(toolId: string) {
+  function promptForWorkspaceRoot(toolId: string, requestedRoot?: string) {
     const tool = getToolById(toolId);
     if (!tool) {
+      return;
+    }
+
+    if (requestedRoot !== undefined) {
+      setSelection(tool.id, requestedRoot);
       return;
     }
 

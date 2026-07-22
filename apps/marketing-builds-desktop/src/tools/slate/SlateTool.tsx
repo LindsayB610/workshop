@@ -1,5 +1,5 @@
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { AlertCircle, Archive, Clock3, RefreshCw, Rows3 } from "lucide-react";
+import { AlertCircle, Archive, Check, Clock3, FolderKey, RefreshCw, Rows3 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
@@ -13,6 +13,7 @@ export function SlateTool({ activeRouteId, onSetWorkspaceRequest, tool, workspac
   const [errors, setErrors] = useState<Partial<Record<SlateSourceName, string>>>({});
   const [loadingSources, setLoadingSources] = useState<SlateSourceName[]>([]);
   const [watchError, setWatchError] = useState<string | null>(null);
+  const [setupRoot, setSetupRoot] = useState("");
   const requestVersions = useRef<Record<SlateSourceName, number>>({ uc: 0, freezer: 0 });
   const activeTab = activeRouteId === "freezer" ? "freezer" : "uc";
   const hasPrivateRoot = Boolean(workspaceRoot?.startsWith("/"));
@@ -92,19 +93,56 @@ export function SlateTool({ activeRouteId, onSetWorkspaceRequest, tool, workspac
 
   if (!hasPrivateRoot) {
     return (
-      <Panel className="slate-setup" id="slate-setup">
-        <Rows3 size={24} aria-hidden="true" />
-        <p className="eyebrow">Local setup</p>
-        <h2>Connect Slate’s private folder</h2>
-        <p>Select the folder containing <code>slate.config.json</code>. Slate reads only its two configured Markdown sources.</p>
-        <Button variant="secondary" onClick={() => onSetWorkspaceRequest?.(tool.id)}>
-          Select Slate folder
-        </Button>
-      </Panel>
+      <SlateSetup
+        root={setupRoot}
+        onRootChange={setSetupRoot}
+        onConnect={() => onSetWorkspaceRequest?.(tool.id, setupRoot)}
+      />
     );
   }
 
   return <SlateContent activeTab={activeTab} bundle={bundle} error={watchError ?? errors[activeTab] ?? null} loading={loadingSources.includes(activeTab)} onRefresh={() => void load()} />;
+}
+
+export function SlateSetup({
+  root,
+  onRootChange,
+  onConnect,
+}: {
+  root: string;
+  onRootChange: (root: string) => void;
+  onConnect: () => void;
+}) {
+  const hasRoot = root.trim().startsWith("/");
+  return (
+    <Panel className="slate-setup" id="slate-setup">
+      <div className="slate-setup-mark"><FolderKey size={22} aria-hidden="true" /></div>
+      <div>
+        <p className="eyebrow">One-time local setup</p>
+        <h2>Where is your Slate folder?</h2>
+        <p>Paste the folder that contains <code>slate.config.json</code>. That private file holds Slate’s fixed UC and freezer source paths.</p>
+      </div>
+      <label className="slate-root-field">
+        <span>Slate folder</span>
+        <input
+          aria-label="Slate private folder"
+          autoCapitalize="off"
+          autoComplete="off"
+          placeholder="/Users/you/.../workshop-private/slate"
+          spellCheck={false}
+          value={root}
+          onChange={(event) => onRootChange(event.target.value)}
+        />
+      </label>
+      <div className="slate-setup-actions">
+        <Button disabled={!hasRoot} onClick={onConnect}>
+          <Check size={16} aria-hidden="true" />
+          Connect Slate
+        </Button>
+        <span>Slate reads only the two files listed in that private config.</span>
+      </div>
+    </Panel>
+  );
 }
 
 type SlateSourceChange = { root: string; source: SlateSourceName };
@@ -183,20 +221,19 @@ export function SlateContent({
   const sections = bundle ? parseUcMarkdown(bundle.uc.contents) : [];
   return (
     <div className="slate-tool">
-      <Panel className="slate-summary" id="slate-summary">
+      <header className="slate-header" id="slate-summary">
         <div>
-          <p className="eyebrow">Local operating view</p>
-          <h2>{activeTab === "uc" ? "UC" : "Chest Freezer Inventory"}</h2>
-          <p>{activeTab === "uc" ? "Your current task ledger, shaped for scanning." : "Your local inventory, shaped for quick reference."}</p>
+          <p className="eyebrow">Slate · local reference desk</p>
+          <h1>{activeTab === "uc" ? "UC task ledger" : "Chest freezer inventory"}</h1>
         </div>
         <div className="slate-summary-actions">
-          <Badge tone={error ? "red" : "pink"}>{error ? "Needs attention" : "Local only"}</Badge>
+          <Badge tone={error ? "red" : "pink"}>{error ? "Needs attention" : "Watching local files"}</Badge>
           <Button aria-label="Refresh Slate sources" variant="secondary" onClick={onRefresh}>
             <RefreshCw size={16} aria-hidden="true" />
             Refresh
           </Button>
         </div>
-      </Panel>
+      </header>
 
       {loading ? <p className="slate-status" role="status">Refreshing local sources…</p> : null}
       {error ? <p className="slate-status slate-status-error" role="alert"><AlertCircle size={16} aria-hidden="true" /> {error}</p> : null}
@@ -208,7 +245,7 @@ export function SlateContent({
 function UcPanel({ sections, updatedAt }: { sections: SlateSection[]; updatedAt?: number }) {
   return (
     <Panel className="slate-uc" id="slate-uc">
-      <div className="slate-panel-heading"><div><p className="eyebrow">Current ledger</p><h2>UC</h2></div><LastUpdated updatedAt={updatedAt} /></div>
+      <div className="slate-panel-heading"><div><p className="eyebrow">Live task list</p><p className="slate-panel-note">Updates whenever the local file changes.</p></div><LastUpdated updatedAt={updatedAt} /></div>
       {sections.length ? <div className="slate-sections">{sections.map((section, index) => <UcSection key={`${section.level}-${section.heading}-${index}`} section={section} />)}</div> : <div className="empty-tool"><Rows3 size={22} aria-hidden="true" /><h3>UC is loading</h3><p>Slate will display the configured local task ledger here.</p></div>}
     </Panel>
   );
@@ -217,7 +254,7 @@ function UcPanel({ sections, updatedAt }: { sections: SlateSection[]; updatedAt?
 function UcSection({ section }: { section: SlateSection }) {
   const Heading = (`h${Math.min(section.level + 1, 4)}`) as "h2" | "h3" | "h4";
   const isEmpty = !section.paragraphs.length && !section.items.length;
-  return <section className={`slate-section slate-section-level-${section.level}`}><Heading>{section.heading}</Heading>{section.paragraphs.map((paragraph, index) => <p key={index} className="slate-context" dangerouslySetInnerHTML={{ __html: paragraph.html }} />)}{section.items.length ? <SlateList items={section.items} /> : null}{isEmpty ? <p className="slate-context">No tasks or supporting context in this section.</p> : null}</section>;
+  return <section className={`slate-section slate-section-level-${section.level}`}><div className="slate-section-title"><span aria-hidden="true" /><Heading>{section.heading}</Heading></div>{section.paragraphs.map((paragraph, index) => <p key={index} className="slate-context" dangerouslySetInnerHTML={{ __html: paragraph.html }} />)}{section.items.length ? <SlateList items={section.items} /> : null}{isEmpty ? <p className="slate-context">No tasks or supporting context in this section.</p> : null}</section>;
 }
 
 function SlateList({ items }: { items: SlateListItem[] }) {
@@ -236,7 +273,7 @@ function SlateList({ items }: { items: SlateListItem[] }) {
 
 function FreezerPanel({ contents, updatedAt }: { contents?: string; updatedAt?: number }) {
   if (!contents?.trim()) {
-    return <Panel className="slate-freezer" id="slate-freezer"><Archive size={24} aria-hidden="true" /><h2>Chest Freezer Inventory</h2><p className="slate-context">Awaiting the configured local freezer source.</p><LastUpdated updatedAt={updatedAt} /></Panel>;
+    return <Panel className="slate-freezer" id="slate-freezer"><Archive size={24} aria-hidden="true" /><h2>Awaiting freezer inventory</h2><p className="slate-context">Slate will show the configured local freezer source here.</p><LastUpdated updatedAt={updatedAt} /></Panel>;
   }
 
   try {
@@ -249,7 +286,7 @@ function FreezerPanel({ contents, updatedAt }: { contents?: string; updatedAt?: 
 
 function FreezerTable({ rows, updatedAt }: { rows: FreezerRow[]; updatedAt?: number }) {
   return <Panel className="slate-freezer" id="slate-freezer">
-    <div className="slate-panel-heading"><div><p className="eyebrow">Local inventory</p><h2>Chest Freezer Inventory</h2></div><LastUpdated updatedAt={updatedAt} /></div>
+    <div className="slate-panel-heading"><div><p className="eyebrow">Live inventory</p><p className="slate-panel-note">Source order is preserved.</p></div><LastUpdated updatedAt={updatedAt} /></div>
     {rows.length ? <div className="slate-table-scroll"><table className="slate-storage-table"><thead><tr><th scope="col">Item</th><th scope="col">Count</th><th scope="col">Weight</th><th scope="col">Date Stored</th><th scope="col">Storage</th></tr></thead><tbody>{rows.map((row, index) => <tr key={`${row.item}-${index}`}><th scope="row">{row.item}</th><td>{row.count || "—"}</td><td>{row.weight ?? "—"}</td><td>{formatFreezerDate(row.dateStored)}</td><td><span className="slate-storage-label">{row.storage || "—"}</span></td></tr>)}</tbody></table></div> : <p className="slate-context">The Storage Table is present but has no inventory rows.</p>}
   </Panel>;
 }

@@ -7,7 +7,7 @@ describe("SlatePreview", () => {
     const markup = renderToStaticMarkup(<SlatePreview />);
 
     expect(markup).toContain("Workshop / slate");
-    expect(markup).toContain('aria-label="Slate private folder"');
+    expect(markup).toContain('aria-label="Slate sources"');
     expect(markup).not.toContain("Tools</span>");
   });
 });

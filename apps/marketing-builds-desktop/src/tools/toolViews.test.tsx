@@ -64,7 +64,8 @@ describe("tool views", () => {
 
     const markup = renderToStaticMarkup(<ToolView activeRouteId="uc" tool={slate} workspaceRoot="/private/slate" />);
 
-    expect(markup).toContain("UC task ledger");
+    expect(markup).toContain('aria-label="Slate sources"');
+    expect(markup).toContain("Opportunity tracking table");
     expect(markup).toContain("slate-summary");
   });
 

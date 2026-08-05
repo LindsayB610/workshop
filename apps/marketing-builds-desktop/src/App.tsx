@@ -41,7 +41,7 @@ export function App() {
   return (
     <div className="app-frame">
       {activeTool && activeToolIsInstalled ? (
-        <WorkbenchShell activeTool={activeTool} onBackToTools={() => setActiveToolId(null)}>
+        <WorkbenchShell activeTool={activeTool} onBackToTools={() => setActiveToolId(null)} showRouteNav={activeTool.id !== "slate"}>
           {({ activeRouteId }) => (
             <ToolView
               activeRouteId={activeRouteId}

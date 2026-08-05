@@ -26,10 +26,14 @@ type WorkbenchShellChildren =
 export function WorkbenchShell({
   activeTool,
   onBackToTools,
+  showBackToTools = true,
+  showRouteNav = true,
   children,
 }: {
   activeTool: ToolDefinition;
   onBackToTools: () => void;
+  showBackToTools?: boolean;
+  showRouteNav?: boolean;
   children: WorkbenchShellChildren;
 }) {
   const [activeRouteId, setActiveRouteId] = useState(activeTool.routes[0]?.id ?? "");
@@ -72,10 +76,12 @@ export function WorkbenchShell({
     <div className="workbench-shell">
       <main className="shell-main">
         <header className="shell-header">
-          <button type="button" className="back-to-tools" onClick={onBackToTools}>
-            <ArrowLeft size={17} aria-hidden="true" />
-            <span>Tools</span>
-          </button>
+          {showBackToTools ? (
+            <button type="button" className="back-to-tools" onClick={onBackToTools}>
+              <ArrowLeft size={17} aria-hidden="true" />
+              <span>Tools</span>
+            </button>
+          ) : null}
           <div className="workspace-title">
             <ToolLogo tool={activeTool} />
             <div>
@@ -84,7 +90,7 @@ export function WorkbenchShell({
             </div>
           </div>
         </header>
-        <nav className="workbench-route-nav" aria-label={`${activeTool.displayName} functions`}>
+        {showRouteNav ? <nav className="workbench-route-nav" aria-label={`${activeTool.displayName} functions`}>
           {activeTool.routes.map((route) => {
             return (
               <button
@@ -98,7 +104,7 @@ export function WorkbenchShell({
               </button>
             );
           })}
-        </nav>
+        </nav> : null}
         {activeTool.id !== "slate" ? (
           <section className="connector-status-strip" aria-label="Shared connector status">
             {activeTool.requiredLocalCapabilities.map((capability) => {

@@ -88,6 +88,7 @@ struct SlateConfig {
     version: u8,
     uc_path: String,
     freezer_path: String,
+    opportunities_path: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -216,12 +217,15 @@ fn parse_slate_config(contents: &str) -> Result<SlateConfig, String> {
     let config: SlateConfig = serde_json::from_str(contents)
         .map_err(|error| format!("Slate configuration is not valid: {error}"))?;
 
-    if config.version != 1 {
-        return Err("Slate configuration version must be 1.".into());
+    if config.version != 2 {
+        return Err("Slate configuration version must be 2.".into());
     }
 
-    if config.uc_path == config.freezer_path {
-        return Err("Slate requires two distinct source files.".into());
+    if config.uc_path == config.freezer_path
+        || config.uc_path == config.opportunities_path
+        || config.freezer_path == config.opportunities_path
+    {
+        return Err("Slate requires three distinct source files.".into());
     }
 
     Ok(config)
@@ -289,11 +293,12 @@ fn slate_config_from_root(slate_root: &str) -> Result<SlateConfig, String> {
     parse_slate_config(&config_contents)
 }
 
-fn slate_source_locations_from_root(slate_root: &str) -> Result<(PathBuf, PathBuf), String> {
+fn slate_source_locations_from_root(slate_root: &str) -> Result<(PathBuf, PathBuf, PathBuf), String> {
     let config = slate_config_from_root(slate_root)?;
     Ok((
         validate_slate_source_location(&config.uc_path)?,
         validate_slate_source_location(&config.freezer_path)?,
+        validate_slate_source_location(&config.opportunities_path)?,
     ))
 }
 
@@ -302,7 +307,8 @@ fn slate_source_from_root(slate_root: &str, source: &str) -> Result<SlateSourceS
     let source_path = match source {
         "uc" => &config.uc_path,
         "freezer" => &config.freezer_path,
-        _ => return Err("Slate source must be uc or freezer.".into()),
+        "opportunities" => &config.opportunities_path,
+        _ => return Err("Slate source must be uc, freezer, or opportunities.".into()),
     };
     slate_snapshot(&validate_slate_source_path(source_path)?)
 }
@@ -1512,10 +1518,13 @@ fn redline_fetch_live_url(url: String) -> Result<RedlineLiveUrlFetchResult, Stri
 
 fn normalize_pulse_runner_url(url: &str) -> Result<String, String> {
     let normalized = url.trim().trim_end_matches('/');
+    if normalized == "https://lindsay-pulse-reminders.netlify.app" {
+        return Ok(normalized.to_string());
+    }
     let host = normalized
         .strip_prefix("http://127.0.0.1")
         .or_else(|| normalized.strip_prefix("http://localhost"))
-        .ok_or("Pulse runner URL must use the local SSH tunnel (http://127.0.0.1:<port>).")?;
+        .ok_or("Pulse runner URL must be the configured Netlify Pulse site or a local SSH tunnel.")?;
 
     if host.is_empty() {
         return Ok(normalized.to_string());
@@ -1637,7 +1646,7 @@ fn slate_start_watch(
     state: tauri::State<'_, SlateWatchState>,
     slate_root: String,
 ) -> Result<(), String> {
-    let (uc_path, freezer_path) = slate_source_locations_from_root(&slate_root)?;
+    let (uc_path, freezer_path, opportunities_path) = slate_source_locations_from_root(&slate_root)?;
     let root = normalize_workspace_root(&slate_root)?;
     let mut watchers = state
         .watchers
@@ -1650,6 +1659,7 @@ fn slate_start_watch(
     let mut watched_sources = HashMap::new();
     watched_sources.insert(uc_path.clone(), "uc".to_string());
     watched_sources.insert(freezer_path.clone(), "freezer".to_string());
+    watched_sources.insert(opportunities_path.clone(), "opportunities".to_string());
     let watched_directories: HashSet<PathBuf> = watched_sources
         .keys()
         .filter_map(|path| path.parent().map(Path::to_path_buf))
@@ -1742,6 +1752,10 @@ mod tests {
             normalize_pulse_runner_url("http://127.0.0.1:8787/").expect("local tunnel should be accepted"),
             "http://127.0.0.1:8787"
         );
+        assert_eq!(
+            normalize_pulse_runner_url("https://lindsay-pulse-reminders.netlify.app").expect("configured Netlify site should be accepted"),
+            "https://lindsay-pulse-reminders.netlify.app"
+        );
         assert!(normalize_pulse_runner_url("https://runner.example").is_err());
         assert!(normalize_pulse_runner_url("http://127.0.0.1:8787/path").is_err());
         assert!(validate_pulse_api_token("short").is_err());
@@ -1757,20 +1771,23 @@ mod tests {
     }
 
     #[test]
-    fn reads_only_the_two_configured_slate_sources() {
+    fn reads_only_the_three_configured_slate_sources() {
         let root = unique_temp_root("slate-sources");
         let source_root = root.join("sources");
         fs::create_dir_all(&source_root).expect("Slate source directory should be created");
         let uc = source_root.join("uc.md");
         let freezer = source_root.join("freezer.md");
+        let opportunities = source_root.join("opportunities.md");
         fs::write(&uc, "# UC\n").expect("UC source should be written");
         fs::write(&freezer, "# Freezer\n").expect("freezer source should be written");
+        fs::write(&opportunities, "# Opportunities\n").expect("opportunities source should be written");
         fs::write(
             root.join("slate.config.json"),
             serde_json::json!({
-                "version": 1,
+                "version": 2,
                 "ucPath": uc,
                 "freezerPath": freezer,
+                "opportunitiesPath": opportunities,
             })
             .to_string(),
         )
@@ -1781,6 +1798,12 @@ mod tests {
                 .expect("UC source should load independently")
                 .contents,
             "# UC\n"
+        );
+        assert_eq!(
+            slate_source_from_root(root.to_str().expect("temp root should be utf8"), "opportunities")
+                .expect("opportunities source should load independently")
+                .contents,
+            "# Opportunities\n"
         );
         assert_eq!(
             slate_source_from_root(root.to_str().expect("temp root should be utf8"), "freezer")
@@ -1807,7 +1830,7 @@ mod tests {
         fs::create_dir_all(&root).expect("Slate root should be created");
         fs::write(
             root.join("slate.config.json"),
-            r#"{"version":1,"ucPath":"/tmp/../uc.md","freezerPath":"/tmp/freezer.md"}"#,
+            r#"{"version":2,"ucPath":"/tmp/../uc.md","freezerPath":"/tmp/freezer.md","opportunitiesPath":"/tmp/opportunities.md"}"#,
         )
         .expect("Slate config should be written");
 

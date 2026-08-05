@@ -3,9 +3,10 @@
  * local-source bridge and presentation model; no Slate source is read here.
  */
 export type SlateConfig = {
-  version: 1;
+  version: 2;
   ucPath: string;
   freezerPath: string;
+  opportunitiesPath: string;
 };
 
 export type SlateConfigResult =
@@ -51,6 +52,21 @@ export type FreezerRow = {
   storage: string;
 };
 
+export type OpportunityRow = {
+  status: string;
+  name: string;
+  context: string;
+  lastContact: string;
+  notes: string;
+  nextAction: string;
+};
+
+export type UcTab = {
+  id: string;
+  label: string;
+  sections: SlateSection[];
+};
+
 export type SlateRefreshEvent = {
   watchedDirectory: string;
   changedPath: string;
@@ -84,22 +100,44 @@ export function parseSlateConfig(_contents: string): SlateConfigResult {
   }
 
   const config = raw as Partial<SlateConfig>;
-  if (config.version !== 1) {
-    return { ok: false, message: "Slate configuration version must be 1." };
+  if (config.version !== 2) {
+    return { ok: false, message: "Slate configuration version must be 2." };
   }
 
-  if (!isApprovedSlatePath(config.ucPath) || !isApprovedSlatePath(config.freezerPath)) {
+  if (!isApprovedSlatePath(config.ucPath) || !isApprovedSlatePath(config.freezerPath) || !isApprovedSlatePath(config.opportunitiesPath)) {
     return { ok: false, message: "Slate source paths must be absolute Markdown-file paths without traversal." };
   }
 
-  if (config.ucPath === config.freezerPath) {
-    return { ok: false, message: "Slate requires two distinct source files." };
+  if (new Set([config.ucPath, config.freezerPath, config.opportunitiesPath]).size !== 3) {
+    return { ok: false, message: "Slate requires three distinct source files." };
   }
 
   return {
     ok: true,
-    config: { version: 1, ucPath: config.ucPath, freezerPath: config.freezerPath },
+    config: { version: 2, ucPath: config.ucPath, freezerPath: config.freezerPath, opportunitiesPath: config.opportunitiesPath },
   };
+}
+
+export function buildUcTabs(sections: SlateSection[]): UcTab[] {
+  const tabs: UcTab[] = [];
+  let current: UcTab | undefined;
+  for (const section of sections) {
+    if (section.level === 1) {
+      current = { id: `${tabs.length}-${section.heading}`, label: ucTabLabel(section.heading), sections: [section] };
+      tabs.push(current);
+    } else if (current) {
+      current.sections.push(section);
+    }
+  }
+  return tabs;
+}
+
+export function splitUcIntro(sections: SlateSection[]): { intro: SlateSection | undefined; tabSections: SlateSection[] } {
+  const intro = sections[0];
+  const hasFollowingTopLevelSection = sections.slice(1).some((section) => section.level === 1);
+  return intro?.level === 1 && hasFollowingTopLevelSection
+    ? { intro, tabSections: sections.slice(1) }
+    : { intro: undefined, tabSections: sections };
 }
 
 export function validateSlateSource(
@@ -218,6 +256,25 @@ export function parseFreezerStorage(_markdown: string): FreezerRow[] {
   return rows;
 }
 
+export function parseOpportunityTracking(_markdown: string): OpportunityRow[] {
+  const lines = _markdown.replace(/\r\n/g, "\n").split("\n");
+  const tableHeading = lines.findIndex((line) => /^#{1,6}\s+Opportunity Table\s*$/i.test(line));
+  if (tableHeading === -1) throw new Error("Opportunity Table must include Status, Name, Org / Context, Last Contact, Notes, and Next Action columns.");
+  const headerIndex = lines.findIndex((line, index) => index > tableHeading && line.trim().startsWith("|"));
+  const expected = ["Status", "Name", "Org / Context", "Last Contact", "Notes", "Next Action"];
+  if (headerIndex === -1 || !sameColumns(tableCells(lines[headerIndex]), expected)) throw new Error("Opportunity Table must include Status, Name, Org / Context, Last Contact, Notes, and Next Action columns.");
+  const separatorCells = tableCells(lines[headerIndex + 1] ?? "");
+  if (separatorCells.length !== 6 || !separatorCells.every((cell) => /^:?-{3,}:?$/.test(cell))) throw new Error("Opportunity Table has an invalid separator row.");
+  const rows: OpportunityRow[] = [];
+  for (const line of lines.slice(headerIndex + 2)) {
+    if (!line.trim() || !line.trim().startsWith("|")) break;
+    const cells = tableCells(line);
+    if (cells.length !== 6) throw new Error("Opportunity Table has a malformed row.");
+    rows.push({ status: cells[0], name: cells[1], context: cells[2], lastContact: cells[3], notes: cells[4], nextAction: cells[5] });
+  }
+  return rows;
+}
+
 export function formatFreezerDate(_value: string | null): string {
   if (!_value) return "—";
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(_value);
@@ -272,7 +329,7 @@ export function readApprovedSlateSource(
   _read: (path: string) => string,
 ): string {
   if (!_approvedPaths.includes(_path)) {
-    throw new Error("Slate can read only its two approved source files.");
+    throw new Error("Slate can read only its approved source files.");
   }
   return _read(_path);
 }
@@ -329,13 +386,21 @@ function tableCells(line: string): string[] {
 }
 
 function sameFreezerColumns(columns: string[]): boolean {
-  return ["Item", "Count", "Weight", "Date Stored", "Storage"].every((column, index) => columns[index] === column) && columns.length === 5;
+  return sameColumns(columns, ["Item", "Count", "Weight", "Date Stored", "Storage"]);
+}
+
+function sameColumns(columns: string[], expected: string[]): boolean {
+  return expected.every((column, index) => columns[index] === column) && columns.length === expected.length;
+}
+
+function ucTabLabel(heading: string): string {
+  return heading.replace(/^[^\p{L}\p{N}]+/u, "");
 }
 
 function freezerTableError(): string {
   return "Storage Table must include Item, Count, Weight, Date Stored, and Storage columns.";
 }
 
-export function defaultSlateTab(): "uc" | "freezer" {
+export function defaultSlateTab(): "uc" | "freezer" | "opportunities" {
   return "uc";
 }

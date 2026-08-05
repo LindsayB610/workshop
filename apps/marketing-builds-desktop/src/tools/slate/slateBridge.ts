@@ -8,9 +8,10 @@ export type SlateSourceSnapshot = {
 export type SlateSourceBundle = {
   uc: SlateSourceSnapshot;
   freezer: SlateSourceSnapshot;
+  opportunities: SlateSourceSnapshot;
 };
 
-export type SlateSourceName = "uc" | "freezer";
+export type SlateSourceName = "uc" | "freezer" | "opportunities";
 
 export const isSlateLocalPreview = import.meta.env.DEV && import.meta.env.VITE_SLATE_PREVIEW === "true";
 

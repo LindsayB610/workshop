@@ -1851,10 +1851,111 @@ h4 {
   color: #ffc5d0;
 }
 
+.slate-back {
+  width: fit-content;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-yellow);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.88rem;
+}
+
+.slate-back:hover {
+  color: var(--dark-text);
+}
+
+.slate-home {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  padding-top: 0.4rem;
+}
+
+.slate-home-choice {
+  display: flex;
+  flex: 1 1 12rem;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+  padding: 0.78rem 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 0.45rem;
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--color-pink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.slate-home-choice:hover {
+  border-color: var(--color-pink);
+  background: rgba(255, 27, 141, 0.08);
+}
+
+.slate-home-choice span {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.slate-home-choice strong {
+  color: var(--dark-text);
+}
+
+.slate-home-choice small {
+  color: var(--dark-text-secondary);
+}
+
 .slate-sections {
   display: grid;
-  gap: 0.65rem;
-  margin-top: 1.2rem;
+  gap: 0.3rem;
+  margin-top: 0.65rem;
+}
+
+.slate-uc-intro {
+  margin-top: 0.75rem;
+}
+
+.slate-uc-intro h2 {
+  margin: 0;
+  color: var(--color-pink);
+  font-size: clamp(1.5rem, 2.7vw, 2rem);
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+}
+
+.slate-uc-tabs {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  margin-top: 0.85rem;
+  padding: 0 0.2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.slate-uc-tabs button {
+  flex: 0 0 auto;
+  margin-bottom: -1px;
+  padding: 0.46rem 0.72rem;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 0.42rem 0.42rem 0 0;
+  background: transparent;
+  color: var(--dark-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.83rem;
+  white-space: nowrap;
+}
+
+.slate-uc-tabs button:hover {
+  color: var(--dark-text);
+}
+
+.slate-uc-tabs button.is-active {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: var(--dark-surface);
+  color: var(--color-yellow);
 }
 
 .slate-section {
@@ -1877,19 +1978,21 @@ h4 {
 }
 
 .slate-section-level-1 h2 {
-  margin: 1.8em 0 1.05em;
+  margin: 0.9em 0 0.45em;
+  color: var(--color-pink);
   font-size: clamp(1.32rem, 2.2vw, 1.65rem);
   line-height: 1.18;
 }
 
 .slate-section-level-2 h3 {
-  margin: 1.7em 0 0.55em;
+  margin: 0.8em 0 0.3em;
+  color: var(--color-yellow);
   font-size: clamp(1.1rem, 1.8vw, 1.3rem);
   line-height: 1.25;
 }
 
 .slate-section-level-3 h4 {
-  margin: 1.75em 0 0.48em;
+  margin: 0.65em 0 0.24em;
   font-size: clamp(0.95rem, 1.55vw, 1.1rem);
   line-height: 1.25;
 }
@@ -1897,7 +2000,7 @@ h4 {
 .slate-section-level-4 h4,
 .slate-section-level-5 h4,
 .slate-section-level-6 h4 {
-  margin: 1.75em 0 0.48em;
+  margin: 0.55em 0 0.2em;
   font-size: 0.95rem;
   font-weight: 500;
   letter-spacing: -0.02em;
@@ -1905,7 +2008,7 @@ h4 {
 }
 
 .slate-context {
-  margin: 0.55em 0 1.1em;
+  margin: 0.3em 0 0.45em;
   color: var(--dark-text-secondary);
 }
 
@@ -1917,8 +2020,8 @@ h4 {
 
 .slate-list {
   display: grid;
-  gap: 0.45rem;
-  margin: 0.35em 0 1.35em;
+  gap: 0.15rem;
+  margin: 0.2em 0 0.55em;
   padding-left: 1.4em;
   color: var(--dark-text);
 }
@@ -1927,20 +2030,36 @@ h4 {
   color: var(--dark-text-muted);
 }
 
+.slate-list-unordered {
+  list-style: none;
+  padding-left: 1.15em;
+}
+
+.slate-list-unordered > li {
+  position: relative;
+}
+
+.slate-list-unordered > li::before {
+  position: absolute;
+  left: -1.05em;
+  color: var(--dark-text-muted);
+  content: "–";
+}
+
 .slate-list > li {
-  margin: 0.38em 0;
+  margin: 0.15em 0;
   padding-left: 0.08em;
 }
 
 .slate-divider {
   height: 1px;
-  margin: 3.1em 0 2.65em;
+  margin: 1.25em 0 1em;
   border: 0;
   background: rgba(255, 255, 255, 0.18);
 }
 
 .slate-list .slate-list {
-  margin-top: 0.38rem;
+  margin-top: 0.15rem;
 }
 
 .slate-list a {
@@ -2033,6 +2152,10 @@ h4 {
   min-width: 42rem;
   border-collapse: collapse;
   text-align: left;
+}
+
+.slate-opportunities-table {
+  min-width: 68rem;
 }
 
 .slate-storage-table th,

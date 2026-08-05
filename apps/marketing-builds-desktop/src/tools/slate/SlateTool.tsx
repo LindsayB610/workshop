@@ -1,27 +1,29 @@
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { AlertCircle, Archive, Check, Clock3, FolderKey, Rows3 } from "lucide-react";
+import { AlertCircle, Archive, Check, Clock3, FolderKey, Rows3, TableProperties } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Panel } from "../../components/ui/panel";
 import type { ToolViewProps } from "../types";
 import { isSlateLocalPreview, readSlateSource, startSlateWatch, type SlateSourceBundle, type SlateSourceName, type SlateSourceSnapshot } from "./slateBridge";
-import { formatFreezerDate, parseFreezerStorage, parseUcMarkdown, type FreezerRow, type SlateListItem, type SlateSection } from "./slateModel";
+import { buildUcTabs, formatFreezerDate, parseFreezerStorage, parseOpportunityTracking, parseUcMarkdown, splitUcIntro, type FreezerRow, type OpportunityRow, type SlateListItem, type SlateSection } from "./slateModel";
 
-export function SlateTool({ activeRouteId, onSetWorkspaceRequest, tool, workspaceRoot }: ToolViewProps) {
+type SlateView = "home" | SlateSourceName;
+
+export function SlateTool({ onSetWorkspaceRequest, tool, workspaceRoot }: ToolViewProps) {
   const [bundle, setBundle] = useState<SlateSourceBundle | null>(null);
   const [errors, setErrors] = useState<Partial<Record<SlateSourceName, string>>>({});
   const [loadingSources, setLoadingSources] = useState<SlateSourceName[]>([]);
   const [watchError, setWatchError] = useState<string | null>(null);
   const [setupRoot, setSetupRoot] = useState("");
-  const requestVersions = useRef<Record<SlateSourceName, number>>({ uc: 0, freezer: 0 });
-  const activeTab = activeRouteId === "freezer" ? "freezer" : "uc";
+  const [view, setView] = useState<SlateView>("home");
+  const requestVersions = useRef<Record<SlateSourceName, number>>({ uc: 0, freezer: 0, opportunities: 0 });
   const hasPrivateRoot = isSlateLocalPreview || Boolean(workspaceRoot?.startsWith("/"));
 
   const load = useCallback(async (quiet = false) => {
     if (!isSlateLocalPreview && !workspaceRoot?.startsWith("/")) return;
-    if (!quiet) setLoadingSources(["uc", "freezer"]);
-    const sourceNames: SlateSourceName[] = ["uc", "freezer"];
+    if (!quiet) setLoadingSources(["uc", "freezer", "opportunities"]);
+    const sourceNames: SlateSourceName[] = ["uc", "freezer", "opportunities"];
     const requestIds = sourceNames.map((source) => ++requestVersions.current[source]);
     const results = await Promise.allSettled(sourceNames.map((source) => readSlateSource(workspaceRoot ?? "", source)));
     const currentSources = sourceNames.filter((source, index) => requestVersions.current[source] === requestIds[index]);
@@ -117,7 +119,7 @@ export function SlateTool({ activeRouteId, onSetWorkspaceRequest, tool, workspac
     );
   }
 
-  return <SlateContent activeTab={activeTab} bundle={bundle} error={watchError ?? errors[activeTab] ?? null} loading={loadingSources.includes(activeTab)} />;
+  return <SlateContent view={view} onSelectView={setView} bundle={bundle} error={view === "home" ? watchError : watchError ?? errors[view] ?? null} loading={view !== "home" && loadingSources.includes(view)} />;
 }
 
 export function SlateSetup({
@@ -136,7 +138,7 @@ export function SlateSetup({
       <div>
         <p className="eyebrow">One-time local setup</p>
         <h2>Where is your Slate folder?</h2>
-        <p>Paste the folder that contains <code>slate.config.json</code>. That private file holds Slate’s fixed UC and freezer source paths.</p>
+        <p>Paste the folder that contains <code>slate.config.json</code>. That private file holds Slate’s fixed local source paths.</p>
       </div>
       <label className="slate-root-field">
         <span>Slate folder</span>
@@ -155,7 +157,7 @@ export function SlateSetup({
           <Check size={16} aria-hidden="true" />
           Connect Slate
         </Button>
-        <span>Slate reads only the two files listed in that private config.</span>
+        <span>Slate reads only the files listed in that private config.</span>
       </div>
     </Panel>
   );
@@ -192,6 +194,7 @@ export function mergeSlateSourceResults(
   const next: SlateSourceBundle = {
     uc: previous?.uc ?? fallback,
     freezer: previous?.freezer ?? fallback,
+    opportunities: previous?.opportunities ?? fallback,
   };
   for (const [index, source] of sourceNames.entries()) {
     const result = results[index];
@@ -206,7 +209,9 @@ export function slateBundlesMatch(left: SlateSourceBundle | null, right: SlateSo
     left.uc.updatedAt === right.uc.updatedAt &&
     left.uc.contents === right.uc.contents &&
     left.freezer.updatedAt === right.freezer.updatedAt &&
-    left.freezer.contents === right.freezer.contents,
+    left.freezer.contents === right.freezer.contents &&
+    left.opportunities.updatedAt === right.opportunities.updatedAt &&
+    left.opportunities.contents === right.opportunities.contents,
   );
 }
 
@@ -232,43 +237,66 @@ export function createSlateRefreshHandler(reloadSource: (source: SlateSourceName
 }
 
 export function SlateContent({
-  activeTab,
+  view,
+  onSelectView,
   bundle,
   error,
   loading,
 }: {
-  activeTab: "uc" | "freezer";
+  view: SlateView;
+  onSelectView: (view: SlateView) => void;
   bundle: SlateSourceBundle | null;
   error: string | null;
   loading: boolean;
 }) {
-  const sections = bundle ? parseUcMarkdown(bundle.uc.contents) : [];
+  const title = view === "uc" ? "UC task ledger" : view === "freezer" ? "Chest freezer inventory" : view === "opportunities" ? "Opportunities" : "Slate";
   return (
     <div className="slate-tool">
       <header className="slate-header" id="slate-summary">
         <div>
           <p className="eyebrow">Slate · local reference desk</p>
-          <h1>{activeTab === "uc" ? "UC task ledger" : "Chest freezer inventory"}</h1>
+          <h1>{title}</h1>
         </div>
         <div className="slate-summary-actions">
           <Badge tone={error ? "red" : "pink"}>{error ? "Needs attention" : "Watching local files"}</Badge>
         </div>
       </header>
 
+      {view !== "home" ? <button className="slate-back" type="button" onClick={() => onSelectView("home")}>‹ Slate</button> : null}
       {loading ? <p className="slate-status" role="status">Refreshing local sources…</p> : null}
       {error ? <p className="slate-status slate-status-error" role="alert"><AlertCircle size={16} aria-hidden="true" /> {error}</p> : null}
-      {activeTab === "uc" ? <UcPanel sections={sections} updatedAt={bundle?.uc.updatedAt} /> : <FreezerPanel contents={bundle?.freezer.contents} updatedAt={bundle?.freezer.updatedAt} />}
+      {view === "home" ? <SlateHome onSelectView={onSelectView} /> : null}
+      {view === "uc" ? <UcPanel sections={bundle ? parseUcMarkdown(bundle.uc.contents) : []} updatedAt={bundle?.uc.updatedAt} /> : null}
+      {view === "freezer" ? <FreezerPanel contents={bundle?.freezer.contents} updatedAt={bundle?.freezer.updatedAt} /> : null}
+      {view === "opportunities" ? <OpportunitiesPanel contents={bundle?.opportunities.contents} updatedAt={bundle?.opportunities.updatedAt} /> : null}
     </div>
   );
 }
 
+function SlateHome({ onSelectView }: { onSelectView: (view: SlateView) => void }) {
+  return <div className="slate-home" aria-label="Slate sources">
+    <button className="slate-home-choice" type="button" onClick={() => onSelectView("uc")}><Rows3 size={22} aria-hidden="true" /><span><strong>UC</strong><small>Current operating state</small></span></button>
+    <button className="slate-home-choice" type="button" onClick={() => onSelectView("freezer")}><Archive size={22} aria-hidden="true" /><span><strong>Freezer</strong><small>Chest freezer inventory</small></span></button>
+    <button className="slate-home-choice" type="button" onClick={() => onSelectView("opportunities")}><TableProperties size={22} aria-hidden="true" /><span><strong>Opportunities</strong><small>Opportunity tracking table</small></span></button>
+  </div>;
+}
+
 function UcPanel({ sections, updatedAt }: { sections: SlateSection[]; updatedAt?: number }) {
+  const { intro, tabSections } = splitUcIntro(sections);
+  const tabs = buildUcTabs(tabSections);
+  const [activeTabId, setActiveTabId] = useState(tabs[0]?.id ?? "");
+  const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0];
   return (
     <Panel className="slate-uc" id="slate-uc">
       <div className="slate-panel-heading"><div><p className="eyebrow">Live task list</p><p className="slate-panel-note">Updates whenever the local file changes.</p></div><LastUpdated updatedAt={updatedAt} /></div>
-      {sections.length ? <div className="slate-sections">{sections.map((section, index) => <UcSection key={`${section.level}-${section.heading}-${index}`} section={section} showEmptyState={sections.length === 1} />)}</div> : <div className="empty-tool"><Rows3 size={22} aria-hidden="true" /><h3>UC is loading</h3><p>Slate will display the configured local task ledger here.</p></div>}
+      {intro ? <UcIntro section={intro} /> : null}
+      {tabs.length ? <><div className="slate-uc-tabs" role="tablist" aria-label="UC sections">{tabs.map((tab) => <button key={tab.id} type="button" role="tab" aria-selected={tab.id === activeTab?.id} className={tab.id === activeTab?.id ? "is-active" : ""} onClick={() => setActiveTabId(tab.id)}>{tab.label}</button>)}</div><div className="slate-sections" role="tabpanel">{activeTab?.sections.map((section, index) => <UcSection key={`${section.level}-${section.heading}-${index}`} section={section} showEmptyState={activeTab.sections.length === 1} />)}</div></> : <div className="empty-tool"><Rows3 size={22} aria-hidden="true" /><h3>UC is loading</h3><p>Slate will display the configured local task ledger here.</p></div>}
     </Panel>
   );
+}
+
+function UcIntro({ section }: { section: SlateSection }) {
+  return <div className="slate-uc-intro"><h2>{section.heading}</h2></div>;
 }
 
 function UcSection({ section, showEmptyState }: { section: SlateSection; showEmptyState: boolean }) {
@@ -287,7 +315,7 @@ function SlateList({ items }: { items: SlateListItem[] }) {
 
   return <>{groups.map((group, groupIndex) => {
     const List = group[0].ordered ? "ol" : "ul";
-    return <List className="slate-list" key={`${group[0].ordered}-${groupIndex}`}>{group.map((item, index) => <li key={`${item.text}-${index}`}><span dangerouslySetInnerHTML={{ __html: item.html }} />{item.children.length ? <SlateList items={item.children} /> : null}</li>)}</List>;
+    return <List className={`slate-list ${group[0].ordered ? "slate-list-ordered" : "slate-list-unordered"}`} key={`${group[0].ordered}-${groupIndex}`}>{group.map((item, index) => <li key={`${item.text}-${index}`}><span dangerouslySetInnerHTML={{ __html: item.html }} />{item.children.length ? <SlateList items={item.children} /> : null}</li>)}</List>;
   })}</>;
 }
 
@@ -309,6 +337,19 @@ function FreezerTable({ rows, updatedAt }: { rows: FreezerRow[]; updatedAt?: num
     <div className="slate-panel-heading"><div><p className="eyebrow">Live inventory</p><p className="slate-panel-note">Source order is preserved.</p></div><LastUpdated updatedAt={updatedAt} /></div>
     {rows.length ? <div className="slate-table-scroll"><table className="slate-storage-table"><thead><tr><th scope="col">Item</th><th scope="col">Count</th><th scope="col">Weight</th><th scope="col">Date Stored</th><th scope="col">Storage</th></tr></thead><tbody>{rows.map((row, index) => <tr key={`${row.item}-${index}`}><th scope="row">{row.item}</th><td>{row.count || "—"}</td><td>{row.weight ?? "—"}</td><td>{formatFreezerDate(row.dateStored)}</td><td><span className="slate-storage-label">{row.storage || "—"}</span></td></tr>)}</tbody></table></div> : <p className="slate-context">The Storage Table is present but has no inventory rows.</p>}
   </Panel>;
+}
+
+function OpportunitiesPanel({ contents, updatedAt }: { contents?: string; updatedAt?: number }) {
+  if (!contents?.trim()) return <Panel className="slate-freezer" id="slate-opportunities"><TableProperties size={24} aria-hidden="true" /><h2>Awaiting opportunities</h2><p className="slate-context">Slate will show the configured opportunity table here.</p><LastUpdated updatedAt={updatedAt} /></Panel>;
+  try {
+    return <OpportunitiesTable rows={parseOpportunityTracking(contents)} updatedAt={updatedAt} />;
+  } catch (cause) {
+    return <Panel className="slate-freezer" id="slate-opportunities"><TableProperties size={24} aria-hidden="true" /><h2>Opportunities</h2><p className="slate-status slate-status-error" role="alert"><AlertCircle size={16} aria-hidden="true" /> {cause instanceof Error ? cause.message : "Slate could not parse the opportunity table."}</p><LastUpdated updatedAt={updatedAt} /></Panel>;
+  }
+}
+
+function OpportunitiesTable({ rows, updatedAt }: { rows: OpportunityRow[]; updatedAt?: number }) {
+  return <Panel className="slate-freezer" id="slate-opportunities"><div className="slate-panel-heading"><div><p className="eyebrow">Live opportunity tracking</p><p className="slate-panel-note">Source order is preserved.</p></div><LastUpdated updatedAt={updatedAt} /></div>{rows.length ? <div className="slate-table-scroll"><table className="slate-storage-table slate-opportunities-table"><thead><tr><th scope="col">Status</th><th scope="col">Name</th><th scope="col">Org / Context</th><th scope="col">Last Contact</th><th scope="col">Notes</th><th scope="col">Next Action</th></tr></thead><tbody>{rows.map((row, index) => <tr key={`${row.name}-${index}`}><td>{row.status || "—"}</td><th scope="row">{row.name || "—"}</th><td>{row.context || "—"}</td><td>{row.lastContact || "—"}</td><td>{row.notes || "—"}</td><td>{row.nextAction || "—"}</td></tr>)}</tbody></table></div> : <p className="slate-context">The Opportunity Table is present but has no rows.</p>}</Panel>;
 }
 
 function LastUpdated({ updatedAt }: { updatedAt?: number }) {

@@ -32,8 +32,8 @@ local artifacts. The shell must not import or persist private client data.
   `/api/v1/occurrences/:id/done` contract; it must not copy runner state into
   the Workshop repository or persist the API bearer token.
 - Slate uses the native `slate_read_source` bridge against its selected private
-  root. It reads and watches only the two Markdown files named by
-  `slate.config.json`; UC and freezer storage each have a local-only view.
+  root. It reads and watches only the three Markdown files named by
+  `slate.config.json`; UC, freezer storage, and opportunities each have a local-only view.
 
 ## Required checks
 

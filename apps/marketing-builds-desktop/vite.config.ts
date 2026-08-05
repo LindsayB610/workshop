@@ -7,20 +7,21 @@ import { readFileSync, statSync } from "node:fs";
 
 const configDir = path.dirname(fileURLToPath(import.meta.url));
 
-type SlatePreviewConfig = { version: 1; ucPath: string; freezerPath: string };
+type SlatePreviewConfig = { version: 2; ucPath: string; freezerPath: string; opportunitiesPath: string };
 
 function slatePreviewPlugin(slateRoot?: string): Plugin {
   return {
     name: "slate-local-preview",
     configureServer(server) {
       server.middlewares.use("/__slate-preview", (request, response, next) => {
-        const source = request.url?.match(/^\/(uc|freezer)$/)?.[1] as "uc" | "freezer" | undefined;
+        const source = request.url?.match(/^\/(uc|freezer|opportunities)$/)?.[1] as "uc" | "freezer" | "opportunities" | undefined;
         if (!source || !slateRoot) return next();
 
         try {
           const config = JSON.parse(readFileSync(path.join(slateRoot, "slate.config.json"), "utf8")) as SlatePreviewConfig;
-          const sourcePath = source === "uc" ? config.ucPath : config.freezerPath;
-          if (config.version !== 1 || !path.isAbsolute(sourcePath) || !sourcePath.endsWith(".md")) {
+          const sourcePath = source === "uc" ? config.ucPath : source === "freezer" ? config.freezerPath : config.opportunitiesPath;
+          const configuredPaths = [config.ucPath, config.freezerPath, config.opportunitiesPath];
+          if (config.version !== 2 || configuredPaths.some((candidate) => !path.isAbsolute(candidate) || !candidate.endsWith(".md")) || new Set(configuredPaths).size !== 3) {
             throw new Error("Slate preview configuration is invalid.");
           }
           const sourceStat = statSync(sourcePath);

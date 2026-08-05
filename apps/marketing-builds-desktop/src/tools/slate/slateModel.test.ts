@@ -3,12 +3,15 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 import {
   formatFreezerDate,
+  buildUcTabs,
   isSafeSlateLink,
   parseFreezerStorage,
+  parseOpportunityTracking,
   parseSlateConfig,
   parseUcMarkdown,
   readApprovedSlateSource,
   renderSlateInline,
+  splitUcIntro,
   validateSlateSource,
 } from "./slateModel";
 
@@ -16,21 +19,23 @@ const fixtureUrl = (name: string) => new URL(`./fixtures/${name}`, import.meta.u
 const readFixture = (name: string) => readFileSync(fileURLToPath(fixtureUrl(name)), "utf8");
 
 describe("Slate source contract", () => {
-  it("accepts the version-one configuration shape", () => {
+  it("accepts the version-two configuration shape", () => {
     expect(
       parseSlateConfig(
         JSON.stringify({
-          version: 1,
+          version: 2,
           ucPath: "/private/uc.md",
           freezerPath: "/private/freezer-storage.md",
+          opportunitiesPath: "/private/opportunities.md",
         }),
       ),
     ).toEqual({
       ok: true,
       config: {
-        version: 1,
+        version: 2,
         ucPath: "/private/uc.md",
         freezerPath: "/private/freezer-storage.md",
+        opportunitiesPath: "/private/opportunities.md",
       },
     });
   });
@@ -38,11 +43,12 @@ describe("Slate source contract", () => {
   it.each([
     ["missing config", ""],
     ["invalid JSON", "{"],
-    ["unsupported version", JSON.stringify({ version: 2, ucPath: "/private/uc.md", freezerPath: "/private/freezer.md" })],
-    ["relative path", JSON.stringify({ version: 1, ucPath: "uc.md", freezerPath: "/private/freezer.md" })],
-    ["traversal path", JSON.stringify({ version: 1, ucPath: "/private/../other/uc.md", freezerPath: "/private/freezer.md" })],
-    ["duplicate paths", JSON.stringify({ version: 1, ucPath: "/private/state.md", freezerPath: "/private/state.md" })],
-    ["non-Markdown source", JSON.stringify({ version: 1, ucPath: "/private/uc.txt", freezerPath: "/private/freezer.md" })],
+    ["unsupported version", JSON.stringify({ version: 1, ucPath: "/private/uc.md", freezerPath: "/private/freezer.md", opportunitiesPath: "/private/opportunities.md" })],
+    ["missing opportunity source", JSON.stringify({ version: 2, ucPath: "/private/uc.md", freezerPath: "/private/freezer.md" })],
+    ["relative path", JSON.stringify({ version: 2, ucPath: "uc.md", freezerPath: "/private/freezer.md", opportunitiesPath: "/private/opportunities.md" })],
+    ["traversal path", JSON.stringify({ version: 2, ucPath: "/private/../other/uc.md", freezerPath: "/private/freezer.md", opportunitiesPath: "/private/opportunities.md" })],
+    ["duplicate paths", JSON.stringify({ version: 2, ucPath: "/private/state.md", freezerPath: "/private/state.md", opportunitiesPath: "/private/opportunities.md" })],
+    ["non-Markdown source", JSON.stringify({ version: 2, ucPath: "/private/uc.txt", freezerPath: "/private/freezer.md", opportunitiesPath: "/private/opportunities.md" })],
   ])("rejects %s", (_label, contents) => {
     expect(parseSlateConfig(contents)).toMatchObject({ ok: false });
   });
@@ -71,7 +77,7 @@ describe("Slate source contract", () => {
     const read = vi.fn(() => "must not be returned");
 
     expect(() => readApprovedSlateSource("/private/other.md", ["/private/uc.md"], read)).toThrow(
-      "Slate can read only its two approved source files.",
+      "Slate can read only its approved source files.",
     );
     expect(read).not.toHaveBeenCalled();
   });
@@ -162,11 +168,36 @@ describe("Slate UC model", () => {
     expect(divided[1].dividerBefore).toBe(true);
   });
 
+  it("groups UC sections under their top-level source headings", () => {
+    const tabs = buildUcTabs(parseUcMarkdown("# Current\n## Now\n- Do this\n# Later\n## Queue"));
+    expect(tabs.map((tab) => [tab.label, tab.sections.length])).toEqual([["Current", 2], ["Later", 2]]);
+  });
+
+  it("keeps a UC document title above the section tabs without promoting its metadata", () => {
+    const sections = parseUcMarkdown("# UC — Current Operating State\n---\n# 💼 Brunner Creative\n## Masterpoint");
+    const { intro, tabSections } = splitUcIntro(sections);
+
+    expect(intro?.heading).toBe("UC — Current Operating State");
+    expect(intro?.paragraphs).toEqual([]);
+    expect(buildUcTabs(tabSections).map((tab) => tab.label)).toEqual(["Brunner Creative"]);
+  });
+
   it("allows only safe link protocols", () => {
     expect(isSafeSlateLink("https://example.com/brief")).toBe(true);
     expect(isSafeSlateLink("mailto:hello@example.com")).toBe(true);
     expect(isSafeSlateLink("javascript:alert(1)")).toBe(false);
     expect(isSafeSlateLink("data:text/html,unsafe")).toBe(false);
+  });
+});
+
+describe("Slate opportunities model", () => {
+  it("parses the configured opportunity table without changing source order", () => {
+    expect(parseOpportunityTracking("## Opportunity Table\n| Status | Name | Org / Context | Last Contact | Notes | Next Action |\n| --- | --- | --- | --- | --- | --- |\n| 🟡 | Acme | Intro | Apr 14 | Follow up | Email |"))
+      .toEqual([{ status: "🟡", name: "Acme", context: "Intro", lastContact: "Apr 14", notes: "Follow up", nextAction: "Email" }]);
+  });
+
+  it("rejects a malformed opportunity table", () => {
+    expect(() => parseOpportunityTracking("## Opportunity Table\n| Status | Name |\n| --- | --- |")).toThrow("Opportunity Table must include");
   });
 });
 

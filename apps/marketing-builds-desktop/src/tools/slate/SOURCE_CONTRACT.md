@@ -10,29 +10,30 @@ Slate's initial selected private root directory is:
 
 Workshop passes the selected private Slate root to the native bridge, which
 reads only `slate.config.json` directly beneath that root. The file has this
-exact version-one shape:
+exact version-two shape:
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "ucPath": "/absolute/path/to/uc.md",
-  "freezerPath": "/absolute/path/to/freezer-storage.md"
+  "freezerPath": "/absolute/path/to/freezer-storage.md",
+  "opportunitiesPath": "/absolute/path/to/opportunity-tracking.md"
 }
 ```
 
-`ucPath` and `freezerPath` must each be non-empty absolute paths to regular
-Markdown files. The paths must be distinct. Version one does not support
+`ucPath`, `freezerPath`, and `opportunitiesPath` must each be non-empty absolute paths to regular
+Markdown files. The paths must be distinct. Version two does not support
 symlinked source files or directories.
 
 Slate must reject the configuration without reading a source when any of these
 conditions apply:
 
 - the configuration is missing, malformed, or has an unsupported version;
-- either path is missing, relative, duplicated, or does not end in `.md`;
-- either path does not exist, is not a regular file, or is a symlink;
+- any path is missing, relative, duplicated, or does not end in `.md`;
+- any path does not exist, is not a regular file, or is a symlink;
 - a source cannot be read as UTF-8 text.
 
-The bridge may read only these two validated paths. It must not perform
+The bridge may read only these three validated paths. It must not perform
 directory browsing, globbing, fallback discovery, remote synchronization, or
 source-file writes.
 
@@ -78,6 +79,13 @@ table with header cells and the fixed visible columns below.
 | Item | Primary inventory label. |
 | Count | Quantity text; preserve the source wording. |
 | Weight | Secondary quantity text; retain an empty value as an em dash. |
+
+## Opportunities rendering contract
+
+The opportunities source contains one `Opportunity Table`. Slate renders it as a
+read-only semantic table with the fixed visible columns `Status`, `Name`,
+`Org / Context`, `Last Contact`, `Notes`, and `Next Action`. Source order and
+status emoji are preserved; Slate does not infer new opportunity metadata.
 | Date Stored | Human-readable date when the cell is a valid ISO date; otherwise preserve the source text. |
 | Storage | A restrained inside/outside location label; preserve any unfamiliar source value as text. |
 

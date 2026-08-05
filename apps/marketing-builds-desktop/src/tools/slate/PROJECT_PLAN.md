@@ -4,20 +4,21 @@
 
 | Phase | Focus | Status |
 | --- | --- | --- |
-| 0 — Discovery and rendering contract | Locate the two Guppi sources, define the local configuration, and agree the rendering rules. | Complete |
+| 0 — Discovery and rendering contract | Locate the three Guppi sources, define the local configuration, and agree the rendering rules. | Complete |
 | 1 — Test foundation | Specify path-boundary, parsing, rendering, refresh, and navigation behavior through tests. | Complete — red baseline |
 | 2 — Local data bridge and refresh | Read only the approved files and refresh Slate when they change. | Complete |
 | 3 — Slate shell and UC first pass | Register the tool and build the default UC experience. | Complete |
 | 4 — Freezer view | Add the Chest Freezer Inventory view and its content-specific formatting. | Complete |
-| 5 — Validation and refinement | Verify real local changes, failure recovery, accessibility, and polish. | In progress — automated validation complete |
+| 5 — Validation and refinement | Verify real local changes, failure recovery, accessibility, and polish. | Complete |
 
 ## Purpose
 
-Slate is a small, local-first Workshop tool for viewing two Markdown-based
-inventories from the Guppi project:
+Slate is a small, local-first Workshop tool for viewing three Markdown-based
+reference sources from the Guppi project:
 
-1. **UC** — the primary view and the default tab.
-2. **Chest Freezer Inventory** — the secondary tab.
+1. **UC** — the primary reference view.
+2. **Chest Freezer Inventory** — the inventory table.
+3. **Opportunities** — the opportunity tracking table.
 
 Slate turns the source Markdown into clean, useful HTML without creating a
 second copy of either inventory. It displays the approved local files only:
@@ -29,12 +30,13 @@ working copy.
 ### Included
 
 - A new Workshop tool named **Slate** in the shared tool shelf.
-- Two tabs: **UC** and **Chest Freezer Inventory**.
+- A Slate home view with **UC**, **Chest Freezer Inventory**, and **Opportunities** choices.
+- Chrome-style top-level source tabs within the UC view.
 - A polished UC list view with clear hierarchy and HTML formatting based on the
   actual Guppi conventions.
 - A well-formatted freezer inventory view, tailored to its own source content.
-- Local-only reading of the two approved Markdown files.
-- Automatic refresh when either local file changes.
+- Local-only reading of the three approved Markdown files.
+- Automatic refresh when any local source file changes.
 - A visible last-updated state and clear loading, missing-file, unreadable-file,
   and malformed-content states.
 - Tests written before implementation where behavior can be specified.
@@ -44,12 +46,12 @@ working copy.
 
 - Editing either inventory from Slate.
 - Cloud sync, uploads, accounts, sharing, or a remote copy of the inventories.
-- General-purpose Markdown browsing beyond the two approved files.
+- General-purpose Markdown browsing beyond the three approved files.
 - A mobile-specific interface or reporting/dashboard features.
 
 ## Product principles
 
-- **Local display inputs:** Slate displays the current content of the two
+- **Local display inputs:** Slate displays the current content of the three
   approved local Guppi files and does not maintain competing inventory data.
 - **UC first:** UC opens by default and receives the more considered visual
   treatment.
@@ -67,7 +69,7 @@ working copy.
 
 - Slate's canonical public source, Workshop tool id, and directory are all
   `slate`.
-- The two Guppi Markdown files remain in their existing local project and are
+- The three Guppi Markdown files remain in their existing local project and are
   Slate's only approved display inputs. Slate must not copy them into Workshop,
   `workshop-private`, cloud storage, or generated application state. UC is
   locally authoritative within GUPPI; freezer storage's remote canonical state
@@ -80,12 +82,12 @@ working copy.
 ## Local configuration and data-boundary contract
 
 Before Slate is registered, define a versioned local-only configuration under
-`../workshop-private/slate/`. It must contain only the two approved source-file
+`../workshop-private/slate/`. It must contain only the three approved source-file
 paths and any non-source local state; it must never contain copied inventory
 content. The public repository may include an empty/example schema, but never a
 filled-in configuration or real Guppi paths.
 
-Slate must resolve and read only the two configured Markdown files. It must not
+Slate must resolve and read only the three configured Markdown files. It must not
 offer arbitrary file selection, directory browsing, recursive scans, uploads,
 or fallback discovery. Path validation must reject traversal, missing paths,
 directories, and any path outside the approved resolved source locations.
@@ -106,10 +108,13 @@ The approved source types are now confirmed:
   `Storage Table` with the fixed columns `Item`, `Count`, `Weight`, `Date
   Stored`, and `Storage`. Slate must render that table semantically and retain
   blank cells as intentionally unspecified values.
+- **Opportunities:** a local Markdown document containing one `Opportunity Table`
+  with fixed tracking columns. Slate must preserve its source order and render it
+  as a read-only semantic table.
 
 The private configuration is `slate.config.json` in the private Slate root. It
-uses `version: 1` and exactly two absolute Markdown-file paths: `ucPath` and
-`freezerPath`. The checked-in example below is structural only; the filled-in
+uses `version: 2` and exactly three absolute Markdown-file paths: `ucPath`,
+`freezerPath`, and `opportunitiesPath`. The checked-in example below is structural only; the filled-in
 local configuration is never part of the Workshop repository.
 
 Phase 0 does not authorize a remote read, GitHub synchronization, source-file
@@ -132,13 +137,13 @@ Tasks:
 - Decide which formatting rules are shared and which are specific to each tab.
 - Record agreed path configuration and file-access boundaries.
 - Define the local configuration filename, version, schema, and validation
-  errors for the two source paths.
+  errors for the three source paths.
 - Decide whether symlinked source paths are supported; if they are, resolve and
   validate their final locations before reading.
 
 Deliverables:
 
-- A concise source map: project location, instruction files, and two source
+- A concise source map: project location, instruction files, and three source
   files.
 - A local configuration contract and public-safe example schema with no real
   Guppi path or inventory content.
@@ -147,8 +152,8 @@ Deliverables:
 
 Exit criteria:
 
-- The two source files and their local locations are confirmed.
-- The two approved paths, their validation behavior, and the no-copy boundary
+- The three source files and their local locations are confirmed.
+- The three approved paths, their validation behavior, and the no-copy boundary
   are documented.
 - Rendering rules can be expressed as automated tests.
 
@@ -168,7 +173,7 @@ Tasks:
 - Define behavior tests for file-change refreshes, including retaining the last
   successful view if a refresh temporarily fails.
 - Define behavior tests for an editor's atomic-save rename flow and ensure the
-  watcher reloads only the two configured paths.
+  watcher reloads only the three configured paths.
 - Define rendering tests that reject unsafe Markdown link protocols.
 - Define a public-boundary test that fails on Guppi-specific paths, real
   inventory text, screenshots, snapshots, and generated render output.
@@ -181,7 +186,7 @@ Core test cases:
 - Freezer categories, items, quantities, and dates render predictably.
 - Empty or incomplete Markdown produces a useful empty state.
 - Missing, unreadable, and malformed files show actionable status copy.
-- Only the two configured source files can be read; a rejected path never
+- Only the three configured source files can be read; a rejected path never
   triggers a fallback search or bundled-inventory fallback.
 - Changes to UC refresh the displayed UC content.
 - Changes to freezer inventory refresh that tab’s content.
@@ -217,7 +222,7 @@ changes.
 
 Tasks:
 
-- Implement the smallest local file-access surface needed for the two explicit
+- Implement the smallest local file-access surface needed for the three explicit
   source paths.
 - Validate and resolve the private Slate configuration before reading either
   file; return actionable configuration errors without reading any fallback.
@@ -230,21 +235,21 @@ Tasks:
 
 Acceptance criteria:
 
-- Neither file is copied to a cloud service or persisted as separate inventory
+- No source file is copied to a cloud service or persisted as separate inventory
   data.
 - The bridge cannot read a path outside the two resolved, configured sources.
-- Editing and saving either Markdown file updates Slate without restarting
+- Editing and saving any configured Markdown file updates Slate without restarting
   Workshop.
 - A temporary read failure does not erase the last good render.
 
 Phase 2 result:
 
 - The native bridge reads only `slate.config.json` under the selected private
-  Slate root and then only its two validated, distinct Markdown paths.
+  Slate root and then only its three validated, distinct Markdown paths.
 - It rejects malformed configuration, traversal, symlinks, directories,
   non-Markdown files, and unreadable sources before returning content.
 - The bridge returns source timestamps and starts a non-recursive watcher on
-  only the necessary parent directories. Events are filtered to the two exact
+  only the necessary parent directories. Events are filtered to the three exact
   approved paths before `slate://source-changed` is emitted.
 - The TypeScript bridge exposes the native read and watch commands, while the
   source model implements the 100 ms scheduling and last-good
@@ -261,7 +266,7 @@ Tasks:
 
 - Register Slate in Workshop with an appropriate shelf label, icon variant, and
   install metadata.
-- Build the two-tab Slate view, with UC selected initially.
+- Build Slate’s source home view and its UC section tabs.
 - Implement the UC renderer against the tests from Phase 1.
 - Present UC as a clean, scan-friendly HTML list with semantic sections and
   restrained visual hierarchy.
@@ -283,7 +288,7 @@ Exit criteria:
 Phase 3 result:
 
 - Slate is registered as a ready bundled Workshop tool and installs by default.
-- UC is the first route and the default tab.
+- UC is available from Slate’s source home view and has its own top-level section tabs.
 - The UC renderer preserves the local heading hierarchy, paragraphs, nested
   task lists, and safe inline formatting while escaping raw HTML and unsafe
   link protocols.
@@ -326,7 +331,7 @@ pass based on evidence.
 Tasks:
 
 - Run the full automated test suite.
-- Manually change both source files while Workshop is open.
+- Manually change each configured source file while Workshop is open.
 - Verify refresh timing, tab selection, status states, and practical readability
   at normal Workshop window sizes.
 - Test missing-file and recovery flows.
@@ -336,7 +341,7 @@ Tasks:
 Release criteria:
 
 - All tests pass.
-- Both inventories reflect local changes without a restart.
+- All three source views reflect local changes without a restart.
 - UC is the default, polished primary experience.
 - Errors are understandable and recover gracefully.
 
@@ -346,13 +351,12 @@ Phase 5 progress:
   pass. The Slate-specific suite covers source isolation, rename events,
   debounce behavior, recovery state, malformed tables, and rendered empty
   states.
-- The private configuration and both configured local files were verified as
-  available before launching the local Tauri desktop app.
-- The final acceptance step remains a visible desktop check: make and save one
-  harmless edit to each configured local source while Slate is open, then
-  confirm the corresponding tab refreshes after the debounce. Also temporarily
-  make one source unavailable and restore it to confirm the displayed recovery
-  state. This is intentionally not automated against the personal inventories.
+- The three configured local files were verified through the local preview. Live
+  source saves repeatedly refreshed Slate during review.
+- The Opportunities source was temporarily made unavailable through the local
+  preview, returned the controlled error response, and recovered immediately
+  after restoration. The component’s retained-last-good-view behavior remains
+  protected by the targeted automated suite.
 
 ## TDD working agreement
 
@@ -381,13 +385,13 @@ be stated deterministically becomes a test for future protection.
   count, weight, date-stored, and storage columns.
 - Auto-refresh uses a 100 ms debounce baseline and a visible per-tab
   loading or error state.
-- The version-one configuration has `ucPath` and `freezerPath` fields; source
+- The version-two configuration has `ucPath`, `freezerPath`, and `opportunitiesPath` fields; source
   symlinks are unsupported.
 
 ## Definition of done
 
 Slate is complete for its first release when Workshop provides a polished,
-local-only two-tab viewer; UC opens first; each tab accurately renders its
-corresponding local Markdown inventory; edits appear automatically; failure
-states are clear; and the rendering and refresh behavior are protected by an
-appropriate automated test suite.
+local-only three-source viewer; UC, freezer, and opportunities accurately
+render their corresponding local Markdown sources; edits appear automatically;
+failure states are clear; and the rendering and refresh behavior are protected
+by an appropriate automated test suite.

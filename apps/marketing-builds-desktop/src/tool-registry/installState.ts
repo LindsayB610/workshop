@@ -19,7 +19,9 @@ export type ToolInstallActionResult = {
 export function defaultToolInstallState(toolList: ToolDefinition[]): ToolInstallState {
   return {
     schemaVersion: toolInstallStateSchemaVersion,
-    enabledToolIds: toolList.filter((tool) => tool.defaultInstalled).map((tool) => tool.id),
+    enabledToolIds: toolList
+      .filter((tool) => tool.status === "ready" && tool.defaultInstalled)
+      .map((tool) => tool.id),
   };
 }
 
@@ -27,7 +29,7 @@ export function normalizeToolInstallState(
   toolList: ToolDefinition[],
   storedState?: Partial<ToolInstallState> | null,
 ): ToolInstallState {
-  const knownToolIds = new Set(toolList.map((tool) => tool.id));
+  const readyToolIds = new Set(toolList.filter((tool) => tool.status === "ready").map((tool) => tool.id));
   const defaultState = defaultToolInstallState(toolList);
   if (!storedState || !Array.isArray(storedState.enabledToolIds)) {
     return defaultState;
@@ -41,7 +43,7 @@ export function normalizeToolInstallState(
         ? [...defaultInstalledToolIds, ...storedState.enabledToolIds]
         : [...defaultInstalledToolIds, ...legacyBundledToolIds, ...storedState.enabledToolIds];
   const enabledToolIds = migratedEnabledToolIds.filter((toolId, index, toolIds) => {
-    return knownToolIds.has(toolId) && toolIds.indexOf(toolId) === index;
+    return readyToolIds.has(toolId) && toolIds.indexOf(toolId) === index;
   });
 
   return { schemaVersion: toolInstallStateSchemaVersion, enabledToolIds };
@@ -52,7 +54,7 @@ export function getInstalledTools(
   state: ToolInstallState,
 ): ToolDefinition[] {
   const enabledToolIds = new Set(state.enabledToolIds);
-  return toolList.filter((tool) => enabledToolIds.has(tool.id));
+  return toolList.filter((tool) => tool.status === "ready" && enabledToolIds.has(tool.id));
 }
 
 export function getAvailableBundledTools(
@@ -61,7 +63,7 @@ export function getAvailableBundledTools(
 ): ToolDefinition[] {
   const enabledToolIds = new Set(state.enabledToolIds);
   return toolList.filter(
-    (tool) => tool.installMode === "bundled" && !enabledToolIds.has(tool.id),
+    (tool) => tool.status === "ready" && tool.installMode === "bundled" && !enabledToolIds.has(tool.id),
   );
 }
 
@@ -70,7 +72,7 @@ export function getAvailableTools(
   state: ToolInstallState,
 ): ToolDefinition[] {
   const enabledToolIds = new Set(state.enabledToolIds);
-  return toolList.filter((tool) => !enabledToolIds.has(tool.id));
+  return toolList.filter((tool) => tool.status === "ready" && !enabledToolIds.has(tool.id));
 }
 
 export function enableTool(
@@ -79,7 +81,7 @@ export function enableTool(
   toolId: string,
 ): ToolInstallActionResult {
   const tool = toolList.find((candidate) => candidate.id === toolId);
-  if (!tool || state.enabledToolIds.includes(toolId)) {
+  if (!tool || tool.status !== "ready" || state.enabledToolIds.includes(toolId)) {
     return { state: normalizeToolInstallState(toolList, state), workspaceFilesTouched: false };
   }
 

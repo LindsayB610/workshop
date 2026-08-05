@@ -4,6 +4,7 @@ import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Panel } from "../../components/ui/panel";
 import type { ToolViewProps } from "../types";
+import { completePulseOccurrence, isPulseProxyAvailable, loadPulseSnapshot } from "./pulseBridge";
 
 const pulseRoutes = ["active", "schedule", "history", "runner"] as const;
 
@@ -31,6 +32,7 @@ export function PulseTool({ activeRouteId, tool }: ToolViewProps) {
   const activeRoute: PulseRoute = activeRouteId && isPulseRoute(activeRouteId) ? activeRouteId : "active";
   const [apiUrl, setApiUrl] = useState("");
   const [apiToken, setApiToken] = useState("");
+  const [completionNotes, setCompletionNotes] = useState<Record<string, string>>({});
   const [snapshot, setSnapshot] = useState<PulseSnapshot | null>(null);
   const [status, setStatus] = useState("Connect your private Pulse runner to load live state.");
   const pulseById = new Map(snapshot?.pulses.map((pulse) => [pulse.id, pulse]) ?? []);
@@ -42,28 +44,23 @@ export function PulseTool({ activeRouteId, tool }: ToolViewProps) {
     }
     setStatus("Loading private runner state…");
     try {
-      const response = await fetch(`${apiUrl.replace(/\/$/, "")}/api/v1/snapshot`, {
-        headers: { authorization: `Bearer ${apiToken}` },
-      });
-      if (!response.ok) {
+      const response = await loadPulseSnapshot<PulseSnapshot>(apiUrl, apiToken);
+      if (response.status < 200 || response.status >= 300) {
         throw new Error(response.status === 401 ? "The runner rejected that API token." : `Runner returned ${response.status}.`);
       }
-      setSnapshot((await response.json()) as PulseSnapshot);
+      setSnapshot(response.body);
       setStatus("Live state loaded. Workshop does not save your runner token.");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Workshop could not reach the private runner.");
     }
   }
 
-  async function markDone(occurrenceId: string) {
+  async function markDone(occurrenceId: string, completionNote?: string) {
     if (!apiUrl.trim() || !apiToken.trim()) return;
     setStatus("Recording completion…");
     try {
-      const response = await fetch(
-        `${apiUrl.replace(/\/$/, "")}/api/v1/occurrences/${encodeURIComponent(occurrenceId)}/done`,
-        { method: "POST", headers: { authorization: `Bearer ${apiToken}` } },
-      );
-      if (!response.ok) throw new Error(`Runner returned ${response.status}.`);
+      const response = await completePulseOccurrence<PulseOccurrence>(apiUrl, apiToken, occurrenceId, completionNote);
+      if (response.status < 200 || response.status >= 300) throw new Error(`Runner returned ${response.status}.`);
       await loadSnapshot();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Workshop could not mark this occurrence Done.");
@@ -98,14 +95,15 @@ export function PulseTool({ activeRouteId, tool }: ToolViewProps) {
           <RadioTower size={22} aria-hidden="true" />
         </div>
         <div className="pulse-connection-fields">
-          <label>Runner URL<input value={apiUrl} onChange={(event) => setApiUrl(event.target.value)} placeholder="https://your-private-runner.example" /></label>
+          <label>Runner URL<input value={apiUrl} onChange={(event) => setApiUrl(event.target.value)} placeholder="http://127.0.0.1:8787" /></label>
           <label>API token<input type="password" value={apiToken} onChange={(event) => setApiToken(event.target.value)} placeholder="Private bearer token" /></label>
           <Button variant="secondary" onClick={() => void loadSnapshot()}><RefreshCw size={16} aria-hidden="true" /><span>Load live state</span></Button>
         </div>
         <p className="workspace-index-status" role="status">{status}</p>
+        {!isPulseProxyAvailable() ? <p className="workspace-index-status">Connect a runner from the packaged Workshop desktop app.</p> : null}
       </Panel>
 
-      {activeRoute === "active" ? <OccurrencePanel icon={<BellRing size={22} aria-hidden="true" />} title="Due occurrences" empty="No active occurrences loaded." occurrences={due} pulseById={pulseById} onDone={markDone} /> : null}
+      {activeRoute === "active" ? <OccurrencePanel icon={<BellRing size={22} aria-hidden="true" />} title="Due occurrences" empty="No active occurrences loaded." occurrences={due} pulseById={pulseById} completionNotes={completionNotes} onCompletionNoteChange={(occurrenceId, note) => setCompletionNotes((current) => ({ ...current, [occurrenceId]: note }))} onDone={markDone} /> : null}
       {activeRoute === "schedule" ? <OccurrencePanel icon={<Clock3 size={22} aria-hidden="true" />} title="Upcoming occurrences" empty="No upcoming occurrences loaded." occurrences={scheduled} pulseById={pulseById} /> : null}
       {activeRoute === "history" ? <OccurrencePanel icon={<CheckCircle2 size={22} aria-hidden="true" />} title="Completion history" empty="No completion history loaded." occurrences={done} pulseById={pulseById} /> : null}
       {activeRoute === "runner" ? <RunnerPanel snapshot={snapshot} /> : null}
@@ -113,8 +111,8 @@ export function PulseTool({ activeRouteId, tool }: ToolViewProps) {
   );
 }
 
-function OccurrencePanel({ icon, title, empty, occurrences, pulseById, onDone }: { icon: React.ReactNode; title: string; empty: string; occurrences: PulseOccurrence[]; pulseById: Map<string, { id: string; title: string; instructions?: string }>; onDone?: (id: string) => Promise<void> }) {
-  return <Panel className="workspace-summary" id={`pulse-${title.toLowerCase().replaceAll(" ", "-")}`}><div className="section-heading-row"><div><p className="eyebrow">Pulse</p><h2>{title}</h2></div>{icon}</div>{occurrences.length === 0 ? <div className="empty-tool"><BellRing size={22} aria-hidden="true" /><h3>{empty}</h3></div> : <ul className="compact-list">{occurrences.map((occurrence) => <li key={occurrence.id}><strong>{pulseById.get(occurrence.pulseId)?.title ?? occurrence.pulseId}</strong><span>{occurrence.state === "done" ? `Completed ${formatDate(occurrence.completedAt)}` : `Due ${formatDate(occurrence.dueAt)}`}{occurrence.completionNote ? ` · ${occurrence.completionNote}` : ""}</span>{onDone ? <Button variant="secondary" onClick={() => void onDone(occurrence.id)}>Done</Button> : null}</li>)}</ul>}</Panel>;
+function OccurrencePanel({ icon, title, empty, occurrences, pulseById, completionNotes, onCompletionNoteChange, onDone }: { icon: React.ReactNode; title: string; empty: string; occurrences: PulseOccurrence[]; pulseById: Map<string, { id: string; title: string; instructions?: string }>; completionNotes?: Record<string, string>; onCompletionNoteChange?: (id: string, note: string) => void; onDone?: (id: string, completionNote?: string) => Promise<void> }) {
+  return <Panel className="workspace-summary" id={`pulse-${title.toLowerCase().replaceAll(" ", "-")}`}><div className="section-heading-row"><div><p className="eyebrow">Pulse</p><h2>{title}</h2></div>{icon}</div>{occurrences.length === 0 ? <div className="empty-tool"><BellRing size={22} aria-hidden="true" /><h3>{empty}</h3></div> : <ul className="compact-list">{occurrences.map((occurrence) => <li key={occurrence.id}><strong>{pulseById.get(occurrence.pulseId)?.title ?? occurrence.pulseId}</strong><span>{occurrence.state === "done" ? `Completed ${formatDate(occurrence.completedAt)}` : `Due ${formatDate(occurrence.dueAt)}`}{occurrence.completionNote ? ` · ${occurrence.completionNote}` : ""}</span>{onDone ? <div className="pulse-done-controls"><label>Completion note (optional)<input value={completionNotes?.[occurrence.id] ?? ""} onChange={(event) => onCompletionNoteChange?.(occurrence.id, event.target.value)} /></label><Button variant="secondary" onClick={() => void onDone(occurrence.id, completionNotes?.[occurrence.id])}>Done</Button></div> : null}</li>)}</ul>}</Panel>;
 }
 
 function RunnerPanel({ snapshot }: { snapshot: PulseSnapshot | null }) {

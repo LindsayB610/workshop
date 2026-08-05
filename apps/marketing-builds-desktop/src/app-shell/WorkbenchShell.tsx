@@ -99,21 +99,23 @@ export function WorkbenchShell({
             );
           })}
         </nav>
-        <section className="connector-status-strip" aria-label="Shared connector status">
-          {activeTool.requiredLocalCapabilities.map((capability) => {
-            const ready = readyCapabilities.has(capability);
+        {activeTool.id !== "slate" ? (
+          <section className="connector-status-strip" aria-label="Shared connector status">
+            {activeTool.requiredLocalCapabilities.map((capability) => {
+              const ready = readyCapabilities.has(capability);
 
-            return (
-              <span
-                key={capability}
-                className={ready ? "capability-status-ready" : "capability-status-pending"}
-              >
-                <strong>{capabilityLabels[capability]}</strong>
-                <small>{ready ? "Ready" : "Pending workflow"}</small>
-              </span>
-            );
-          })}
-        </section>
+              return (
+                <span
+                  key={capability}
+                  className={ready ? "capability-status-ready" : "capability-status-pending"}
+                >
+                  <strong>{capabilityLabels[capability]}</strong>
+                  <small>{ready ? "Ready" : "Pending workflow"}</small>
+                </span>
+              );
+            })}
+          </section>
+        ) : null}
         <div className="workspace-body">
           {typeof children === "function" ? children({ activeRouteId }) : children}
         </div>

@@ -152,6 +152,16 @@ describe("Slate UC model", () => {
     ]);
   });
 
+  it("retains Markdown thematic breaks as dividers before the next UC section", () => {
+    const sections = parseUcMarkdown("# Focus\n---\n- First task");
+
+    expect(sections[0].paragraphs).toEqual([]);
+    expect(sections[0].items.map((item) => item.text)).toEqual(["First task"]);
+
+    const divided = parseUcMarkdown("# Focus\n---\n# Next");
+    expect(divided[1].dividerBefore).toBe(true);
+  });
+
   it("allows only safe link protocols", () => {
     expect(isSafeSlateLink("https://example.com/brief")).toBe(true);
     expect(isSafeSlateLink("mailto:hello@example.com")).toBe(true);

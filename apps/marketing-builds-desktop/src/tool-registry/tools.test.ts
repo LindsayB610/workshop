@@ -31,8 +31,8 @@ describe("tool registry", () => {
       runtime: { kind: "bridge-cli", entryPoint: "@megaphone/core/bridgeCli" },
     });
     expect(getToolManifest("pulse")).toMatchObject({
-      runtime: { kind: "external-runner", entryPoint: "@marketing-builds/pulse" },
-      privateWorkspace: { kind: "runner-root", requiredFields: ["pulses.yaml", ".env", "state/"] },
+      runtime: { kind: "native-bridge", entryPoint: "pulse_load_snapshot/pulse_mark_done" },
+      privateWorkspace: { kind: "connection", requiredFields: [] },
     });
   });
 
@@ -51,10 +51,6 @@ describe("tool registry", () => {
       readFileSync(path.join(appRoot, "package.json"), "utf8"),
     ) as { dependencies?: Record<string, string> };
     const nativeAdapter = readFileSync(path.join(appRoot, "src-tauri", "src", "lib.rs"), "utf8");
-    const pulsePackagePath = path.resolve(appRoot, "../../../pulse/package.json");
-    const pulsePackage = existsSync(pulsePackagePath)
-      ? (JSON.parse(readFileSync(pulsePackagePath, "utf8")) as { name?: string })
-      : undefined;
 
     const redline = getToolManifest("redline");
     const megaphone = getToolManifest("megaphone");
@@ -63,16 +59,15 @@ describe("tool registry", () => {
     expect(desktopPackage.dependencies?.[redline?.runtime.entryPoint ?? ""]).toBeDefined();
     expect(megaphone?.runtime.entryPoint).toBe("@megaphone/core/bridgeCli");
     expect(nativeAdapter).toContain("packages/core/dist/bridgeCli.js");
-    expect(pulse?.runtime.entryPoint).toBe("@marketing-builds/pulse");
-    if (pulsePackage) {
-      expect(pulse?.runtime.entryPoint).toBe(pulsePackage.name);
-    }
+    expect(pulse?.runtime.entryPoint).toBe("pulse_load_snapshot/pulse_mark_done");
+    expect(nativeAdapter).toContain("fn pulse_load_snapshot");
+    expect(nativeAdapter).toContain("fn pulse_mark_done");
   });
 
   it("registers Redline as a ready sub-tool", () => {
     const tool = getToolById("redline");
 
-    expect(tool?.status).toBe("ready");
+    expect(tool?.status).toBe("planned");
     expect(tool?.logoVariant).toBe("redline");
     expect(tool?.installMode).toBe("bundled");
     expect(tool?.defaultInstalled).toBe(false);
@@ -99,7 +94,7 @@ describe("tool registry", () => {
   it("registers Megaphone as a ready Workshop tool", () => {
     const tool = getToolById("megaphone");
 
-    expect(tool?.status).toBe("ready");
+    expect(tool?.status).toBe("planned");
     expect(tool?.logoVariant).toBe("megaphone");
     expect(tool?.installMode).toBe("bundled");
     expect(tool?.defaultInstalled).toBe(false);
@@ -122,7 +117,7 @@ describe("tool registry", () => {
   it("registers Pulse as an external self-hosted Workshop tool", () => {
     const tool = getToolById("pulse");
 
-    expect(tool?.status).toBe("ready");
+    expect(tool?.status).toBe("planned");
     expect(tool?.installMode).toBe("external");
     expect(tool?.defaultInstalled).toBe(false);
     expect(tool?.docsPath).toBe("/docs/tools/pulse.md");

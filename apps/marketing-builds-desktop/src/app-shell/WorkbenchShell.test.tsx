@@ -52,6 +52,23 @@ describe("WorkbenchShell", () => {
     expect(markup).toContain("Pending workflow");
   });
 
+  it("keeps Slate free of the shared workspace status strip", () => {
+    const slate = getToolById("slate");
+
+    if (!slate) {
+      throw new Error("Slate tool is not registered.");
+    }
+
+    const markup = renderToStaticMarkup(
+      <WorkbenchShell activeTool={slate} onBackToTools={() => undefined}>
+        <p>Slate body</p>
+      </WorkbenchShell>,
+    );
+
+    expect(markup).not.toContain("Shared connector status");
+    expect(markup).not.toContain("Local workspace");
+  });
+
   it("renders Redline routes as function screen controls", () => {
     const redline = getToolById("redline");
 

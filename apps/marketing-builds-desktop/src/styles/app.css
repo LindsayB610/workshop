@@ -1798,6 +1798,13 @@ h4 {
   padding-bottom: 6rem;
 }
 
+.slate-uc {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 11pt;
+  letter-spacing: -0.01em;
+  line-height: 1.65;
+}
+
 .slate-header,
 .slate-panel-heading,
 .slate-summary-actions,
@@ -1851,46 +1858,54 @@ h4 {
 }
 
 .slate-section {
-  padding: 0.95rem 1rem 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.7rem;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.018));
+  padding: 0;
 }
 
 .slate-section-level-1 {
-  border-color: rgba(255, 27, 141, 0.34);
-  background: linear-gradient(135deg, rgba(255, 27, 141, 0.12), rgba(255, 255, 255, 0.025));
+  padding-top: 0.15rem;
 }
 
 .slate-section-title {
-  display: flex;
-  align-items: baseline;
-  gap: 0.55rem;
-}
-
-.slate-section-title > span {
-  width: 0.45rem;
-  height: 0.45rem;
-  flex: 0 0 auto;
-  border-radius: 999px;
-  background: var(--color-yellow);
-  box-shadow: 0 0 0 4px rgba(255, 221, 0, 0.1);
-}
-
-.slate-section-level-1 .slate-section-title > span {
-  background: var(--color-pink);
-  box-shadow: 0 0 0 4px rgba(255, 27, 141, 0.12);
+  display: block;
 }
 
 .slate-section h2,
 .slate-section h3,
 .slate-section h4 {
-  margin-bottom: 0.45rem;
   color: var(--dark-text);
+  letter-spacing: -0.035em;
+}
+
+.slate-section-level-1 h2 {
+  margin: 1.8em 0 1.05em;
+  font-size: clamp(1.32rem, 2.2vw, 1.65rem);
+  line-height: 1.18;
+}
+
+.slate-section-level-2 h3 {
+  margin: 1.7em 0 0.55em;
+  font-size: clamp(1.1rem, 1.8vw, 1.3rem);
+  line-height: 1.25;
+}
+
+.slate-section-level-3 h4 {
+  margin: 1.75em 0 0.48em;
+  font-size: clamp(0.95rem, 1.55vw, 1.1rem);
+  line-height: 1.25;
+}
+
+.slate-section-level-4 h4,
+.slate-section-level-5 h4,
+.slate-section-level-6 h4 {
+  margin: 1.75em 0 0.48em;
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
 }
 
 .slate-context {
-  margin: 0.45rem 0 0.7rem 1rem;
+  margin: 0.55em 0 1.1em;
   color: var(--dark-text-secondary);
 }
 
@@ -1903,13 +1918,25 @@ h4 {
 .slate-list {
   display: grid;
   gap: 0.45rem;
-  margin: 0.25rem 0 0;
-  padding-left: 1.25rem;
+  margin: 0.35em 0 1.35em;
+  padding-left: 1.4em;
   color: var(--dark-text);
 }
 
 .slate-list > li::marker {
-  color: var(--color-yellow);
+  color: var(--dark-text-muted);
+}
+
+.slate-list > li {
+  margin: 0.38em 0;
+  padding-left: 0.08em;
+}
+
+.slate-divider {
+  height: 1px;
+  margin: 3.1em 0 2.65em;
+  border: 0;
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .slate-list .slate-list {

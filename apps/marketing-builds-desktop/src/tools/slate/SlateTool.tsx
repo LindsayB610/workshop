@@ -1,11 +1,11 @@
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { AlertCircle, Archive, Check, Clock3, FolderKey, RefreshCw, Rows3 } from "lucide-react";
+import { AlertCircle, Archive, Check, Clock3, FolderKey, Rows3 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Panel } from "../../components/ui/panel";
 import type { ToolViewProps } from "../types";
-import { readSlateSource, startSlateWatch, type SlateSourceBundle, type SlateSourceName, type SlateSourceSnapshot } from "./slateBridge";
+import { isSlateLocalPreview, readSlateSource, startSlateWatch, type SlateSourceBundle, type SlateSourceName, type SlateSourceSnapshot } from "./slateBridge";
 import { formatFreezerDate, parseFreezerStorage, parseUcMarkdown, type FreezerRow, type SlateListItem, type SlateSection } from "./slateModel";
 
 export function SlateTool({ activeRouteId, onSetWorkspaceRequest, tool, workspaceRoot }: ToolViewProps) {
@@ -16,33 +16,38 @@ export function SlateTool({ activeRouteId, onSetWorkspaceRequest, tool, workspac
   const [setupRoot, setSetupRoot] = useState("");
   const requestVersions = useRef<Record<SlateSourceName, number>>({ uc: 0, freezer: 0 });
   const activeTab = activeRouteId === "freezer" ? "freezer" : "uc";
-  const hasPrivateRoot = Boolean(workspaceRoot?.startsWith("/"));
+  const hasPrivateRoot = isSlateLocalPreview || Boolean(workspaceRoot?.startsWith("/"));
 
-  const load = useCallback(async () => {
-    if (!workspaceRoot?.startsWith("/")) return;
-    setLoadingSources(["uc", "freezer"]);
+  const load = useCallback(async (quiet = false) => {
+    if (!isSlateLocalPreview && !workspaceRoot?.startsWith("/")) return;
+    if (!quiet) setLoadingSources(["uc", "freezer"]);
     const sourceNames: SlateSourceName[] = ["uc", "freezer"];
     const requestIds = sourceNames.map((source) => ++requestVersions.current[source]);
-    const results = await Promise.allSettled(sourceNames.map((source) => readSlateSource(workspaceRoot, source)));
+    const results = await Promise.allSettled(sourceNames.map((source) => readSlateSource(workspaceRoot ?? "", source)));
     const currentSources = sourceNames.filter((source, index) => requestVersions.current[source] === requestIds[index]);
-    setBundle((previous) => mergeSlateSourceResults(previous, sourceNames, results, currentSources));
+    setBundle((previous) => {
+      const next = mergeSlateSourceResults(previous, sourceNames, results, currentSources);
+      return slateBundlesMatch(previous, next) ? previous : next;
+    });
     setErrors((previous) => sourceNames.reduce((next, source, index) => {
       if (requestVersions.current[source] !== requestIds[index]) return next;
       const result = results[index];
       return withSlateSourceError(next, source, result.status === "fulfilled" ? null : slateReadError(result.reason));
     }, previous));
-    setLoadingSources((previous) => previous.filter((source) => {
-      const index = sourceNames.indexOf(source);
-      return index !== -1 && requestVersions.current[source] !== requestIds[index];
-    }));
+    if (!quiet) {
+      setLoadingSources((previous) => previous.filter((source) => {
+        const index = sourceNames.indexOf(source);
+        return index !== -1 && requestVersions.current[source] !== requestIds[index];
+      }));
+    }
   }, [workspaceRoot]);
 
   const reloadSource = useCallback(async (source: SlateSourceName) => {
-    if (!workspaceRoot?.startsWith("/")) return;
+    if (!isSlateLocalPreview && !workspaceRoot?.startsWith("/")) return;
     const requestId = ++requestVersions.current[source];
     setLoadingSources((previous) => addSlateLoadingSource(previous, source));
     try {
-      const next = await readSlateSource(workspaceRoot, source);
+      const next = await readSlateSource(workspaceRoot ?? "", source);
       if (requestVersions.current[source] === requestId) {
         setBundle((previous) => mergeSlateSourceResults(previous, [source], [{ status: "fulfilled", value: next }]));
         setErrors((previous) => withSlateSourceError(previous, source, null));
@@ -59,23 +64,28 @@ export function SlateTool({ activeRouteId, onSetWorkspaceRequest, tool, workspac
   }, [workspaceRoot]);
 
   useEffect(() => {
-    if (!hasPrivateRoot || !workspaceRoot) return;
+    if (!hasPrivateRoot || (!workspaceRoot && !isSlateLocalPreview)) return;
+    const selectedRoot = workspaceRoot ?? "";
     let disposed = false;
     let unlisten: UnlistenFn | undefined;
     const refresh = createSlateRefreshHandler(reloadSource);
     setWatchError(null);
 
     void (async () => {
+      if (isSlateLocalPreview) {
+        void load();
+        return;
+      }
       try {
         const stop = await listen<SlateSourceChange>("slate://source-changed", (event) => {
-          if (shouldHandleSlateSourceChange(workspaceRoot, event.payload)) refresh.onSourceChanged(event.payload.source);
+          if (shouldHandleSlateSourceChange(selectedRoot, event.payload)) refresh.onSourceChanged(event.payload.source);
         });
         if (disposed) {
           stop();
           return;
         }
         unlisten = stop;
-        void startSlateWatch(workspaceRoot).catch((cause: unknown) => {
+        void startSlateWatch(selectedRoot).catch((cause: unknown) => {
           if (!disposed) setWatchError(cause instanceof Error ? cause.message : "Slate could not watch its local sources.");
         });
       } catch (cause) {
@@ -91,6 +101,12 @@ export function SlateTool({ activeRouteId, onSetWorkspaceRequest, tool, workspac
     };
   }, [hasPrivateRoot, load, reloadSource, workspaceRoot]);
 
+  useEffect(() => {
+    if (!isSlateLocalPreview) return;
+    const timer = window.setInterval(() => void load(true), 250);
+    return () => window.clearInterval(timer);
+  }, [load]);
+
   if (!hasPrivateRoot) {
     return (
       <SlateSetup
@@ -101,7 +117,7 @@ export function SlateTool({ activeRouteId, onSetWorkspaceRequest, tool, workspac
     );
   }
 
-  return <SlateContent activeTab={activeTab} bundle={bundle} error={watchError ?? errors[activeTab] ?? null} loading={loadingSources.includes(activeTab)} onRefresh={() => void load()} />;
+  return <SlateContent activeTab={activeTab} bundle={bundle} error={watchError ?? errors[activeTab] ?? null} loading={loadingSources.includes(activeTab)} />;
 }
 
 export function SlateSetup({
@@ -184,6 +200,16 @@ export function mergeSlateSourceResults(
   return next;
 }
 
+export function slateBundlesMatch(left: SlateSourceBundle | null, right: SlateSourceBundle): boolean {
+  return Boolean(
+    left &&
+    left.uc.updatedAt === right.uc.updatedAt &&
+    left.uc.contents === right.uc.contents &&
+    left.freezer.updatedAt === right.freezer.updatedAt &&
+    left.freezer.contents === right.freezer.contents,
+  );
+}
+
 function addSlateLoadingSource(previous: SlateSourceName[], source: SlateSourceName): SlateSourceName[] {
   return previous.includes(source) ? previous : [...previous, source];
 }
@@ -197,7 +223,7 @@ export function createSlateRefreshHandler(reloadSource: (source: SlateSourceName
   return {
     onSourceChanged(source: SlateSourceName) {
       clearTimeout(debounce);
-      debounce = setTimeout(() => void reloadSource(source), 300);
+      debounce = setTimeout(() => void reloadSource(source), 100);
     },
     dispose() {
       clearTimeout(debounce);
@@ -210,13 +236,11 @@ export function SlateContent({
   bundle,
   error,
   loading,
-  onRefresh,
 }: {
   activeTab: "uc" | "freezer";
   bundle: SlateSourceBundle | null;
   error: string | null;
   loading: boolean;
-  onRefresh: () => void;
 }) {
   const sections = bundle ? parseUcMarkdown(bundle.uc.contents) : [];
   return (
@@ -228,10 +252,6 @@ export function SlateContent({
         </div>
         <div className="slate-summary-actions">
           <Badge tone={error ? "red" : "pink"}>{error ? "Needs attention" : "Watching local files"}</Badge>
-          <Button aria-label="Refresh Slate sources" variant="secondary" onClick={onRefresh}>
-            <RefreshCw size={16} aria-hidden="true" />
-            Refresh
-          </Button>
         </div>
       </header>
 
@@ -246,15 +266,15 @@ function UcPanel({ sections, updatedAt }: { sections: SlateSection[]; updatedAt?
   return (
     <Panel className="slate-uc" id="slate-uc">
       <div className="slate-panel-heading"><div><p className="eyebrow">Live task list</p><p className="slate-panel-note">Updates whenever the local file changes.</p></div><LastUpdated updatedAt={updatedAt} /></div>
-      {sections.length ? <div className="slate-sections">{sections.map((section, index) => <UcSection key={`${section.level}-${section.heading}-${index}`} section={section} />)}</div> : <div className="empty-tool"><Rows3 size={22} aria-hidden="true" /><h3>UC is loading</h3><p>Slate will display the configured local task ledger here.</p></div>}
+      {sections.length ? <div className="slate-sections">{sections.map((section, index) => <UcSection key={`${section.level}-${section.heading}-${index}`} section={section} showEmptyState={sections.length === 1} />)}</div> : <div className="empty-tool"><Rows3 size={22} aria-hidden="true" /><h3>UC is loading</h3><p>Slate will display the configured local task ledger here.</p></div>}
     </Panel>
   );
 }
 
-function UcSection({ section }: { section: SlateSection }) {
+function UcSection({ section, showEmptyState }: { section: SlateSection; showEmptyState: boolean }) {
   const Heading = (`h${Math.min(section.level + 1, 4)}`) as "h2" | "h3" | "h4";
   const isEmpty = !section.paragraphs.length && !section.items.length;
-  return <section className={`slate-section slate-section-level-${section.level}`}><div className="slate-section-title"><span aria-hidden="true" /><Heading>{section.heading}</Heading></div>{section.paragraphs.map((paragraph, index) => <p key={index} className="slate-context" dangerouslySetInnerHTML={{ __html: paragraph.html }} />)}{section.items.length ? <SlateList items={section.items} /> : null}{isEmpty ? <p className="slate-context">No tasks or supporting context in this section.</p> : null}</section>;
+  return <>{section.dividerBefore ? <hr className="slate-divider" /> : null}<section className={`slate-section slate-section-level-${section.level}`}><div className="slate-section-title"><Heading>{section.heading}</Heading></div>{section.paragraphs.map((paragraph, index) => <p key={index} className="slate-context" dangerouslySetInnerHTML={{ __html: paragraph.html }} />)}{section.items.length ? <SlateList items={section.items} /> : null}{isEmpty && showEmptyState ? <p className="slate-context">No tasks or supporting context in this section.</p> : null}</section></>;
 }
 
 function SlateList({ items }: { items: SlateListItem[] }) {

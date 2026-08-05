@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { createSlateRefreshHandler, mergeSlateSourceResults, shouldHandleSlateSourceChange, SlateContent, SlateSetup, withSlateSourceError } from "./SlateTool";
+import { createSlateRefreshHandler, mergeSlateSourceResults, shouldHandleSlateSourceChange, slateBundlesMatch, SlateContent, SlateSetup, withSlateSourceError } from "./SlateTool";
 import type { SlateSourceBundle } from "./slateBridge";
 
 const bundle: SlateSourceBundle = {
@@ -28,10 +28,11 @@ describe("Slate tool presentation", () => {
   });
 
   it("renders loaded UC content with semantic nested ordered lists and formatted context", () => {
-    const markup = renderToStaticMarkup(<SlateContent activeTab="uc" bundle={bundle} error={null} loading={false} onRefresh={() => undefined} />);
+    const markup = renderToStaticMarkup(<SlateContent activeTab="uc" bundle={bundle} error={null} loading={false} />);
 
     expect(markup).toContain("UC task ledger");
     expect(markup).toContain("Watching local files");
+    expect(markup).not.toContain("Refresh Slate sources");
     expect(markup).toContain('<ul class="slate-list">');
     expect(markup).toContain('<ol class="slate-list">');
     expect(markup).toContain('href="https://example.com/one"');
@@ -39,7 +40,7 @@ describe("Slate tool presentation", () => {
   });
 
   it("renders the selected freezer tab and a retained-read failure state", () => {
-    const markup = renderToStaticMarkup(<SlateContent activeTab="freezer" bundle={bundle} error="Could not read Slate source" loading={false} onRefresh={() => undefined} />);
+    const markup = renderToStaticMarkup(<SlateContent activeTab="freezer" bundle={bundle} error="Could not read Slate source" loading={false} />);
 
     expect(markup).toContain("Chest Freezer Inventory");
     expect(markup).toContain("Could not read Slate source");
@@ -47,7 +48,7 @@ describe("Slate tool presentation", () => {
   });
 
   it("renders the freezer storage source as a semantic table", () => {
-    const markup = renderToStaticMarkup(<SlateContent activeTab="freezer" bundle={{ ...bundle, freezer: { contents: "# Freezer Storage\n\n## Storage Table\n\n| Item | Count | Weight | Date Stored | Storage |\n| --- | --- | --- | --- | --- |\n| chicken thighs | 2 packs |  | 2026-07-17 | outside |", updatedAt: 1 } }} error={null} loading={false} onRefresh={() => undefined} />);
+    const markup = renderToStaticMarkup(<SlateContent activeTab="freezer" bundle={{ ...bundle, freezer: { contents: "# Freezer Storage\n\n## Storage Table\n\n| Item | Count | Weight | Date Stored | Storage |\n| --- | --- | --- | --- | --- |\n| chicken thighs | 2 packs |  | 2026-07-17 | outside |", updatedAt: 1 } }} error={null} loading={false} />);
 
     expect(markup).toContain("<table");
     expect(markup).toContain("chicken thighs");
@@ -56,8 +57,8 @@ describe("Slate tool presentation", () => {
   });
 
   it("renders distinct empty and malformed freezer states", () => {
-    const emptyMarkup = renderToStaticMarkup(<SlateContent activeTab="freezer" bundle={{ ...bundle, freezer: { contents: "## Storage Table\n| Item | Count | Weight | Date Stored | Storage |\n| --- | --- | --- | --- | --- |", updatedAt: 1 } }} error={null} loading={false} onRefresh={() => undefined} />);
-    const malformedMarkup = renderToStaticMarkup(<SlateContent activeTab="freezer" bundle={{ ...bundle, freezer: { contents: "## Storage Table\n| Item | Count |\n| --- | --- |", updatedAt: 1 } }} error={null} loading={false} onRefresh={() => undefined} />);
+    const emptyMarkup = renderToStaticMarkup(<SlateContent activeTab="freezer" bundle={{ ...bundle, freezer: { contents: "## Storage Table\n| Item | Count | Weight | Date Stored | Storage |\n| --- | --- | --- | --- | --- |", updatedAt: 1 } }} error={null} loading={false} />);
+    const malformedMarkup = renderToStaticMarkup(<SlateContent activeTab="freezer" bundle={{ ...bundle, freezer: { contents: "## Storage Table\n| Item | Count |\n| --- | --- |", updatedAt: 1 } }} error={null} loading={false} />);
 
     expect(emptyMarkup).toContain("The Storage Table is present but has no inventory rows.");
     expect(malformedMarkup).toContain("Storage Table must include Item, Count, Weight, Date Stored, and Storage columns.");
@@ -70,7 +71,7 @@ describe("Slate tool presentation", () => {
 
     refresh.onSourceChanged("uc");
     refresh.onSourceChanged("freezer");
-    vi.advanceTimersByTime(299);
+    vi.advanceTimersByTime(99);
     expect(reload).not.toHaveBeenCalled();
     vi.advanceTimersByTime(1);
     expect(reload).toHaveBeenCalledOnce();
@@ -78,7 +79,7 @@ describe("Slate tool presentation", () => {
 
     refresh.onSourceChanged("uc");
     refresh.dispose();
-    vi.advanceTimersByTime(300);
+    vi.advanceTimersByTime(100);
     expect(reload).toHaveBeenCalledOnce();
     vi.useRealTimers();
   });
@@ -110,9 +111,21 @@ describe("Slate tool presentation", () => {
   });
 
   it("renders an explicit empty state for an empty UC section", () => {
-    const markup = renderToStaticMarkup(<SlateContent activeTab="uc" bundle={{ ...bundle, uc: { contents: "# Empty section", updatedAt: 1 } }} error={null} loading={false} onRefresh={() => undefined} />);
+    const markup = renderToStaticMarkup(<SlateContent activeTab="uc" bundle={{ ...bundle, uc: { contents: "# Empty section", updatedAt: 1 } }} error={null} loading={false} />);
 
     expect(markup).toContain("No tasks or supporting context in this section.");
+  });
+
+  it("does not add empty-state copy to every structural UC heading", () => {
+    const markup = renderToStaticMarkup(<SlateContent activeTab="uc" bundle={{ ...bundle, uc: { contents: "# Area\n## Project\n### Task\n- Do this", updatedAt: 1 } }} error={null} loading={false} />);
+
+    expect(markup).not.toContain("No tasks or supporting context in this section.");
+  });
+
+  it("renders source thematic breaks as visual dividers", () => {
+    const markup = renderToStaticMarkup(<SlateContent activeTab="uc" bundle={{ ...bundle, uc: { contents: "# First\n---\n# Second", updatedAt: 1 } }} error={null} loading={false} />);
+
+    expect(markup).toContain('class="slate-divider"');
   });
 
   it("initializes UC when its refresh completes before the initial bundle", () => {
@@ -120,6 +133,11 @@ describe("Slate tool presentation", () => {
 
     expect(next.uc).toEqual(bundle.uc);
     expect(next.freezer).toEqual({ contents: "", updatedAt: 0 });
+  });
+
+  it("does not replace an unchanged Slate bundle during a background check", () => {
+    expect(slateBundlesMatch(bundle, { ...bundle, uc: { ...bundle.uc }, freezer: { ...bundle.freezer } })).toBe(true);
+    expect(slateBundlesMatch(bundle, { ...bundle, uc: { ...bundle.uc, updatedAt: bundle.uc.updatedAt + 1 } })).toBe(false);
   });
 
   it("accepts watcher events only from the selected Slate root", () => {

@@ -183,6 +183,8 @@ function ToolChiclet({
   onSetWorkspace: () => void;
   workspaceSelection: ToolWorkspaceSelection;
 }) {
+  const isConnectionTool = tool.privateWorkspace.kind === "connection";
+
   return (
     <article className="tool-chiclet-wrap">
       <button
@@ -209,21 +211,29 @@ function ToolChiclet({
             View docs
           </a>
           <p className="tool-workspace-menu-summary">
-            {workspaceSelection.mode === "external" ? "Private root" : "Demo root"}:{" "}
-            <code>{workspaceSelection.root || tool.defaultWorkspaceRoot}</code>
+            {isConnectionTool ? (
+              "Private connection: session-only over the local SSH tunnel."
+            ) : (
+              <>
+                {workspaceSelection.mode === "external" ? "Private root" : "Demo root"}:{" "}
+                <code>{workspaceSelection.root || tool.defaultWorkspaceRoot}</code>
+              </>
+            )}
           </p>
-          <button type="button" role="menuitem" onClick={onChooseWorkspace}>
-            <FolderOpen size={15} aria-hidden="true" />
-            <span>Open workspace</span>
-          </button>
-          <button type="button" role="menuitem" onClick={onSetWorkspace}>
-            <FolderOpen size={15} aria-hidden="true" />
-            <span>Set private workspace</span>
-          </button>
-          <button type="button" role="menuitem" onClick={onResetWorkspace}>
-            <RotateCcw size={15} aria-hidden="true" />
-            <span>Use demo workspace</span>
-          </button>
+          {!isConnectionTool ? <>
+            <button type="button" role="menuitem" onClick={onChooseWorkspace}>
+              <FolderOpen size={15} aria-hidden="true" />
+              <span>Open workspace</span>
+            </button>
+            <button type="button" role="menuitem" onClick={onSetWorkspace}>
+              <FolderOpen size={15} aria-hidden="true" />
+              <span>Set private workspace</span>
+            </button>
+            <button type="button" role="menuitem" onClick={onResetWorkspace}>
+              <RotateCcw size={15} aria-hidden="true" />
+              <span>Use demo workspace</span>
+            </button>
+          </> : null}
           <button type="button" role="menuitem" onClick={onResetState}>
             <RotateCcw size={15} aria-hidden="true" />
             <span>Reset local state</span>

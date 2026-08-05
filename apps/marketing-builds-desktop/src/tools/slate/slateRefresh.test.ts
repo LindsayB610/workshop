@@ -57,14 +57,14 @@ describe("Slate refresh contract", () => {
     ).toBe(false);
   });
 
-  it("schedules a matching reload at the provisional 300 ms debounce boundary", () => {
+  it("schedules a matching reload at the 100 ms debounce boundary", () => {
     expect(
       scheduleSlateReload(
         { watchedDirectory: "/private", changedPath: freezerPath },
         approvedPaths,
         1_000,
       ),
-    ).toEqual({ sourcePath: freezerPath, dueAt: 1_300 });
+    ).toEqual({ sourcePath: freezerPath, dueAt: 1_100 });
   });
 
   it("keeps the last successful render when a reload fails", () => {

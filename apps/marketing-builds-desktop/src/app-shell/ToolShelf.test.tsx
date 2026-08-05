@@ -74,6 +74,22 @@ describe("ToolShelf", () => {
     expect(markup).toContain("Megaphone tool actions");
   });
 
+  it("treats Pulse as a session-only private connection, not a workspace", () => {
+    const pulse = tools.find((tool) => tool.id === "pulse");
+    if (!pulse) {
+      throw new Error("Expected Pulse tool.");
+    }
+
+    const markup = renderToStaticMarkup(
+      <ToolShelf installedTools={[pulse]} onSelectTool={() => undefined} />,
+    );
+
+    expect(markup).toContain("Private connection: session-only over the local SSH tunnel.");
+    expect(markup).not.toContain("Open workspace");
+    expect(markup).not.toContain("Set private workspace");
+    expect(markup).not.toContain("Use demo workspace");
+  });
+
   it("positions tool picker hover tooltips above each chiclet like the original shelf", () => {
     expect(styles).toContain("bottom: calc(100% + 0.55rem);");
     expect(styles).not.toContain("top: calc(100% + 0.55rem);");

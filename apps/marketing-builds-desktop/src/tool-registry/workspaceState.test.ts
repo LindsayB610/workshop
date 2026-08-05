@@ -19,7 +19,7 @@ const workspaceExamplePath = fileURLToPath(
 );
 
 describe("tool workspace state", () => {
-  it("defaults bundled tools to sanitized demo workspaces", () => {
+  it("defaults registered tools to their declared public-safe demo roots or connection mode", () => {
     const state = defaultToolWorkspaceState(tools);
 
     expect(getWorkspaceSelection(tools, state, "redline")).toMatchObject({
@@ -31,8 +31,9 @@ describe("tool workspace state", () => {
       root: "clients/demo-megaphone",
     });
     expect(getWorkspaceSelection(tools, state, "pulse")).toMatchObject({
-      mode: "demo",
-      root: "tools/pulse/demo",
+      mode: "connection",
+      root: "",
+      label: "Session-only private runner connection",
     });
     expect(JSON.stringify(state).toLowerCase()).not.toContain(privateClientId);
   });
@@ -78,6 +79,24 @@ describe("tool workspace state", () => {
     expect(getWorkspaceSelection(tools, state, "redline")).toMatchObject({
       mode: "demo",
       root: "clients/demo-redline",
+    });
+  });
+
+  it("discards a legacy Pulse workspace path in favor of its session-only connection", () => {
+    const state = normalizeToolWorkspaceState(tools, {
+      selections: [{
+        toolId: "pulse",
+        mode: "demo",
+        root: "tools/pulse/demo",
+        label: "Old Pulse workspace",
+        updatedAt: "2026-06-23T00:00:00.000Z",
+      }],
+    });
+
+    expect(getWorkspaceSelection(tools, state, "pulse")).toMatchObject({
+      mode: "connection",
+      root: "",
+      label: "Session-only private runner connection",
     });
   });
 

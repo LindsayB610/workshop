@@ -14,9 +14,10 @@ describe("Workshop desktop app", () => {
 
     expect(markup).toContain("Marketing builds");
     expect(markup).toContain("Workshop");
-    expect(markup).toContain("Slate");
-    expect(markup).toContain("Keep a clear local view of the UC task ledger and chest freezer inventory.");
     expect(markup).toContain("Add New Tools");
+    expect(markup).toContain("No additional apps are available.");
+    expect(markup).toContain("Choose apps from Add New Tools.");
+    expect(markup).not.toContain("Slate");
     expect(markup).not.toContain("Redline");
     expect(markup).not.toContain("Megaphone");
     expect(markup).not.toContain("Pulse");
@@ -25,11 +26,11 @@ describe("Workshop desktop app", () => {
     expect(markup).not.toContain("Updates check on launch.");
   });
 
-  it("renders Slate's differentiated logo mark on the default shelf", () => {
+  it("does not expose an unpromoted tool logo on the default shelf", () => {
     const markup = renderToStaticMarkup(<App />);
 
     expect(markup).toContain("aria-label=\"Lindsay Brunner brand mark\"");
-    expect(markup).toContain("tool-logo-slate");
+    expect(markup).not.toContain("tool-logo-slate");
   });
 
   it("scales tool logos as a whole mark in workbench headers", () => {

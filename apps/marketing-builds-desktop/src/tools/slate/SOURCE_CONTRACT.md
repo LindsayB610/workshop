@@ -43,7 +43,7 @@ atomic-save rename behavior, then filters every event to the source file whose
 own parent directory produced it. A directory event must never authorize a
 directory scan or a read of a neighboring file.
 
-A matching source change from the currently selected private root schedules a reload after a **provisional 300 ms**
+A matching source change from the currently selected private root schedules a reload after a **100 ms**
 debounce window. Phase 1 treats that value as its test baseline; Phase 5 may
 adjust it after live validation. A successful reload reads and replaces only
 the changed tab's data and updates its timestamp. A failed reload retains the last
@@ -87,7 +87,7 @@ clear tab-specific error instead of a guessed inventory.
 
 ## Phase 1 acceptance targets
 
-The first tests must cover the configuration failures, the provisional 300 ms
+The first tests must cover the configuration failures, the 100 ms
 refresh behavior, atomic-save file replacement, event filtering, raw-HTML and
 unsafe-link escaping, UC hierarchy and nested lists, freezer headers and empty
 cells, malformed-table errors, and preservation of a last successful render

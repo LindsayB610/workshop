@@ -1,21 +1,57 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { readFileSync, statSync } from "node:fs";
 
 const configDir = path.dirname(fileURLToPath(import.meta.url));
 
-export default defineConfig({
-  plugins: [react(), tailwindcss()],
-  clearScreen: false,
-  server: {
-    host: "127.0.0.1",
-    port: 1420,
-    strictPort: true,
-    fs: {
-      allow: [path.resolve(configDir, "../..")],
+type SlatePreviewConfig = { version: 1; ucPath: string; freezerPath: string };
+
+function slatePreviewPlugin(slateRoot?: string): Plugin {
+  return {
+    name: "slate-local-preview",
+    configureServer(server) {
+      server.middlewares.use("/__slate-preview", (request, response, next) => {
+        const source = request.url?.match(/^\/(uc|freezer)$/)?.[1] as "uc" | "freezer" | undefined;
+        if (!source || !slateRoot) return next();
+
+        try {
+          const config = JSON.parse(readFileSync(path.join(slateRoot, "slate.config.json"), "utf8")) as SlatePreviewConfig;
+          const sourcePath = source === "uc" ? config.ucPath : config.freezerPath;
+          if (config.version !== 1 || !path.isAbsolute(sourcePath) || !sourcePath.endsWith(".md")) {
+            throw new Error("Slate preview configuration is invalid.");
+          }
+          const sourceStat = statSync(sourcePath);
+          if (!sourceStat.isFile()) throw new Error("Slate preview source is unavailable.");
+
+          response.statusCode = 200;
+          response.setHeader("Content-Type", "application/json; charset=utf-8");
+          response.end(JSON.stringify({ contents: readFileSync(sourcePath, "utf8"), updatedAt: sourceStat.mtimeMs }));
+        } catch {
+          response.statusCode = 500;
+          response.setHeader("Content-Type", "application/json; charset=utf-8");
+          response.end(JSON.stringify({ error: "Slate preview could not read its configured local source." }));
+        }
+      });
     },
-  },
-  envPrefix: ["VITE_", "TAURI_"],
+  };
+}
+
+export default defineConfig(({ mode }) => {
+  const environment = loadEnv(mode, configDir, "");
+  return {
+    plugins: [react(), tailwindcss(), slatePreviewPlugin(environment.SLATE_PREVIEW_ROOT)],
+    clearScreen: false,
+    server: {
+      host: "127.0.0.1",
+      port: 1420,
+      strictPort: true,
+      fs: {
+        allow: [path.resolve(configDir, "../..")],
+      },
+    },
+    envPrefix: ["VITE_", "TAURI_"],
+  };
 });

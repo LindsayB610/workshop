@@ -10,6 +10,14 @@ use std::time::UNIX_EPOCH;
 use tauri::{Emitter, Manager};
 
 const REDLINE_CURL_FINAL_URL_MARKER: &str = "\n__WORKSHOP_FINAL_URL__=";
+const PULSE_CURL_STATUS_MARKER: &str = "\n__WORKSHOP_PULSE_STATUS__=";
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PulseRunnerResponse {
+    status: u16,
+    body: serde_json::Value,
+}
 
 #[derive(Debug, Deserialize)]
 struct RedlinePacketFile {
@@ -1502,6 +1510,105 @@ fn redline_fetch_live_url(url: String) -> Result<RedlineLiveUrlFetchResult, Stri
     })
 }
 
+fn normalize_pulse_runner_url(url: &str) -> Result<String, String> {
+    let normalized = url.trim().trim_end_matches('/');
+    let host = normalized
+        .strip_prefix("http://127.0.0.1")
+        .or_else(|| normalized.strip_prefix("http://localhost"))
+        .ok_or("Pulse runner URL must use the local SSH tunnel (http://127.0.0.1:<port>).")?;
+
+    if host.is_empty() {
+        return Ok(normalized.to_string());
+    }
+    if let Some(port) = host.strip_prefix(':') {
+        if !port.is_empty() && port.chars().all(|character| character.is_ascii_digit()) {
+            return Ok(normalized.to_string());
+        }
+    }
+    Err("Pulse runner URL must be a local HTTP host with an optional numeric port.".into())
+}
+
+fn validate_pulse_api_token(token: &str) -> Result<(), String> {
+    if token.len() < 32 || token.chars().any(|character| character.is_control() || character.is_whitespace()) {
+        return Err("Pulse API token must be a private token of at least 32 non-whitespace characters.".into());
+    }
+    Ok(())
+}
+
+fn escape_curl_config_value(value: &str) -> String {
+    value.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
+fn parse_pulse_curl_output(output: &[u8]) -> Result<PulseRunnerResponse, String> {
+    let output = String::from_utf8(output.to_vec())
+        .map_err(|_| "Pulse runner returned a non-UTF-8 response.".to_string())?;
+    let (body, status) = output
+        .rsplit_once(PULSE_CURL_STATUS_MARKER)
+        .ok_or("Pulse runner response did not include an HTTP status.")?;
+    let status = status.trim().parse::<u16>().map_err(|_| "Pulse runner returned an invalid HTTP status.")?;
+    let body = serde_json::from_str(body.trim()).unwrap_or_else(|_| serde_json::json!({ "message": body.trim() }));
+    Ok(PulseRunnerResponse { status, body })
+}
+
+fn pulse_runner_request(
+    runner_url: &str,
+    api_token: &str,
+    method: &str,
+    path: &str,
+    completion_note: Option<&str>,
+) -> Result<PulseRunnerResponse, String> {
+    let runner_url = normalize_pulse_runner_url(runner_url)?;
+    validate_pulse_api_token(api_token)?;
+    let mut command = Command::new("curl");
+    command
+        .args(["--config", "-", "--silent", "--show-error", "--max-time", "15", "--request", method, "--write-out", &format!("{PULSE_CURL_STATUS_MARKER}%{{http_code}}")])
+        .arg(format!("{runner_url}{path}"))
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let mut child = command.spawn().map_err(|error| format!("Could not reach Pulse runner with curl: {error}"))?;
+    let mut config = format!("header = \"Authorization: Bearer {}\"\n", escape_curl_config_value(api_token));
+    if let Some(note) = completion_note {
+        if note.contains(['\r', '\n']) {
+            return Err("Pulse completion note cannot contain line breaks.".into());
+        }
+        config.push_str("header = \"Content-Type: application/x-www-form-urlencoded\"\n");
+        config.push_str(&format!("data-urlencode = \"completionNote={}\"\n", escape_curl_config_value(note)));
+    }
+    child.stdin.take().ok_or("Could not open private Pulse request input.")?
+        .write_all(config.as_bytes()).map_err(|error| format!("Could not send private Pulse request: {error}"))?;
+    let output = child.wait_with_output().map_err(|error| format!("Could not read Pulse runner response: {error}"))?;
+    if !output.status.success() {
+        return Err(format!("Pulse runner request failed: {}", String::from_utf8_lossy(&output.stderr).trim()));
+    }
+    parse_pulse_curl_output(&output.stdout)
+}
+
+#[tauri::command]
+fn pulse_load_snapshot(runner_url: String, api_token: String) -> Result<PulseRunnerResponse, String> {
+    pulse_runner_request(&runner_url, &api_token, "GET", "/api/v1/snapshot", None)
+}
+
+#[tauri::command]
+fn pulse_mark_done(
+    runner_url: String,
+    api_token: String,
+    occurrence_id: String,
+    completion_note: Option<String>,
+) -> Result<PulseRunnerResponse, String> {
+    if occurrence_id.is_empty() || occurrence_id.contains('/') {
+        return Err("Pulse occurrence id is invalid.".into());
+    }
+    let encoded_occurrence = occurrence_id.replace(':', "%3A");
+    pulse_runner_request(
+        &runner_url,
+        &api_token,
+        "POST",
+        &format!("/api/v1/occurrences/{encoded_occurrence}/done"),
+        completion_note.as_deref(),
+    )
+}
+
 #[tauri::command]
 fn redline_write_target_snapshot_files(
     client_id: String,
@@ -1597,6 +1704,8 @@ pub fn run() {
             redline_fetch_live_url,
             redline_write_target_snapshot_files,
             redline_write_packet_files,
+            pulse_load_snapshot,
+            pulse_mark_done,
             slate_read_source,
             slate_start_watch
         ])
@@ -1625,6 +1734,26 @@ mod tests {
             .expect("system time should be after epoch")
             .as_nanos();
         std::env::temp_dir().join(format!("workshop-redline-{label}-{nanos}"))
+    }
+
+    #[test]
+    fn pulse_proxy_accepts_only_local_tunnel_urls_and_private_tokens() {
+        assert_eq!(
+            normalize_pulse_runner_url("http://127.0.0.1:8787/").expect("local tunnel should be accepted"),
+            "http://127.0.0.1:8787"
+        );
+        assert!(normalize_pulse_runner_url("https://runner.example").is_err());
+        assert!(normalize_pulse_runner_url("http://127.0.0.1:8787/path").is_err());
+        assert!(validate_pulse_api_token("short").is_err());
+        assert!(validate_pulse_api_token("a-private-pulse-token-with-32-characters").is_ok());
+    }
+
+    #[test]
+    fn pulse_proxy_preserves_http_status_and_json_body() {
+        let parsed = parse_pulse_curl_output(b"{\"state\":\"ok\"}\n__WORKSHOP_PULSE_STATUS__=200")
+            .expect("response should parse");
+        assert_eq!(parsed.status, 200);
+        assert_eq!(parsed.body["state"], "ok");
     }
 
     #[test]

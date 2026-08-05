@@ -24,7 +24,7 @@ export type ToolRuntime = {
 };
 
 export type ToolPrivateWorkspace = {
-  kind: "client-index" | "runner-root";
+  kind: "client-index" | "runner-root" | "connection";
   requiredFields: string[];
 };
 

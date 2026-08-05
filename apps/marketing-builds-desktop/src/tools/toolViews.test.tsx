@@ -55,19 +55,17 @@ describe("tool views", () => {
     expect(runnerMarkup).not.toContain("empty-tool");
   });
 
-  it("renders Slate through the shared tool view registry with local setup guidance", () => {
+  it("renders Slate through the shared tool view registry", () => {
     const slate = getToolById("slate");
 
     if (!slate) {
       throw new Error("Slate tool is not registered.");
     }
 
-    const markup = renderToStaticMarkup(<ToolView activeRouteId="uc" tool={slate} />);
+    const markup = renderToStaticMarkup(<ToolView activeRouteId="uc" tool={slate} workspaceRoot="/private/slate" />);
 
-    expect(markup).toContain("Where is your Slate folder?");
-    expect(markup).toContain("Slate private folder");
-    expect(markup).toContain("Connect Slate");
-    expect(markup).not.toContain("empty-tool");
+    expect(markup).toContain("UC task ledger");
+    expect(markup).toContain("slate-summary");
   });
 
   it("exposes the fallback view for every registered tool id", () => {

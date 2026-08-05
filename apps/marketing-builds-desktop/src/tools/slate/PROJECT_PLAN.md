@@ -247,7 +247,7 @@ Phase 2 result:
   only the necessary parent directories. Events are filtered to the two exact
   approved paths before `slate://source-changed` is emitted.
 - The TypeScript bridge exposes the native read and watch commands, while the
-  source model implements the provisional 300 ms scheduling and last-good
+  source model implements the 100 ms scheduling and last-good
   render recovery behavior.
 - Phase 3 owns the visible timestamp, loading, and error presentation; Phase 2
   supplies the data and recovery contract without rendering UI.
@@ -288,7 +288,7 @@ Phase 3 result:
   task lists, and safe inline formatting while escaping raw HTML and unsafe
   link protocols.
 - The view reads through the native bridge, starts the local watcher, reloads
-  after the 300 ms debounce, and displays timestamps, loading, and error states.
+  after the 100 ms debounce, and displays timestamps, loading, and error states.
 - The freezer route remains visibly present but intentionally defers its table
   renderer to Phase 4.
 
@@ -379,7 +379,7 @@ be stated deterministically becomes a test for future protection.
   statuses.
 - Freezer storage receives dedicated semantic table treatment for its item,
   count, weight, date-stored, and storage columns.
-- Refresh uses a provisional 300 ms debounce baseline and a visible per-tab
+- Auto-refresh uses a 100 ms debounce baseline and a visible per-tab
   loading or error state.
 - The version-one configuration has `ucPath` and `freezerPath` fields; source
   symlinks are unsupported.

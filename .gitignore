@@ -1,6 +1,7 @@
 node_modules/
 apps/*/node_modules/
 apps/*/dist/
+apps/*/.env.local
 apps/*/src-tauri/gen/
 apps/*/src-tauri/target/
 packages/*/node_modules/

@@ -26,6 +26,7 @@ export type SlateSourceValidation =
 export type SlateSection = {
   heading: string;
   level: number;
+  dividerBefore?: boolean;
   paragraphs: SlateParagraph[];
   items: SlateListItem[];
 };
@@ -118,19 +119,27 @@ export function validateSlateSource(
 export function parseUcMarkdown(_markdown: string): SlateSection[] {
   const sections: SlateSection[] = [];
   let current: SlateSection | undefined;
+  let dividerBefore = false;
   const listStack: Array<{ indent: number; item: SlateListItem }> = [];
 
   for (const line of _markdown.replace(/\r\n/g, "\n").split("\n")) {
     const heading = /^(#{1,6})\s+(.+?)\s*$/.exec(line);
     if (heading) {
-      current = { heading: inlineText(heading[2]), level: heading[1].length, paragraphs: [], items: [] };
+      current = { heading: inlineText(heading[2]), level: heading[1].length, ...(dividerBefore ? { dividerBefore: true } : {}), paragraphs: [], items: [] };
       sections.push(current);
       listStack.length = 0;
+      dividerBefore = false;
       continue;
     }
 
     if (!current || !line.trim()) {
       if (!line.trim()) listStack.length = 0;
+      continue;
+    }
+
+    if (/^ {0,3}([-*_])(?:\s*\1){2,}\s*$/.test(line)) {
+      listStack.length = 0;
+      dividerBefore = true;
       continue;
     }
 
@@ -247,7 +256,7 @@ export function scheduleSlateReload(
   _now: number,
 ): SlateScheduledReload | null {
   if (!shouldReloadSlateSource(_event, _approvedPaths)) return null;
-  return { sourcePath: _event.changedPath, dueAt: _now + 300 };
+  return { sourcePath: _event.changedPath, dueAt: _now + 100 };
 }
 
 export function retainSlateSourceOnReloadFailure<T>(

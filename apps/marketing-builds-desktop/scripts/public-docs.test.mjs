@@ -17,6 +17,7 @@ const requiredDocs = [
   "docs/megaphone-corpus-building.md",
   "docs/troubleshooting-public-workspaces.md",
   "docs/contributing-tools.md",
+  "docs/workshop-plugin-contract.md",
 ];
 
 function readRepoFile(relativePath) {
@@ -61,6 +62,20 @@ describe("public corpus-building docs", () => {
     for (const docPath of requiredDocs) {
       expect(readRepoFile(docPath), docPath).not.toMatch(blocked);
     }
+  });
+
+  it("documents the external plugin boundary without granting broad host access", () => {
+    const contract = readRepoFile("docs/workshop-plugin-contract.md");
+
+    expect(contract).toContain("contractVersion: 1");
+    expect(contract).toContain("WorkshopToolView");
+    expect(contract).toContain("must not import Workshop source files");
+    expect(contract).toContain("must not hard-code a plugin id");
+    expect(contract).toMatch(/must never become\s+an unrestricted bearer-token proxy/);
+    expect(contract).toContain("read_configured_markdown_sources");
+    expect(contract).toMatch(/without\s+exposing private paths or file contents/);
+    expect(contract).toContain('"id": "current-state"');
+    expect(contract).toMatch(/never included in the\s+metadata response/);
   });
 
   it("keeps documented Redline templates parseable", () => {

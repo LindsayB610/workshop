@@ -6,6 +6,7 @@ export const toolManifests: ToolManifest[] = [
     ...workshopPluginDeclaration,
     defaultWorkspaceRoot: "",
     requiredLocalCapabilities: [...workshopPluginDeclaration.requiredLocalCapabilities],
+    navigationMode: "plugin",
   },
   {
     id: "redline",
@@ -21,6 +22,7 @@ export const toolManifests: ToolManifest[] = [
       { id: "packet", label: "Packet", path: "/redline/packet", sectionId: "redline-packet" },
       { id: "onboarding", label: "Onboarding", path: "/redline/onboarding", sectionId: "redline-onboarding" },
     ],
+    navigationMode: "host",
     requiredLocalCapabilities: [
       "local-workspace",
       "file-import",
@@ -52,6 +54,7 @@ export const toolManifests: ToolManifest[] = [
       { id: "calendar", label: "Calendar", path: "/megaphone/calendar", sectionId: "megaphone-calendar" },
       { id: "measurement", label: "Measurement", path: "/megaphone/measurement", sectionId: "megaphone-measurement" },
     ],
+    navigationMode: "host",
     requiredLocalCapabilities: [
       "local-workspace",
       "file-import",
@@ -80,6 +83,7 @@ export const toolManifests: ToolManifest[] = [
       { id: "history", label: "History", path: "/pulse/history", sectionId: "pulse-history" },
       { id: "runner", label: "Runner", path: "/pulse/runner", sectionId: "pulse-runner" },
     ],
+    navigationMode: "host",
     requiredLocalCapabilities: ["local-workspace", "connector-status", "run-history"],
     dataRoots: ["tools/pulse"],
     importActions: [],

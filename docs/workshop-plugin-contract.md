@@ -1,0 +1,117 @@
+# Workshop Plugin Host Contract
+
+## Purpose
+
+Workshop is the desktop host, not the owner of a tool’s product logic. Each
+tool is developed and versioned in its own GitHub repository and may use a
+separate local private-data folder. This contract defines the narrow boundary
+between those systems.
+
+## Ownership
+
+| Workshop owns | A tool repository owns | Private local storage owns |
+| --- | --- | --- |
+| Desktop window, shelf, promotion/install state, shared workbench chrome, capability enforcement, and release shell | Plugin declaration, routes, view, domain models, parsers, tool-specific bridge client, tests, and tool docs | Credentials, real source data, configuration values, runtime state, and generated output |
+
+Workshop must not hard-code a plugin id in application control flow or duplicate
+its configuration schema, route labels, source identifiers, parser behavior, or
+private-data conventions.
+
+## Plugin Package Surface
+
+An external plugin package must export a data-only declaration and a view. The
+package may use React, but it must not import Workshop source files.
+
+```ts
+export const workshopPluginDeclaration = {
+  contractVersion: 1,
+  id: "example-tool",
+  displayName: "Example Tool",
+  description: "…",
+  docsPath: "/docs/tools/example-tool.md",
+  workspaceRequirement: "…",
+  uninstallSafetyCopy: "…",
+  routes: [{ id: "home", label: "Home", path: "/example-tool/home" }],
+  navigationMode: "plugin", // or "host"
+  requiredLocalCapabilities: ["local-workspace"],
+  dataRoots: [],
+  importActions: [],
+  exportActions: [],
+  status: "planned",
+  runtime: { kind: "native-bridge", entryPoint: "generic-capability-name" },
+  privateWorkspace: { kind: "runner-root", requiredFields: ["tool.config.json"] },
+} as const;
+
+export function WorkshopToolView(props: {
+  activeRouteId?: string;
+  workspaceRoot?: string;
+  requestWorkspaceRoot: (root?: string) => void;
+}): React.ReactElement;
+```
+
+The declaration is the tool’s source of truth. Workshop may add host-only
+presentation metadata such as an icon, but it must not rewrite the tool’s
+routes, source schema, or domain contract.
+
+## Host Capabilities
+
+Plugins request narrow, generic capabilities. Workshop validates the request
+and provides the implementation. Examples include:
+
+- read the configured source metadata (`id`, `label`, and `view`) without
+  exposing private paths or file contents;
+- read one source declared in a plugin-owned JSON configuration file;
+- watch only the declared files and emit a generic change event;
+- select a private workspace root without persisting private content.
+
+A plugin must not receive arbitrary filesystem access, recursive discovery, or
+a host fallback to unrelated data. A future authenticated-service capability
+must use a plugin-declared, host-validated allowlist; Workshop must never become
+an unrestricted bearer-token proxy.
+
+For configured Markdown sources, the selected private root contains a regular
+JSON file such as `sources.config.json`. Version 1 declares an array of source
+objects with `id`, `label`, `view`, and an absolute Markdown `path`. Workshop
+validates that configuration, but `read_configured_markdown_sources` returns
+only the three display fields. The plugin subsequently requests source text by
+the declared `id` through `read_configured_markdown_source`.
+
+```json
+{
+  "version": 1,
+  "sources": [
+    {
+      "id": "current-state",
+      "label": "Current state",
+      "view": "current-state",
+      "path": "/absolute/path/to/current-state.md"
+    }
+  ]
+}
+```
+
+`path` stays private: it is validated by Workshop and is never included in the
+metadata response, change event, or plugin declaration.
+
+## Promotion
+
+All plugins are hidden until their declaration has `status: "ready"`.
+Promotion is a source-controlled owner decision. The host may optionally use
+`defaultInstalled: true` in its own registry metadata, but that does not move
+tool ownership into Workshop.
+
+## Migration Checklist
+
+Before considering a tool fully external:
+
+1. Move its React view, domain code, parsing, fixtures, and tool-specific tests
+   into the tool repository.
+2. Export its declaration and `WorkshopToolView` from the tool package.
+3. Move tool-specific docs to the tool repository; retain only a short host
+   listing if needed.
+4. Replace tool-named native commands with a generic host capability, preserving
+   least-privilege validation and regression tests.
+5. Remove tool-id conditionals and local view imports from Workshop.
+6. Pin the external package version in Workshop and verify a clean public clone.
+7. Prove that the tool works with its private local folder while no private data
+   appears in either GitHub repository.

@@ -74,7 +74,8 @@ the app. This avoids exposing unfinished tools through a public build.
 2. In `apps/marketing-builds-desktop/src/tool-registry/tools.ts`, keep
    `defaultInstalled: false` to show it in **Add New Tools**, or set it to
    `true` to install it for new users automatically.
-3. Add or update the tool’s tests and documentation for its real setup flow.
+3. Implement the [Workshop plugin host contract](docs/workshop-plugin-contract.md),
+   then add or update the tool’s tests and documentation for its real setup flow.
 4. Run [the checks](#run-the-checks) before committing or releasing.
 
 Once promoted, an optional tool appears in **Add New Tools**. A
@@ -176,6 +177,8 @@ bin/redline.js                 Redline CLI entry point
   — common workspace and source-readiness problems
 - [docs/contributing-tools.md](docs/contributing-tools.md) — adding a Workshop
   tool safely
+- [docs/workshop-plugin-contract.md](docs/workshop-plugin-contract.md) —
+  building an independently versioned app for Workshop
 
 ## Project Principles
 

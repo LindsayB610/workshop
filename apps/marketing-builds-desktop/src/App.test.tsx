@@ -7,6 +7,7 @@ import { App } from "./App";
 
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const styles = readFileSync(path.join(testDir, "styles/app.css"), "utf8");
+const appSource = readFileSync(path.join(testDir, "App.tsx"), "utf8");
 
 describe("Workshop desktop app", () => {
   it("opens to the Workshop tool shelf instead of a tool workspace", () => {
@@ -67,5 +68,10 @@ describe("Workshop desktop app", () => {
     expect(styles).toContain(".workbench-route-nav button");
     expect(styles).toContain(".workbench-route-nav button[aria-current=\"page\"]");
     expect(styles).not.toContain(".workbench-route-nav a");
+  });
+
+  it("uses the manifest navigation contract rather than a plugin-id exception", () => {
+    expect(appSource).toContain('showRouteNav={activeTool.navigationMode === "host"}');
+    expect(appSource).not.toContain('activeTool.id !== "slate"');
   });
 });

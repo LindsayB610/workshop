@@ -46,6 +46,15 @@ describe("tool registry", () => {
     }
   });
 
+  it("declares navigation ownership instead of special-casing a tool in the host", () => {
+    expect(getToolManifest("slate")?.navigationMode).toBe("plugin");
+    expect(
+      toolManifests
+        .filter((manifest) => manifest.id !== "slate")
+        .every((manifest) => manifest.navigationMode === "host"),
+    ).toBe(true);
+  });
+
   it("matches declared runtime entry points to their adapter implementations", () => {
     const desktopPackage = JSON.parse(
       readFileSync(path.join(appRoot, "package.json"), "utf8"),

@@ -86,6 +86,8 @@ struct MegaphoneBridgeEnvelope<T> {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ConfiguredMarkdownSource {
     id: String,
+    label: String,
+    view: String,
     path: String,
 }
 
@@ -101,6 +103,14 @@ struct ConfiguredMarkdownConfig {
 struct ConfiguredMarkdownSnapshot {
     contents: String,
     updated_at: u128,
+}
+
+#[derive(Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+struct ConfiguredMarkdownSourceMetadata {
+    id: String,
+    label: String,
+    view: String,
 }
 
 #[derive(Clone, Serialize)]
@@ -251,12 +261,39 @@ fn parse_configured_markdown_config(contents: &str) -> Result<ConfiguredMarkdown
         if !ids.insert(&source.id) {
             return Err("Markdown source ids must be unique.".into());
         }
+        if source.label.trim().is_empty() {
+            return Err("Markdown source labels cannot be empty.".into());
+        }
+        if source.view.is_empty()
+            || !source
+                .view
+                .chars()
+                .all(|character| character.is_ascii_lowercase() || character.is_ascii_digit() || character == '-')
+        {
+            return Err("Markdown source views must use lowercase letters, digits, and hyphens.".into());
+        }
         let path = validate_configured_markdown_source_location(&source.path)?;
         if !paths.insert(path) {
             return Err("Markdown source paths must be unique.".into());
         }
     }
     Ok(config)
+}
+
+fn configured_markdown_source_metadata_from_root(
+    workspace_root: &str,
+    config_file: &str,
+) -> Result<Vec<ConfiguredMarkdownSourceMetadata>, String> {
+    let config = configured_markdown_config_from_root(workspace_root, config_file)?;
+    Ok(config
+        .sources
+        .into_iter()
+        .map(|source| ConfiguredMarkdownSourceMetadata {
+            id: source.id,
+            label: source.label,
+            view: source.view,
+        })
+        .collect())
 }
 
 fn validate_configured_markdown_source_location(path: &str) -> Result<PathBuf, String> {
@@ -1667,6 +1704,14 @@ fn read_configured_markdown_source(
 }
 
 #[tauri::command]
+fn read_configured_markdown_sources(
+    workspace_root: String,
+    config_file: String,
+) -> Result<Vec<ConfiguredMarkdownSourceMetadata>, String> {
+    configured_markdown_source_metadata_from_root(&workspace_root, &config_file)
+}
+
+#[tauri::command]
 fn start_configured_markdown_watch(
     app: tauri::AppHandle,
     state: tauri::State<'_, ConfiguredMarkdownWatchState>,
@@ -1747,6 +1792,7 @@ pub fn run() {
             redline_write_packet_files,
             pulse_load_snapshot,
             pulse_mark_done,
+            read_configured_markdown_sources,
             read_configured_markdown_source,
             start_configured_markdown_watch
         ])
@@ -1817,14 +1863,39 @@ mod tests {
             serde_json::json!({
                 "version": 1,
                 "sources": [
-                    { "id": "tasks", "path": tasks },
-                    { "id": "notes", "path": notes },
-                    { "id": "inventory", "path": inventory },
+                    { "id": "tasks", "label": "Tasks", "view": "task-list", "path": tasks },
+                    { "id": "notes", "label": "Notes", "view": "notes", "path": notes },
+                    { "id": "inventory", "label": "Inventory", "view": "inventory", "path": inventory },
                 ],
             })
             .to_string(),
         )
-        .expect("Slate config should be written");
+        .expect("generic Markdown source configuration should be written");
+
+        assert_eq!(
+            configured_markdown_source_metadata_from_root(
+                root.to_str().expect("temp root should be utf8"),
+                "sources.config.json",
+            )
+            .expect("configured source metadata should load"),
+            vec![
+                ConfiguredMarkdownSourceMetadata {
+                    id: "tasks".into(),
+                    label: "Tasks".into(),
+                    view: "task-list".into(),
+                },
+                ConfiguredMarkdownSourceMetadata {
+                    id: "notes".into(),
+                    label: "Notes".into(),
+                    view: "notes".into(),
+                },
+                ConfiguredMarkdownSourceMetadata {
+                    id: "inventory".into(),
+                    label: "Inventory".into(),
+                    view: "inventory".into(),
+                },
+            ]
+        );
 
         assert_eq!(
             configured_markdown_source_from_root(root.to_str().expect("temp root should be utf8"), "sources.config.json", "tasks")
@@ -1863,7 +1934,7 @@ mod tests {
         fs::create_dir_all(&root).expect("source root should be created");
         fs::write(
             root.join("sources.config.json"),
-            r#"{"version":1,"sources":[{"id":"tasks","path":"/tmp/../tasks.md"}]}"#,
+            r#"{"version":1,"sources":[{"id":"tasks","label":"Tasks","view":"tasks","path":"/tmp/../tasks.md"}]}"#,
         )
         .expect("source config should be written");
 
@@ -1882,10 +1953,10 @@ mod tests {
     #[test]
     fn rejects_duplicate_generic_source_ids_and_paths() {
         assert!(parse_configured_markdown_config(
-            r#"{"version":1,"sources":[{"id":"tasks","path":"/tmp/tasks.md"},{"id":"tasks","path":"/tmp/notes.md"}]}"#
+            r#"{"version":1,"sources":[{"id":"tasks","label":"Tasks","view":"tasks","path":"/tmp/tasks.md"},{"id":"tasks","label":"Notes","view":"notes","path":"/tmp/notes.md"}]}"#
         ).is_err());
         assert!(parse_configured_markdown_config(
-            r#"{"version":1,"sources":[{"id":"tasks","path":"/tmp/tasks.md"},{"id":"notes","path":"/tmp/tasks.md"}]}"#
+            r#"{"version":1,"sources":[{"id":"tasks","label":"Tasks","view":"tasks","path":"/tmp/tasks.md"},{"id":"notes","label":"Notes","view":"notes","path":"/tmp/tasks.md"}]}"#
         ).is_err());
     }
 

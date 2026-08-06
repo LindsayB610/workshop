@@ -1,22 +1,34 @@
 # Adding A Workshop Tool
 
-Workshop is a host app for focused Marketing Builds tools. Each tool should own
-its data contracts, docs, tests, and UI routes without leaking assumptions into
-other tools.
+Workshop is a host app for focused tools. Each tool should live in its own
+repository and own its data contracts, docs, tests, UI, and domain behavior.
+Workshop owns only the desktop frame, promotion/install state, shared host
+capabilities, and the plugin contract. Read
+[the Workshop plugin host contract](workshop-plugin-contract.md) before adding
+or migrating a tool.
 
 ## Tool Requirements
 
-Every tool needs:
+Every standalone tool package needs a declaration with:
 
 - a unique `id`,
 - display name and description,
-- logo variant,
 - docs path,
 - workspace requirements,
 - install safety copy,
 - route definitions,
 - import and export actions,
-- tests for registry behavior.
+- tests for its declared behavior and private-data boundary.
+
+Workshop’s own registry adds host-only metadata such as the shelf icon, install
+mode, and default-install choice. Do not make a tool package depend on that
+metadata or import Workshop source to obtain it.
+
+For a standalone tool, the declaration and view come from the tool package;
+Workshop must not duplicate its routes, configuration schema, parsers, or
+private-data assumptions. A temporary compatibility adapter is acceptable only
+while a migration is in progress and should be removed with its local tool
+implementation.
 
 ## Data Boundaries
 

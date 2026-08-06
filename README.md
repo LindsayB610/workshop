@@ -1,315 +1,192 @@
 # Workshop
 
-Workshop is a local Marketing Builds desktop app for running focused,
-client-scoped content tools from one host shell. It ships with fictional demo
-data and empty templates so a fresh public clone can run without private client
-context.
+Workshop is a local desktop shell for small, private-data-aware work tools. It
+keeps the application code, tests, fictional demos, and templates in this
+repository while keeping real client material, credentials, and personal files
+on the user’s machine.
 
-Redline and Megaphone are bundled tools inside Workshop. Real client packets,
-corpora, reports, source snapshots, and credentials should live outside this
-public repo and be selected through local workspace settings.
+It is deliberately quiet by default: **no tool is currently promoted for
+general use.** A fresh install opens to an empty Workshop shelf. This lets a
+maintainer or a fork owner explicitly decide which tools are ready to expose.
 
-## Alpha Notice
+## Start Here
 
-Workshop is early software. It is useful as a local experiment and as a staging
-ground for source-backed audit, drafting, and publishing workflows, but its
-findings, rewrite guidance, and proof checks should not be trusted without
-human review.
+Choose the path that fits how you will use Workshop:
 
-## What This Is
+| If you want to… | Start with… |
+| --- | --- |
+| Try or develop Workshop from this repository | [Set up from source](#set-up-from-source) |
+| Make one of the included tools available in your own fork | [Promote a tool](#promote-a-tool-in-your-fork) |
+| Add real working data | [Create a private workspace](#create-a-private-workspace) |
+| Verify a public-safe change before sharing it | [Run the checks](#run-the-checks) |
+| Build a desktop application bundle | [Package Workshop](#package-workshop) |
 
-Workshop answers one practical question:
+## What a Fresh Install Contains
 
-> How can a consultant turn trusted local source material into useful audit,
-> drafting, review, and publishing workflows without exposing private client
-> context?
+The repository contains source code for these unpromoted tools:
 
-It is not a generic AI writing app. The core value is source-backed judgment:
-tool outputs must trace back to local client context, dated source snapshots,
-canonical modules, example corpora, or explicit proof rules.
+| Tool | Purpose | Private input boundary |
+| --- | --- | --- |
+| Slate | Local views of two approved Markdown inventories | A private `slate.config.json` points to exactly two local files. |
+| Redline | Source-backed page and draft review | A private client workspace containing packets, snapshots, and reports. |
+| Megaphone | Campaign planning and post-package workflows | A private client corpus and generated post packages. |
+| Pulse | Persistent recurring-obligation view | A local SSH tunnel to a private runner plus a session-only API token. |
 
-## Current Status
+The public repository includes fictional Redline and Megaphone demos and empty
+templates. It does **not** include real client data, Slate inventories, Pulse
+state, credentials, local paths, or private configuration.
 
-Completed foundation:
+## Set Up From Source
 
-- Client packet contract and validation.
-- Sanitized Redline demo client and workspace template.
-- Sanitized Megaphone demo corpus and workspace template.
-- Public packet/corpus-building docs for Redline, Megaphone, private workspace
-  setup, troubleshooting, and future tool contributors.
-- External local workspace selection for keeping real client data outside the
-  repo while the packaged app ships only demo/template resources.
-- Staged public-source boundary validation: the clean-clone check excludes
-  private folders and permits only demo/template resources.
-- Source readiness and trust/freshness checks.
-- Snapshot-first source workflow for local client packets.
-- Single-page extraction, judge validation, quote checks, and report generation.
-- Multi-page crawl primitives.
-- Human and agent-ready report bundle outputs.
-- Edit brief generation from agent edit plans.
-- Workshop desktop app with registered Redline, Megaphone, and Pulse tools.
-- Signed Tauri updater configuration and release-manifest tooling.
+### Prerequisites
 
-Current hardening:
-
-- Workshop opens with fictional demo data so a fresh clone can run without real
-  client context. Real client packets should live outside the public repo and be
-  selected from a local private workspace.
-
-The clean-clone rehearsal, legacy-reference sanitization, and release-readiness
-handoff are complete. Publishing remains an owner-approved step; see
-[docs/workshop-roadmap.md](docs/workshop-roadmap.md).
-
-See the public setup docs below for install, private workspace, and tool authoring
-guidance.
-
-## Choose Your Path
-
-Use Workshop when you want the desktop shell, local workspace picker, bundled
-demo data, and one place to run multiple Marketing Builds tools.
-
-Use Redline directly when you only need the CLI or package for source-backed
-page and draft review.
-
-Use Megaphone directly when you only need the package workflow for LinkedIn
-corpus, brief, draft, review, and post-package generation.
-
-For a first run, start with Workshop's checked-in demo data. For real work,
-create a private workspace outside the repo and point Workshop at that root.
-
-## Repository Layout
-
-```text
-apps/
-  marketing-builds-desktop/   Workshop Tauri app
-packages/
-  core/                       Redline schemas, packet validation, audits, reports
-clients/
-  demo-redline/               Fictional Redline demo packet and report artifacts
-  demo-megaphone/             Fictional Megaphone demo corpus and package
-  template-redline/           Empty Redline packet template
-  template-megaphone/         Empty Megaphone corpus template
-  fixture/                    Minimal second-client packet for isolation tests
-docs/
-  client-onboarding-design.md
-  redline-packet-building.md
-  megaphone-corpus-building.md
-  public-quickstart.md
-  private-workspaces.md
-  public-clean-clone-install.md
-  public-release-checklist.md
-  troubleshooting-public-workspaces.md
-  contributing-tools.md
-  marketing-builds-workbench.md
-  workshop-updates.md
-bin/
-  redline.js                  CLI entrypoint
-```
-
-## Client Isolation
-
-The hard boundary is `clients/<clientId>/`.
-
-Every client packet owns its own:
-
-- `client.yaml`
-- `source-manifest.json`
-- canonical modules
-- source snapshots
-- audit targets
-- report outputs
-- edit briefs
-
-Source and canonical entries carry `clientId`, and validation rejects
-cross-client references. Workshop may eventually remember recent clients, but
-Redline should only load one active client packet at a time.
-
-The desktop Redline UI includes a client switcher. Tests prove that the fixture
-client renders from its own packet paths and does not leak demo report paths or
-copy.
-
-## Private Client Migration
-
-Keep real client folders outside this repository. A practical local layout is:
-
-```text
-~/Documents/marketing-builds-private/
-  clients/
-    <real-client>/
-```
-
-Use `clients/template-redline/` and `clients/template-megaphone/` as folder
-contracts, then copy the template into a private workspace before adding source
-snapshots, proof notes, generated reports, or post examples.
-
-Public setup docs:
-
-- [docs/public-quickstart.md](docs/public-quickstart.md): fresh clone through
-  demo data and private local workspace setup
-- [docs/private-workspaces.md](docs/private-workspaces.md): local workspace
-  layout, tool contracts, runtime guardrails, and git ignore expectations
-- [docs/redline-packet-building.md](docs/redline-packet-building.md): how to
-  collect sources, write canonical modules, define targets, and validate a
-  Redline packet
-- [docs/megaphone-corpus-building.md](docs/megaphone-corpus-building.md): how
-  to build a Megaphone corpus, taxonomy, proof policy, examples, and local AI
-  credential setup
-- [docs/troubleshooting-public-workspaces.md](docs/troubleshooting-public-workspaces.md):
-  fixes for thin sources, stale material, proof gaps, missing examples, and
-  unsafe claims
-- [docs/contributing-tools.md](docs/contributing-tools.md): how future agents
-  should add Workshop tools
-
-## Prerequisites
-
-- Node.js 20+
+- Node.js 20 or later
 - npm
-- Rust and the Tauri prerequisites for native desktop builds
+- Rust and the [Tauri prerequisites](https://tauri.app/start/prerequisites/)
+  only if you will run or package the native desktop app
 
-Install dependencies:
-
-```sh
-npm install
-```
-
-## Common Commands
-
-Run all tests:
+### Install and verify
 
 ```sh
+git clone https://github.com/LindsayB610/workshop.git
+cd workshop
+npm ci
 npm test
-```
-
-Run the public-safe test subset used by clean-clone verification:
-
-```sh
-npm run test:public
-```
-
-Run the public clean-clone proof:
-
-```sh
-npm run public:check
-```
-
-Typecheck all workspaces:
-
-```sh
 npm run typecheck
 ```
 
-Build all TypeScript / frontend artifacts:
-
-```sh
-npm run build
-```
-
-Run the Workshop frontend dev server:
+### Run the desktop interface
 
 ```sh
 npm run desktop:dev
 ```
 
-Then open the local dev URL, choose `Add New Tools` if no tools are installed,
-and install Redline or Megaphone from the picker. Use each tool's three-dot menu
-to select a private workspace when you are ready to use real client data.
+Open the local address Vite prints. Seeing an empty shelf is expected: no tool
+has been promoted in the checked-in manifest.
 
-Run Tauri commands for Workshop:
+## Promote a Tool in Your Fork
 
-```sh
-npm run desktop:tauri -- info
+Promotion is a source-controlled product decision, not a user preference in
+the app. This avoids exposing unfinished tools through a public build.
+
+1. In `apps/marketing-builds-desktop/src/tool-registry/toolManifest.ts`, change
+   the chosen tool’s `status` from `"planned"` to `"ready"`.
+2. In `apps/marketing-builds-desktop/src/tool-registry/tools.ts`, keep
+   `defaultInstalled: false` to show it in **Add New Tools**, or set it to
+   `true` to install it for new users automatically.
+3. Add or update the tool’s tests and documentation for its real setup flow.
+4. Run [the checks](#run-the-checks) before committing or releasing.
+
+Once promoted, an optional tool appears in **Add New Tools**. A
+default-installed tool appears directly on the shelf. Existing local install
+state cannot make a still-planned tool visible.
+
+## Create a Private Workspace
+
+Keep real data outside this repository. A practical layout is:
+
+```text
+~/Documents/workshop-private/
+  workspace.yaml
+  clients/
+    acme-redline/
+    acme-megaphone/
+  slate/
+    slate.config.json
 ```
 
-Build the native Workshop app:
+Use `clients/template-redline/` and `clients/template-megaphone/` as starting
+points for real client folders, then add source material only in the private
+copy. The public example [`workspace.example.yaml`](workspace.example.yaml)
+shows the client-index shape without containing client data.
+
+After you promote Redline or Megaphone, use that tool’s menu to select the
+private workspace root—the folder that contains `clients/`, not an individual
+client folder. Slate reads only the two source paths declared in its private
+configuration. Pulse does not use a Workshop workspace root; it connects to
+your private runner through a local tunnel and retains its token only for the
+active session.
+
+Never commit private workspaces, credentials, source snapshots, generated
+reports, post packages, personal inventories, or filled-in configuration.
+
+## Run the Checks
+
+Run these before sharing source changes:
+
+```sh
+# Unit and integration tests
+npm test
+
+# Type safety and production frontend build
+npm run typecheck
+npm run build
+
+# Public-boundary scan and clean staged-clone validation
+npm run public:check
+```
+
+For the fullest public-install rehearsal—including a clean dependency install,
+browser tests, and a native app bundle—run:
+
+```sh
+npm run public:clean-clone -- --run-commands --keep
+```
+
+The retained temporary clone is useful when diagnosing a public-build failure;
+delete it when you no longer need the evidence.
+
+## Package Workshop
+
+Build the native application locally:
 
 ```sh
 npm run desktop:tauri -- build
 ```
 
-## CLI
+Signed update releases require the private signing key and release-environment
+configuration. Use the manual `Release Workshop` GitHub Actions workflow for
+an actual release; see [docs/workshop-updates.md](docs/workshop-updates.md).
 
-The current CLI supports preparing a Codex-ready edit brief from an agent edit
-plan:
+## Repository Map
 
-```sh
-npm run redline -- prepare-edit-brief \
-  --report clients/demo-redline/reports/launch-review/agent-edit-plan.json
+```text
+apps/marketing-builds-desktop/  Tauri desktop shell and registered tools
+packages/core/                 Redline schemas, audits, and report generation
+clients/                       Fictional demos and empty client templates
+docs/                          Product, workspace, tool, and release guides
+bin/redline.js                 Redline CLI entry point
 ```
 
-Write the brief to a file:
+## Further Reading
 
-```sh
-npm run redline -- prepare-edit-brief \
-  --report clients/demo-redline/reports/launch-review/agent-edit-plan.json \
-  --out clients/demo-redline/reports/launch-review/edit-brief.md
-```
+- [docs/public-quickstart.md](docs/public-quickstart.md) — demo and local
+  development orientation
+- [docs/private-workspaces.md](docs/private-workspaces.md) — private-workspace
+  layout and runtime guardrails
+- [docs/public-clean-clone-install.md](docs/public-clean-clone-install.md) —
+  clean public-build procedure
+- [docs/public-release-checklist.md](docs/public-release-checklist.md) —
+  release checklist
+- [docs/redline-packet-building.md](docs/redline-packet-building.md) — Redline
+  client-packet contract
+- [docs/megaphone-corpus-building.md](docs/megaphone-corpus-building.md) —
+  Megaphone corpus contract
+- [docs/troubleshooting-public-workspaces.md](docs/troubleshooting-public-workspaces.md)
+  — common workspace and source-readiness problems
+- [docs/contributing-tools.md](docs/contributing-tools.md) — adding a Workshop
+  tool safely
 
-## Workshop Desktop App
+## Project Principles
 
-Workshop is the local Tauri app. It is intended to host multiple Marketing
-Builds tools over time:
-
-- Redline
-- Megaphone
-- Pulse (a private external-runner view)
-- Slate (local UC task-ledger and chest freezer inventory view)
-
-Redline is the first tool. The current desktop screen shows the Northstar Demo
-Co. audit packet or the fixture isolation packet, source readiness, findings,
-and report artifacts.
-
-## Signed Updates
-
-Workshop uses Tauri signed updates. The checked-in config contains the public
-updater key only. The private signing key must stay out of git and live in the
-release environment.
-
-Release helpers:
-
-```sh
-npm run updater:bump-version --workspace @marketing-builds/desktop -- 0.2.0
-npm run updater:manifest --workspace @marketing-builds/desktop -- --help
-```
-
-Full update instructions live in [docs/workshop-updates.md](docs/workshop-updates.md).
-Routine signed releases should use the manual `Release Workshop` GitHub Actions
-workflow so tests, signing, manifest generation, Netlify publishing, and
-artifact upload happen together.
-
-## Key Docs
-
-- [docs/public-quickstart.md](docs/public-quickstart.md): public demo and
-  private-workspace setup
-- [docs/private-workspaces.md](docs/private-workspaces.md): private workspace
-  layout, selector behavior, runtime guardrails, and git rules
-- [docs/public-clean-clone-install.md](docs/public-clean-clone-install.md):
-  clone/install/test/package proof for public Workshop users
-- [docs/public-release-checklist.md](docs/public-release-checklist.md):
-  source, app, verification, and updater release checklist
-- [docs/redline-packet-building.md](docs/redline-packet-building.md): Redline
-  packet-building guide
-- [docs/megaphone-corpus-building.md](docs/megaphone-corpus-building.md):
-  Megaphone corpus-building guide
-- [packages/core/docs/client-packet.md](packages/core/docs/client-packet.md):
-  client packet contract
-- [docs/client-onboarding-design.md](docs/client-onboarding-design.md):
-  onboarding model for turning messy context into audit-ready packets
-- [docs/marketing-builds-workbench.md](docs/marketing-builds-workbench.md):
-  Workshop app architecture
-- [docs/workshop-updates.md](docs/workshop-updates.md):
-  signed desktop update workflow
+- Real data stays local and outside the public repository.
+- Public source uses fictional demos and structural templates only.
+- A private-workspace problem affects only the selected tool; it never falls
+  back to unrelated data.
+- Deterministic behavior, boundaries, and tool contracts need regression tests.
+- Promotion and release are explicit decisions; passing tests alone does not
+  make an unfinished tool user-facing.
 
 ## License
 
-Workshop is licensed under the MIT License. See [LICENSE](LICENSE).
-
-## Development Notes
-
-- Keep generated build outputs out of git.
-- Keep external connector data snapshot-first; Notion and similar services are
-  source adapters, not the runtime source of truth.
-- Prefer adding tests around schemas, packet boundaries, source validation,
-  report stability, and release workflow contracts.
-- Do not let client-specific assumptions enter generic code. Public examples
-  should use fictional demo/template data. Real client language belongs in a
-  private local workspace, not this repo.
+Workshop is licensed under the [MIT License](LICENSE).

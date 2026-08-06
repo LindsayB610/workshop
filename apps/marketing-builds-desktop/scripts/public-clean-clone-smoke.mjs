@@ -44,12 +44,12 @@ const excludedDirNames = new Set([
 ]);
 
 const requiredReadmeSnippets = [
-  "npm install",
+  "npm ci",
   "npm test",
-  "npm run test:public",
+  "npm run public:check",
   "npm run desktop:dev",
   "npm run desktop:tauri -- build",
-  "Workshop opens with fictional demo data",
+  "no tool is currently promoted",
   "Redline",
   "Megaphone",
   "docs/private-workspaces.md",

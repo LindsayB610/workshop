@@ -77,10 +77,10 @@ async function createFixtureRepo() {
   writeFileSync(
     path.join(root, "README.md"),
     [
-      "Workshop opens with fictional demo data",
-      "npm install",
+      "no tool is currently promoted",
+      "npm ci",
       "npm test",
-      "npm run test:public",
+      "npm run public:check",
       "npm run desktop:dev",
       "npm run desktop:tauri -- build",
       "Redline",

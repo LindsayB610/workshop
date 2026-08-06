@@ -19,6 +19,11 @@ const fixtureUrl = (name: string) => new URL(`./fixtures/${name}`, import.meta.u
 const readFixture = (name: string) => readFileSync(fileURLToPath(fixtureUrl(name)), "utf8");
 
 describe("Slate source contract", () => {
+  it("keeps the public example aligned with the current three-source configuration", () => {
+    const contents = readFileSync(fileURLToPath(new URL("./slate.config.example.json", import.meta.url)), "utf8");
+    expect(parseSlateConfig(contents)).toMatchObject({ ok: true, config: { version: 2, opportunitiesPath: "/absolute/path/to/opportunity-tracking.md" } });
+  });
+
   it("accepts the version-two configuration shape", () => {
     expect(
       parseSlateConfig(
@@ -174,12 +179,12 @@ describe("Slate UC model", () => {
   });
 
   it("keeps a UC document title above the section tabs without promoting its metadata", () => {
-    const sections = parseUcMarkdown("# UC — Current Operating State\n---\n# 💼 Brunner Creative\n## Masterpoint");
+    const sections = parseUcMarkdown("# Workspace State\n---\n# 💼 Client Work\n## Project Alpha");
     const { intro, tabSections } = splitUcIntro(sections);
 
-    expect(intro?.heading).toBe("UC — Current Operating State");
+    expect(intro?.heading).toBe("Workspace State");
     expect(intro?.paragraphs).toEqual([]);
-    expect(buildUcTabs(tabSections).map((tab) => tab.label)).toEqual(["Brunner Creative"]);
+    expect(buildUcTabs(tabSections).map((tab) => tab.label)).toEqual(["Client Work"]);
   });
 
   it("allows only safe link protocols", () => {

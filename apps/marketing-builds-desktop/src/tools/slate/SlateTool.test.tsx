@@ -145,12 +145,12 @@ describe("Slate tool presentation", () => {
     expect(markup).toContain(">Second</button>");
   });
 
-  it("places only the UC title above Brunner Creative's first tab", () => {
-    const markup = renderToStaticMarkup(<SlateContent view="uc" onSelectView={vi.fn()} bundle={{ ...bundle, uc: { contents: "# UC — Current Operating State\nLast major review: August 4, 2026\n---\n# 💼 Brunner Creative\n## Masterpoint", updatedAt: 1 } }} error={null} loading={false} />);
+  it("places only the UC title above the first source section tab", () => {
+    const markup = renderToStaticMarkup(<SlateContent view="uc" onSelectView={vi.fn()} bundle={{ ...bundle, uc: { contents: "# Workspace State\nLast major review: August 4, 2026\n---\n# 💼 Client Work\n## Project Alpha", updatedAt: 1 } }} error={null} loading={false} />);
 
-    expect(markup.indexOf("UC — Current Operating State")).toBeLessThan(markup.indexOf("Brunner Creative</button>"));
+    expect(markup.indexOf("Workspace State")).toBeLessThan(markup.indexOf("Client Work</button>"));
     expect(markup).not.toContain("Last major review: August 4, 2026");
-    expect(markup).toContain(">Brunner Creative</button>");
+    expect(markup).toContain(">Client Work</button>");
   });
 
   it("renders the Opportunities source as the matching read-only table", () => {

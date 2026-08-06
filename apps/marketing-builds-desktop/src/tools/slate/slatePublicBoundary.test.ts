@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 
 const personalLocalPath = `/${["Users", "lindsaybrunner"].join("/")}`;
 const prohibitedSourceFragment = ["GUPPI", "guppi-state"].join("/");
+const prohibitedSlateLabels = [["UC — Current", "Operating State"].join(" "), ["Brunner", "Creative"].join(" ")];
 const textExtensions = new Set([".json", ".md", ".ts", ".tsx"]);
 
 function filesBelow(directory: string): string[] {
@@ -22,6 +23,7 @@ describe("Slate public boundary", () => {
       const contents = readFileSync(filePath, "utf8");
       expect(contents, filePath).not.toContain(personalLocalPath);
       expect(contents, filePath).not.toContain(prohibitedSourceFragment);
+      for (const label of prohibitedSlateLabels) expect(contents, filePath).not.toContain(label);
     }
   });
 

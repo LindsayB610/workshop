@@ -24,7 +24,7 @@ describe("tool registry", () => {
     });
     expect(getToolManifest("slate")).toMatchObject({
       displayName: "Slate",
-      runtime: { kind: "native-bridge", entryPoint: "tauri:slate_read_source" },
+      runtime: { kind: "native-bridge", entryPoint: "read-configured-markdown-source" },
       privateWorkspace: { kind: "runner-root", requiredFields: ["slate.config.json"] },
     });
     expect(getToolManifest("megaphone")).toMatchObject({

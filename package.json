@@ -25,5 +25,8 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {
+    "slate-core": "github:LindsayB610/slate#9ccff0727c3a441c61a22de1b2db27a889256408"
   }
 }

@@ -84,28 +84,34 @@ struct MegaphoneBridgeEnvelope<T> {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct SlateConfig {
+struct ConfiguredMarkdownSource {
+    id: String,
+    path: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ConfiguredMarkdownConfig {
     version: u8,
-    uc_path: String,
-    freezer_path: String,
-    opportunities_path: String,
+    sources: Vec<ConfiguredMarkdownSource>,
 }
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct SlateSourceSnapshot {
+struct ConfiguredMarkdownSnapshot {
     contents: String,
     updated_at: u128,
 }
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct SlateSourceChange {
+struct ConfiguredMarkdownSourceChange {
     root: String,
+    config_file: String,
     source: String,
 }
 
-struct SlateWatchState {
+struct ConfiguredMarkdownWatchState {
     watchers: Mutex<HashMap<PathBuf, RecommendedWatcher>>,
 }
 
@@ -213,121 +219,137 @@ fn explicit_workspace_roots(workspace_root: Option<&str>) -> Result<Vec<PathBuf>
     }
 }
 
-fn parse_slate_config(contents: &str) -> Result<SlateConfig, String> {
-    let config: SlateConfig = serde_json::from_str(contents)
-        .map_err(|error| format!("Slate configuration is not valid: {error}"))?;
-
-    if config.version != 2 {
-        return Err("Slate configuration version must be 2.".into());
-    }
-
-    if config.uc_path == config.freezer_path
-        || config.uc_path == config.opportunities_path
-        || config.freezer_path == config.opportunities_path
+fn validate_config_file_name(config_file: &str) -> Result<&str, String> {
+    let path = Path::new(config_file);
+    if config_file.trim().is_empty()
+        || path.file_name().and_then(|name| name.to_str()) != Some(config_file)
+        || path.extension().and_then(|extension| extension.to_str()) != Some("json")
     {
-        return Err("Slate requires three distinct source files.".into());
+        return Err("Markdown source config must be a JSON filename in the workspace root.".into());
+    }
+    Ok(config_file)
+}
+
+fn parse_configured_markdown_config(contents: &str) -> Result<ConfiguredMarkdownConfig, String> {
+    let config: ConfiguredMarkdownConfig = serde_json::from_str(contents)
+        .map_err(|error| format!("Markdown source configuration is not valid: {error}"))?;
+    if config.version != 1 {
+        return Err("Markdown source configuration version must be 1.".into());
+    }
+    if config.sources.is_empty() {
+        return Err("Markdown source configuration must declare at least one source.".into());
     }
 
+    let mut ids = HashSet::new();
+    let mut paths = HashSet::new();
+    for source in &config.sources {
+        if source.id.is_empty()
+            || !source.id.chars().all(|character| character.is_ascii_lowercase() || character.is_ascii_digit() || character == '-')
+        {
+            return Err("Markdown source ids must use lowercase letters, digits, and hyphens.".into());
+        }
+        if !ids.insert(&source.id) {
+            return Err("Markdown source ids must be unique.".into());
+        }
+        let path = validate_configured_markdown_source_location(&source.path)?;
+        if !paths.insert(path) {
+            return Err("Markdown source paths must be unique.".into());
+        }
+    }
     Ok(config)
 }
 
-fn validate_slate_source_location(path: &str) -> Result<PathBuf, String> {
+fn validate_configured_markdown_source_location(path: &str) -> Result<PathBuf, String> {
     let requested = Path::new(path);
     if !requested.is_absolute() {
-        return Err("Slate source paths must be absolute local paths.".into());
+        return Err("Markdown source paths must be absolute local paths.".into());
     }
     if requested.extension().and_then(|extension| extension.to_str()) != Some("md") {
-        return Err("Slate source files must be Markdown files.".into());
+        return Err("Markdown source files must be Markdown files.".into());
     }
     if requested
         .components()
         .any(|component| matches!(component, std::path::Component::ParentDir))
     {
-        return Err("Slate source paths cannot contain traversal segments.".into());
+        return Err("Markdown source paths cannot contain traversal segments.".into());
     }
 
     Ok(requested.to_path_buf())
 }
 
-fn validate_slate_source_path(path: &str) -> Result<PathBuf, String> {
-    let requested = validate_slate_source_location(path)?;
+fn validate_configured_markdown_source_path(path: &str) -> Result<PathBuf, String> {
+    let requested = validate_configured_markdown_source_location(path)?;
     let metadata = fs::symlink_metadata(&requested)
-        .map_err(|error| format!("Slate source file is unavailable: {error}"))?;
+        .map_err(|error| format!("Markdown source file is unavailable: {error}"))?;
     if metadata.file_type().is_symlink() {
-        return Err("Slate source files cannot be symlinks.".into());
+        return Err("Markdown source files cannot be symlinks.".into());
     }
     if !metadata.is_file() {
-        return Err("Slate source paths must refer to regular files.".into());
+        return Err("Markdown source paths must refer to regular files.".into());
     }
 
     Ok(requested)
 }
 
-fn slate_snapshot(path: &Path) -> Result<SlateSourceSnapshot, String> {
+fn configured_markdown_snapshot(path: &Path) -> Result<ConfiguredMarkdownSnapshot, String> {
     let contents = fs::read_to_string(path)
-        .map_err(|error| format!("Could not read Slate source: {error}"))?;
+        .map_err(|error| format!("Could not read Markdown source: {error}"))?;
     let modified = fs::metadata(path)
         .and_then(|metadata| metadata.modified())
-        .map_err(|error| format!("Could not inspect Slate source: {error}"))?
+        .map_err(|error| format!("Could not inspect Markdown source: {error}"))?
         .duration_since(UNIX_EPOCH)
-        .map_err(|error| format!("Could not timestamp Slate source: {error}"))?
+        .map_err(|error| format!("Could not timestamp Markdown source: {error}"))?
         .as_millis();
 
-    Ok(SlateSourceSnapshot {
+    Ok(ConfiguredMarkdownSnapshot {
         contents,
         updated_at: modified,
     })
 }
 
-fn slate_config_from_root(slate_root: &str) -> Result<SlateConfig, String> {
-    let root = normalize_workspace_root(slate_root)?;
-    let config_path = root.join("slate.config.json");
+fn configured_markdown_config_from_root(workspace_root: &str, config_file: &str) -> Result<ConfiguredMarkdownConfig, String> {
+    let root = normalize_workspace_root(workspace_root)?;
+    let config_path = root.join(validate_config_file_name(config_file)?);
     let config_metadata = fs::symlink_metadata(&config_path)
-        .map_err(|error| format!("Slate configuration is unavailable: {error}"))?;
+        .map_err(|error| format!("Markdown source configuration is unavailable: {error}"))?;
     if config_metadata.file_type().is_symlink() || !config_metadata.is_file() {
-        return Err("Slate configuration must be a regular slate.config.json file.".into());
+        return Err("Markdown source configuration must be a regular JSON file.".into());
     }
 
     let config_contents = fs::read_to_string(config_path)
-        .map_err(|error| format!("Could not read Slate configuration: {error}"))?;
-    parse_slate_config(&config_contents)
+        .map_err(|error| format!("Could not read Markdown source configuration: {error}"))?;
+    parse_configured_markdown_config(&config_contents)
 }
 
-fn slate_source_locations_from_root(slate_root: &str) -> Result<(PathBuf, PathBuf, PathBuf), String> {
-    let config = slate_config_from_root(slate_root)?;
-    Ok((
-        validate_slate_source_location(&config.uc_path)?,
-        validate_slate_source_location(&config.freezer_path)?,
-        validate_slate_source_location(&config.opportunities_path)?,
-    ))
+fn configured_markdown_source_locations_from_root(workspace_root: &str, config_file: &str) -> Result<Vec<(PathBuf, String)>, String> {
+    let config = configured_markdown_config_from_root(workspace_root, config_file)?;
+    config.sources.into_iter().map(|source| {
+        Ok((validate_configured_markdown_source_location(&source.path)?, source.id))
+    }).collect()
 }
 
-fn slate_source_from_root(slate_root: &str, source: &str) -> Result<SlateSourceSnapshot, String> {
-    let config = slate_config_from_root(slate_root)?;
-    let source_path = match source {
-        "uc" => &config.uc_path,
-        "freezer" => &config.freezer_path,
-        "opportunities" => &config.opportunities_path,
-        _ => return Err("Slate source must be uc, freezer, or opportunities.".into()),
-    };
-    slate_snapshot(&validate_slate_source_path(source_path)?)
+fn configured_markdown_source_from_root(workspace_root: &str, config_file: &str, source_id: &str) -> Result<ConfiguredMarkdownSnapshot, String> {
+    let config = configured_markdown_config_from_root(workspace_root, config_file)?;
+    let source = config.sources.into_iter().find(|candidate| candidate.id == source_id)
+        .ok_or("Markdown source id is not configured.")?;
+    configured_markdown_snapshot(&validate_configured_markdown_source_path(&source.path)?)
 }
 
-fn slate_source_for_changed_path(
+fn configured_markdown_source_for_changed_path(
     watched_sources: &HashMap<PathBuf, String>,
     changed_path: &Path,
 ) -> Option<String> {
     watched_sources.get(changed_path).cloned()
 }
 
-fn slate_sources_from_event(
+fn configured_markdown_sources_from_event(
     watched_sources: &HashMap<PathBuf, String>,
     event: &notify::Event,
 ) -> Vec<String> {
     event
         .paths
         .iter()
-        .filter_map(|path| slate_source_for_changed_path(watched_sources, path))
+        .filter_map(|path| configured_markdown_source_for_changed_path(watched_sources, path))
         .collect()
 }
 
@@ -1636,65 +1658,74 @@ fn read_private_workspace_index(workspace_root: Option<String>) -> Result<Option
 }
 
 #[tauri::command]
-fn slate_read_source(slate_root: String, source: String) -> Result<SlateSourceSnapshot, String> {
-    slate_source_from_root(&slate_root, &source)
+fn read_configured_markdown_source(
+    workspace_root: String,
+    config_file: String,
+    source: String,
+) -> Result<ConfiguredMarkdownSnapshot, String> {
+    configured_markdown_source_from_root(&workspace_root, &config_file, &source)
 }
 
 #[tauri::command]
-fn slate_start_watch(
+fn start_configured_markdown_watch(
     app: tauri::AppHandle,
-    state: tauri::State<'_, SlateWatchState>,
-    slate_root: String,
+    state: tauri::State<'_, ConfiguredMarkdownWatchState>,
+    workspace_root: String,
+    config_file: String,
 ) -> Result<(), String> {
-    let (uc_path, freezer_path, opportunities_path) = slate_source_locations_from_root(&slate_root)?;
-    let root = normalize_workspace_root(&slate_root)?;
+    let source_locations = configured_markdown_source_locations_from_root(&workspace_root, &config_file)?;
+    let root = normalize_workspace_root(&workspace_root)?;
+    let config_file = validate_config_file_name(&config_file)?.to_owned();
     let mut watchers = state
         .watchers
         .lock()
-        .map_err(|_| "Slate watcher state is unavailable.".to_string())?;
-    if watchers.contains_key(&root) {
+        .map_err(|_| "Markdown source watcher state is unavailable.".to_string())?;
+    let watch_key = root.join(&config_file);
+    if watchers.contains_key(&watch_key) {
         return Ok(());
     }
 
     let mut watched_sources = HashMap::new();
-    watched_sources.insert(uc_path.clone(), "uc".to_string());
-    watched_sources.insert(freezer_path.clone(), "freezer".to_string());
-    watched_sources.insert(opportunities_path.clone(), "opportunities".to_string());
+    for (path, source_id) in source_locations {
+        watched_sources.insert(path, source_id);
+    }
     let watched_directories: HashSet<PathBuf> = watched_sources
         .keys()
         .filter_map(|path| path.parent().map(Path::to_path_buf))
         .collect();
     let app_handle = app.clone();
     let event_root = root.to_string_lossy().to_string();
+    let event_config_file = config_file.clone();
     let mut watcher = notify::recommended_watcher(move |event: notify::Result<notify::Event>| {
         let Ok(event) = event else {
             return;
         };
-        for source in slate_sources_from_event(&watched_sources, &event) {
+        for source in configured_markdown_sources_from_event(&watched_sources, &event) {
             let _ = app_handle.emit(
-                "slate://source-changed",
-                SlateSourceChange {
+                "local-markdown://source-changed",
+                ConfiguredMarkdownSourceChange {
                     root: event_root.clone(),
+                    config_file: event_config_file.clone(),
                     source,
                 },
             );
         }
     })
-    .map_err(|error| format!("Could not start Slate source watcher: {error}"))?;
+    .map_err(|error| format!("Could not start Markdown source watcher: {error}"))?;
 
     for directory in watched_directories {
         watcher
             .watch(&directory, RecursiveMode::NonRecursive)
-            .map_err(|error| format!("Could not watch Slate source directory: {error}"))?;
+            .map_err(|error| format!("Could not watch Markdown source directory: {error}"))?;
     }
-    watchers.insert(root, watcher);
+    watchers.insert(watch_key, watcher);
     Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .manage(SlateWatchState {
+        .manage(ConfiguredMarkdownWatchState {
             watchers: Mutex::new(HashMap::new()),
         })
         .invoke_handler(tauri::generate_handler![
@@ -1716,8 +1747,8 @@ pub fn run() {
             redline_write_packet_files,
             pulse_load_snapshot,
             pulse_mark_done,
-            slate_read_source,
-            slate_start_watch
+            read_configured_markdown_source,
+            start_configured_markdown_watch
         ])
         .setup(|app| {
             #[cfg(desktop)]
@@ -1771,104 +1802,124 @@ mod tests {
     }
 
     #[test]
-    fn reads_only_the_three_configured_slate_sources() {
-        let root = unique_temp_root("slate-sources");
+    fn reads_only_sources_declared_in_a_generic_markdown_config() {
+        let root = unique_temp_root("markdown-sources");
         let source_root = root.join("sources");
-        fs::create_dir_all(&source_root).expect("Slate source directory should be created");
-        let uc = source_root.join("uc.md");
-        let freezer = source_root.join("freezer.md");
-        let opportunities = source_root.join("opportunities.md");
-        fs::write(&uc, "# UC\n").expect("UC source should be written");
-        fs::write(&freezer, "# Freezer\n").expect("freezer source should be written");
-        fs::write(&opportunities, "# Opportunities\n").expect("opportunities source should be written");
+        fs::create_dir_all(&source_root).expect("source directory should be created");
+        let tasks = source_root.join("tasks.md");
+        let notes = source_root.join("notes.md");
+        let inventory = source_root.join("inventory.md");
+        fs::write(&tasks, "# Tasks\n").expect("tasks source should be written");
+        fs::write(&notes, "# Notes\n").expect("notes source should be written");
+        fs::write(&inventory, "# Inventory\n").expect("inventory source should be written");
         fs::write(
-            root.join("slate.config.json"),
+            root.join("sources.config.json"),
             serde_json::json!({
-                "version": 2,
-                "ucPath": uc,
-                "freezerPath": freezer,
-                "opportunitiesPath": opportunities,
+                "version": 1,
+                "sources": [
+                    { "id": "tasks", "path": tasks },
+                    { "id": "notes", "path": notes },
+                    { "id": "inventory", "path": inventory },
+                ],
             })
             .to_string(),
         )
         .expect("Slate config should be written");
 
         assert_eq!(
-            slate_source_from_root(root.to_str().expect("temp root should be utf8"), "uc")
-                .expect("UC source should load independently")
+            configured_markdown_source_from_root(root.to_str().expect("temp root should be utf8"), "sources.config.json", "tasks")
+                .expect("configured source should load independently")
                 .contents,
-            "# UC\n"
+            "# Tasks\n"
         );
         assert_eq!(
-            slate_source_from_root(root.to_str().expect("temp root should be utf8"), "opportunities")
-                .expect("opportunities source should load independently")
+            configured_markdown_source_from_root(root.to_str().expect("temp root should be utf8"), "sources.config.json", "inventory")
+                .expect("configured source should load independently")
                 .contents,
-            "# Opportunities\n"
+            "# Inventory\n"
         );
         assert_eq!(
-            slate_source_from_root(root.to_str().expect("temp root should be utf8"), "freezer")
-                .expect("freezer source should load independently")
+            configured_markdown_source_from_root(root.to_str().expect("temp root should be utf8"), "sources.config.json", "notes")
+                .expect("configured source should load independently")
                 .contents,
-            "# Freezer\n"
+            "# Notes\n"
         );
-        assert!(slate_source_from_root(root.to_str().expect("temp root should be utf8"), "other").is_err());
+        assert!(configured_markdown_source_from_root(root.to_str().expect("temp root should be utf8"), "sources.config.json", "other").is_err());
 
-        fs::remove_file(&freezer).expect("freezer source should be removable");
+        fs::remove_file(&notes).expect("notes source should be removable");
         assert_eq!(
-            slate_source_from_root(root.to_str().expect("temp root should be utf8"), "uc")
-                .expect("UC refresh should not depend on the freezer source")
+            configured_markdown_source_from_root(root.to_str().expect("temp root should be utf8"), "sources.config.json", "tasks")
+                .expect("one source should not depend on another source")
                 .contents,
-            "# UC\n"
+            "# Tasks\n"
         );
 
         let _ = fs::remove_dir_all(root);
     }
 
     #[test]
-    fn rejects_slate_configured_source_paths_with_traversal() {
-        let root = unique_temp_root("slate-traversal");
-        fs::create_dir_all(&root).expect("Slate root should be created");
+    fn rejects_configured_source_paths_with_traversal() {
+        let root = unique_temp_root("markdown-traversal");
+        fs::create_dir_all(&root).expect("source root should be created");
         fs::write(
-            root.join("slate.config.json"),
-            r#"{"version":2,"ucPath":"/tmp/../uc.md","freezerPath":"/tmp/freezer.md","opportunitiesPath":"/tmp/opportunities.md"}"#,
+            root.join("sources.config.json"),
+            r#"{"version":1,"sources":[{"id":"tasks","path":"/tmp/../tasks.md"}]}"#,
         )
-        .expect("Slate config should be written");
+        .expect("source config should be written");
 
-        assert!(slate_source_from_root(root.to_str().expect("temp root should be utf8"), "uc").is_err());
+        assert!(configured_markdown_source_from_root(root.to_str().expect("temp root should be utf8"), "sources.config.json", "tasks").is_err());
         let _ = fs::remove_dir_all(root);
     }
 
     #[test]
-    fn filters_slate_watch_events_to_the_exact_configured_sources() {
-        let uc = PathBuf::from("/private/uc/uc.md");
-        let freezer = PathBuf::from("/private/freezer/freezer.md");
+    fn rejects_config_filenames_that_escape_the_selected_workspace() {
+        assert!(validate_config_file_name("../sources.config.json").is_err());
+        assert!(validate_config_file_name("nested/sources.config.json").is_err());
+        assert!(validate_config_file_name("sources.config.toml").is_err());
+        assert!(validate_config_file_name("sources.config.json").is_ok());
+    }
+
+    #[test]
+    fn rejects_duplicate_generic_source_ids_and_paths() {
+        assert!(parse_configured_markdown_config(
+            r#"{"version":1,"sources":[{"id":"tasks","path":"/tmp/tasks.md"},{"id":"tasks","path":"/tmp/notes.md"}]}"#
+        ).is_err());
+        assert!(parse_configured_markdown_config(
+            r#"{"version":1,"sources":[{"id":"tasks","path":"/tmp/tasks.md"},{"id":"notes","path":"/tmp/tasks.md"}]}"#
+        ).is_err());
+    }
+
+    #[test]
+    fn filters_watch_events_to_the_exact_configured_sources() {
+        let tasks = PathBuf::from("/private/tasks/tasks.md");
+        let notes = PathBuf::from("/private/notes/notes.md");
         let watched_sources = HashMap::from([
-            (uc.clone(), "uc".to_string()),
-            (freezer.clone(), "freezer".to_string()),
+            (tasks.clone(), "tasks".to_string()),
+            (notes.clone(), "notes".to_string()),
         ]);
 
-        assert_eq!(slate_source_for_changed_path(&watched_sources, &uc), Some("uc".into()));
+        assert_eq!(configured_markdown_source_for_changed_path(&watched_sources, &tasks), Some("tasks".into()));
         assert_eq!(
-            slate_source_for_changed_path(&watched_sources, &freezer),
-            Some("freezer".into())
+            configured_markdown_source_for_changed_path(&watched_sources, &notes),
+            Some("notes".into())
         );
         assert_eq!(
-            slate_source_for_changed_path(&watched_sources, Path::new("/private/uc/other.md")),
+            configured_markdown_source_for_changed_path(&watched_sources, Path::new("/private/tasks/other.md")),
             None
         );
     }
 
     #[test]
     fn atomic_save_rename_event_resolves_to_the_configured_source() {
-        let uc = PathBuf::from("/private/uc/uc.md");
-        let watched_sources = HashMap::from([(uc.clone(), "uc".to_string())]);
+        let tasks = PathBuf::from("/private/tasks/tasks.md");
+        let watched_sources = HashMap::from([(tasks.clone(), "tasks".to_string())]);
         let event = notify::Event::new(notify::EventKind::Modify(
             notify::event::ModifyKind::Name(notify::event::RenameMode::Both),
         ))
-        .add_path("/private/uc/.uc.md.tmp".into())
-        .add_path(uc);
+        .add_path("/private/tasks/.tasks.md.tmp".into())
+        .add_path(tasks);
 
-        assert_eq!(slate_sources_from_event(&watched_sources, &event), vec!["uc"]);
+        assert_eq!(configured_markdown_sources_from_event(&watched_sources, &event), vec!["tasks"]);
     }
 
     #[test]

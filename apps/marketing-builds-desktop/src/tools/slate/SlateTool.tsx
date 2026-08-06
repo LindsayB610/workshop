@@ -79,7 +79,7 @@ export function SlateTool({ onSetWorkspaceRequest, tool, workspaceRoot }: ToolVi
         return;
       }
       try {
-        const stop = await listen<SlateSourceChange>("slate://source-changed", (event) => {
+        const stop = await listen<SlateSourceChange>("local-markdown://source-changed", (event) => {
           if (shouldHandleSlateSourceChange(selectedRoot, event.payload)) refresh.onSourceChanged(event.payload.source);
         });
         if (disposed) {

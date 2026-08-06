@@ -1,25 +1,11 @@
 import type { ToolManifest } from "./types";
+import { workshopPluginDeclaration } from "slate-core";
 
 export const toolManifests: ToolManifest[] = [
   {
-    id: "slate",
-    displayName: "Slate",
-    description: "Keep a clear local view of the UC task ledger and chest freezer inventory.",
-    docsPath: "/docs/tools/slate.md",
+    ...workshopPluginDeclaration,
     defaultWorkspaceRoot: "",
-    workspaceRequirement: "Needs the private Slate folder that contains slate.config.json and its two approved local sources.",
-    uninstallSafetyCopy: "Disabling Slate hides the tool only. Its local configuration and source files stay untouched.",
-    routes: [
-      { id: "uc", label: "UC", path: "/slate/uc", sectionId: "slate-uc" },
-      { id: "freezer", label: "Freezer", path: "/slate/freezer", sectionId: "slate-freezer" },
-    ],
-    requiredLocalCapabilities: ["local-workspace"],
-    dataRoots: ["tools/slate"],
-    importActions: [],
-    exportActions: [],
-    status: "planned",
-    runtime: { kind: "native-bridge", entryPoint: "tauri:slate_read_source" },
-    privateWorkspace: { kind: "runner-root", requiredFields: ["slate.config.json"] },
+    requiredLocalCapabilities: [...workshopPluginDeclaration.requiredLocalCapabilities],
   },
   {
     id: "redline",

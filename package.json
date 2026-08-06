@@ -27,6 +27,6 @@
     "node": ">=20"
   },
   "dependencies": {
-    "slate-core": "git+https://github.com/LindsayB610/slate.git#ba839e145457cba25b128eee7b562429c4d095b5"
+    "slate-core": "git+https://github.com/LindsayB610/slate.git#79d0d4514503808573e91285bdc4f9a0ea63c3f2"
   }
 }

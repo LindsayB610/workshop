@@ -55,24 +55,24 @@ describe("tool views", () => {
     expect(runnerMarkup).not.toContain("empty-tool");
   });
 
-  it("renders Slate through the shared tool view registry", () => {
+  it("renders the external Slate plugin through the shared adapter", () => {
     const slate = getToolById("slate");
 
     if (!slate) {
       throw new Error("Slate tool is not registered.");
     }
 
-    const markup = renderToStaticMarkup(<ToolView activeRouteId="uc" tool={slate} workspaceRoot="/private/slate" />);
+    const markup = renderToStaticMarkup(<ToolView tool={slate} />);
 
-    expect(markup).toContain('aria-label="Slate sources"');
-    expect(markup).toContain("Opportunity tracking table");
-    expect(markup).toContain("slate-summary");
+    expect(markup).toContain('aria-label="Slate private folder"');
+    expect(markup).toContain("Connect Slate");
   });
 
   it("exposes the fallback view for every registered tool id", () => {
     expect(getToolViewById("redline")).toBeDefined();
     expect(getToolViewById("megaphone")).toBeDefined();
     expect(getToolViewById("pulse")).toBeDefined();
+    expect(getToolViewById("slate")).toBeDefined();
     expect(getToolViewById("missing-tool")).toBeUndefined();
   });
 });

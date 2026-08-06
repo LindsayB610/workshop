@@ -27,7 +27,7 @@ The repository contains source code for these unpromoted tools:
 
 | Tool | Purpose | Private input boundary |
 | --- | --- | --- |
-| Slate | Local views of two approved Markdown inventories | A private `slate.config.json` points to exactly two local files. |
+| Slate | Configurable local Markdown reference views | A private `slate.config.json` declares the Markdown files and views. |
 | Redline | Source-backed page and draft review | A private client workspace containing packets, snapshots, and reports. |
 | Megaphone | Campaign planning and post-package workflows | A private client corpus and generated post packages. |
 | Pulse | Persistent recurring-obligation view | A local SSH tunnel to a private runner plus a session-only API token. |
@@ -103,8 +103,9 @@ shows the client-index shape without containing client data.
 
 After you promote Redline or Megaphone, use that tool’s menu to select the
 private workspace root—the folder that contains `clients/`, not an individual
-client folder. Slate reads only the two source paths declared in its private
-configuration. Pulse does not use a Workshop workspace root; it connects to
+client folder. Slate reads only the source paths declared in its private
+configuration; see the [Slate repository](https://github.com/LindsayB610/slate)
+for its configuration and supported views. Pulse does not use a Workshop workspace root; it connects to
 your private runner through a local tunnel and retains its token only for the
 active session.
 

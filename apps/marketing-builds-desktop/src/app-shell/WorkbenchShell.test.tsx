@@ -52,7 +52,7 @@ describe("WorkbenchShell", () => {
     expect(markup).toContain("Pending workflow");
   });
 
-  it("keeps Slate free of the shared workspace status strip", () => {
+  it("keeps plugin-owned navigation tools free of the shared workspace status strip", () => {
     const slate = getToolById("slate");
 
     if (!slate) {

@@ -1,11 +1,11 @@
 # Workshop Tool Integration Contract
 
 Workshop integrates tools through a stable, framework-neutral manifest in
-`apps/marketing-builds-desktop/src/tool-registry/toolManifest.ts`. The manifest
-is the source of truth for a registered tool's stable id, display name, routes,
-capabilities, runtime entry point, and required private-workspace fields. The
-React registry supplies only presentation details such as icons and install
-defaults.
+`apps/marketing-builds-desktop/src/tool-registry/toolManifest.ts`. For an
+external plugin, the plugin package owns its declaration; Workshop layers only
+host metadata such as its icon and install defaults. The React registry then
+adapts the neutral plugin-view props to Workshop's generic workspace-selection
+callback.
 
 ## Current integration mechanisms
 
@@ -31,9 +31,12 @@ local artifacts. The shell must not import or persist private client data.
   and state. Workshop uses Pulse's authenticated `/api/v1/snapshot` and
   `/api/v1/occurrences/:id/done` contract; it must not copy runner state into
   the Workshop repository or persist the API bearer token.
-- Slate uses the native `slate_read_source` bridge against its selected private
-  root. It reads and watches only the three Markdown files named by
-  `slate.config.json`; UC, freezer storage, and opportunities each have a local-only view.
+- Slate is consumed from its own package and uses Workshop's generic configured
+  Markdown capabilities. Its private `slate.config.json` may declare any number
+  of local Markdown sources; Workshop returns source metadata without exposing
+  paths, then reads or watches only a declared source id. See the
+  [Workshop plugin host contract](workshop-plugin-contract.md) and the
+  [Slate repository](https://github.com/LindsayB610/slate).
 
 ## Required checks
 

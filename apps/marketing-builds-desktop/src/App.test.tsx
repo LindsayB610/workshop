@@ -8,6 +8,7 @@ import { App } from "./App";
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const styles = readFileSync(path.join(testDir, "styles/app.css"), "utf8");
 const appSource = readFileSync(path.join(testDir, "App.tsx"), "utf8");
+const workbenchShellSource = readFileSync(path.join(testDir, "app-shell/WorkbenchShell.tsx"), "utf8");
 
 describe("Workshop desktop app", () => {
   it("opens to the Workshop tool shelf instead of a tool workspace", () => {
@@ -73,5 +74,7 @@ describe("Workshop desktop app", () => {
   it("uses the manifest navigation contract rather than a plugin-id exception", () => {
     expect(appSource).toContain('showRouteNav={activeTool.navigationMode === "host"}');
     expect(appSource).not.toContain('activeTool.id !== "slate"');
+    expect(workbenchShellSource).toContain('activeTool.navigationMode === "host"');
+    expect(workbenchShellSource).not.toContain('activeTool.id !== "slate"');
   });
 });

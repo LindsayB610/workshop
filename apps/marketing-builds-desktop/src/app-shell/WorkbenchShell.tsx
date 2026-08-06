@@ -105,7 +105,7 @@ export function WorkbenchShell({
             );
           })}
         </nav> : null}
-        {activeTool.id !== "slate" ? (
+        {activeTool.navigationMode === "host" ? (
           <section className="connector-status-strip" aria-label="Shared connector status">
             {activeTool.requiredLocalCapabilities.map((capability) => {
               const ready = readyCapabilities.has(capability);

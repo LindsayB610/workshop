@@ -11,15 +11,15 @@ const appSource = readFileSync(path.join(testDir, "App.tsx"), "utf8");
 const workbenchShellSource = readFileSync(path.join(testDir, "app-shell/WorkbenchShell.tsx"), "utf8");
 
 describe("Workshop desktop app", () => {
-  it("opens to the Workshop tool shelf instead of a tool workspace", () => {
+  it("opens to an empty shelf with ready Slate available to install", () => {
     const markup = renderToStaticMarkup(<App />);
 
     expect(markup).toContain("Marketing builds");
     expect(markup).toContain("Workshop");
     expect(markup).toContain("Add New Tools");
-    expect(markup).toContain("No additional apps are available.");
     expect(markup).toContain("Choose apps from Add New Tools.");
-    expect(markup).not.toContain("Slate");
+    expect(markup).toContain("Slate");
+    expect(markup).toContain("Install");
     expect(markup).not.toContain("Redline");
     expect(markup).not.toContain("Megaphone");
     expect(markup).not.toContain("Pulse");
@@ -28,11 +28,12 @@ describe("Workshop desktop app", () => {
     expect(markup).not.toContain("Updates check on launch.");
   });
 
-  it("does not expose an unpromoted tool logo on the default shelf", () => {
+  it("keeps ready Slate in the catalog until it is installed", () => {
     const markup = renderToStaticMarkup(<App />);
 
     expect(markup).toContain("aria-label=\"Lindsay Brunner brand mark\"");
-    expect(markup).not.toContain("tool-logo-slate");
+    expect(markup).toContain("tool-logo-slate");
+    expect(markup).not.toContain("Slate tool actions");
   });
 
   it("scales tool logos as a whole mark in workbench headers", () => {

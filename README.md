@@ -5,9 +5,9 @@ keeps the application code, tests, fictional demos, and templates in this
 repository while keeping real client material, credentials, and personal files
 on the user’s machine.
 
-It is deliberately quiet by default: **no tool is currently promoted for
-general use.** A fresh install opens to an empty Workshop shelf. This lets a
-maintainer or a fork owner explicitly decide which tools are ready to expose.
+It is deliberately quiet by default: Slate is available to install, but no tool
+is installed automatically. A fresh install opens to an empty Workshop shelf,
+so each user explicitly chooses when to add Slate.
 
 ## Start Here
 
@@ -23,7 +23,8 @@ Choose the path that fits how you will use Workshop:
 
 ## What a Fresh Install Contains
 
-The repository contains source code for these unpromoted tools:
+The repository contains these registered tools. Slate is ready as an optional
+install; the remaining tools are still planned:
 
 | Tool | Purpose | Private input boundary |
 | --- | --- | --- |
@@ -61,8 +62,8 @@ npm run typecheck
 npm run desktop:dev
 ```
 
-Open the local address Vite prints. Seeing an empty shelf is expected: no tool
-has been promoted in the checked-in manifest.
+Open the local address Vite prints. Seeing an empty shelf is expected until you
+install Slate from **Add New Tools**.
 
 ## Promote a Tool in Your Fork
 

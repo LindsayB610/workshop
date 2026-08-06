@@ -24,6 +24,7 @@ describe("tool registry", () => {
     });
     expect(getToolManifest("slate")).toMatchObject({
       displayName: "Slate",
+      status: "ready",
       runtime: { kind: "native-bridge", entryPoint: "read-configured-markdown-source" },
       privateWorkspace: { kind: "runner-root", requiredFields: ["slate.config.json"] },
     });

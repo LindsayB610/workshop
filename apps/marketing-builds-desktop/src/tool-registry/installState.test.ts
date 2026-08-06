@@ -14,14 +14,14 @@ import {
 import { tools } from "./tools";
 
 describe("tool install state", () => {
-  it("hides every unpromoted tool from a fresh Workshop install", () => {
+  it("keeps ready tools available but uninstalled in a fresh Workshop install", () => {
     const state = defaultToolInstallState(tools);
 
     expect(state.schemaVersion).toBe(4);
     expect(state.enabledToolIds).toEqual([]);
     expect(getInstalledTools(tools, state)).toEqual([]);
-    expect(getAvailableBundledTools(tools, state)).toEqual([]);
-    expect(getAvailableTools(tools, state)).toEqual([]);
+    expect(getAvailableBundledTools(tools, state).map((tool) => tool.id)).toEqual(["slate"]);
+    expect(getAvailableTools(tools, state).map((tool) => tool.id)).toEqual(["slate"]);
   });
 
   it("removes unpromoted tools from persisted install state", () => {
@@ -61,13 +61,13 @@ describe("tool install state", () => {
     ).toEqual({ schemaVersion: 4, enabledToolIds: [] });
   });
 
-  it("keeps unpromoted persisted installs hidden", () => {
+  it("keeps unpromoted persisted installs hidden while preserving ready tools", () => {
     const state = normalizeToolInstallState(tools, {
       enabledToolIds: ["redline", "megaphone"],
     });
 
     expect(getInstalledTools(tools, state)).toEqual([]);
-    expect(getAvailableTools(tools, state)).toEqual([]);
+    expect(getAvailableTools(tools, state).map((tool) => tool.id)).toEqual(["slate"]);
   });
 
   it("refuses to install an unpromoted bundled app", () => {
@@ -81,7 +81,7 @@ describe("tool install state", () => {
 
     expect(disabled.workspaceFilesTouched).toBe(false);
     expect(getInstalledTools(tools, disabled.state)).toEqual([]);
-    expect(getAvailableBundledTools(tools, disabled.state)).toEqual([]);
+    expect(getAvailableBundledTools(tools, disabled.state).map((tool) => tool.id)).toEqual(["slate"]);
   });
 
   it("refuses to install an unpromoted external app launcher", () => {
@@ -90,6 +90,15 @@ describe("tool install state", () => {
 
     expect(installed.workspaceFilesTouched).toBe(false);
     expect(getInstalledTools(tools, installed.state)).toEqual([]);
+    expect(getAvailableTools(tools, installed.state).map((tool) => tool.id)).toEqual(["slate"]);
+  });
+
+  it("allows a ready bundled tool to be installed without touching its private workspace", () => {
+    const initialState = defaultToolInstallState(tools);
+    const installed = enableTool(tools, initialState, "slate");
+
+    expect(installed.workspaceFilesTouched).toBe(false);
+    expect(getInstalledTools(tools, installed.state).map((tool) => tool.id)).toEqual(["slate"]);
     expect(getAvailableTools(tools, installed.state)).toEqual([]);
   });
 

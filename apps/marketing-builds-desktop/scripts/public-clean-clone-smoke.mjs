@@ -49,7 +49,7 @@ const requiredReadmeSnippets = [
   "npm run public:check",
   "npm run desktop:dev",
   "npm run desktop:tauri -- build",
-  "no tool is currently promoted",
+  "install Slate from **Add New Tools**",
   "Redline",
   "Megaphone",
   "docs/private-workspaces.md",

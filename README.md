@@ -15,6 +15,7 @@ Choose the path that fits how you will use Workshop:
 
 | If you want to… | Start with… |
 | --- | --- |
+| Use the installed Workshop app | [Using Workshop](docs/using-workshop.md) |
 | Try or develop Workshop from this repository | [Set up from source](#set-up-from-source) |
 | Make one of the included tools available in your own fork | [Promote a tool](#promote-a-tool-in-your-fork) |
 | Add real working data | [Create a private workspace](#create-a-private-workspace) |
@@ -26,18 +27,21 @@ Choose the path that fits how you will use Workshop:
 The repository contains these registered tools. Slate is ready as an optional
 install; the remaining tools are still planned:
 
-| Tool | Purpose | Private input boundary |
-| --- | --- | --- |
-| Slate | Configurable local Markdown reference views | A private `slate.config.json` declares the Markdown files and views. |
-| Redline | Source-backed page and draft review | A private client workspace containing packets, snapshots, and reports. |
-| Megaphone | Campaign planning and post-package workflows | A private client corpus and generated post packages. |
-| Pulse | Persistent recurring-obligation view | A local SSH tunnel to a private runner plus a session-only API token. |
+| Tool | Availability | Purpose | Private input boundary |
+| --- | --- | --- | --- |
+| Slate | Available from **Add New Tools** | Configurable local Markdown reference views | A private `slate.config.json` declares the Markdown files and views. |
+| Redline | Planned | Source-backed page and draft review | A private client workspace containing packets, snapshots, and reports. |
+| Megaphone | Planned | Campaign planning and post-package workflows | A private client corpus and generated post packages. |
+| Pulse | Planned | Persistent recurring-obligation view | A local SSH tunnel to a private runner plus a session-only API token. |
 
 The public repository includes fictional Redline and Megaphone demos and empty
 templates. It does **not** include real client data, Slate inventories, Pulse
 state, credentials, local paths, or private configuration.
 
 ## Set Up From Source
+
+This path is for contributors. If you installed the app and want to use Slate,
+start with [Using Workshop](docs/using-workshop.md) instead.
 
 ### Prerequisites
 
@@ -105,8 +109,8 @@ shows the client-index shape without containing client data.
 After you promote Redline or Megaphone, use that tool’s menu to select the
 private workspace root—the folder that contains `clients/`, not an individual
 client folder. Slate reads only the source paths declared in its private
-configuration; see the [Slate repository](https://github.com/LindsayB610/slate)
-for its configuration and supported views. Pulse does not use a Workshop workspace root; it connects to
+configuration; the complete user setup is in
+[Using Workshop](docs/using-workshop.md). Pulse does not use a Workshop workspace root; it connects to
 your private runner through a local tunnel and retains its token only for the
 active session.
 
@@ -165,6 +169,8 @@ bin/redline.js                 Redline CLI entry point
 
 - [docs/public-quickstart.md](docs/public-quickstart.md) — demo and local
   development orientation
+- [docs/using-workshop.md](docs/using-workshop.md) — install, update, and Slate
+  setup for app users
 - [docs/private-workspaces.md](docs/private-workspaces.md) — private-workspace
   layout and runtime guardrails
 - [docs/public-clean-clone-install.md](docs/public-clean-clone-install.md) —

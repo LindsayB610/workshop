@@ -3,6 +3,26 @@
 Use this guide when a demo packet works but your private local workspace does
 not.
 
+## Slate Cannot Connect
+
+Symptoms:
+
+- Slate reports that its configuration cannot be loaded,
+- a configured document is missing, or
+- Slate opens but shows no expected source.
+
+Fix:
+
+- install Slate from **Add New Tools** first,
+- select the private folder containing `slate.config.json`, not the file,
+- use an absolute path for every configured Markdown source,
+- confirm each source has a unique lowercase, hyphenated `id` and a supported
+  `view`, and
+- keep the private Slate folder outside the Workshop repository.
+
+See [using-workshop.md](using-workshop.md) for the complete Slate configuration
+example.
+
 ## Not Enough Source Material
 
 Symptoms:

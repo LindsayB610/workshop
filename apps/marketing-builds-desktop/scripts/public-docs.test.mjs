@@ -9,6 +9,7 @@ const testDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(testDir, "../../..");
 
 const requiredDocs = [
+  "docs/using-workshop.md",
   "docs/public-quickstart.md",
   "docs/private-workspaces.md",
   "docs/public-clean-clone-install.md",
@@ -76,6 +77,21 @@ describe("public corpus-building docs", () => {
     expect(contract).toMatch(/without\s+exposing private paths or file contents/);
     expect(contract).toContain('"id": "current-state"');
     expect(contract).toMatch(/never included in the\s+metadata response/);
+  });
+
+  it("gives installed-app users a complete Slate setup path", () => {
+    const guide = readRepoFile("docs/using-workshop.md");
+    const slateDocs = readRepoFile("apps/marketing-builds-desktop/public/docs/tools/slate.md");
+
+    expect(guide).toContain("Add New Tools");
+    expect(guide).toContain("Slate");
+    expect(guide).toContain("slate.config.json");
+    expect(guide).toContain("Update available");
+    expect(guide).toContain('"path"');
+    expect(guide).toContain("outside the Workshop repository");
+    expect(slateDocs).toContain("slate.config.json");
+    expect(slateDocs).toContain("Add New Tools");
+    expect(slateDocs).toContain("private Slate folder");
   });
 
   it("keeps documented Redline templates parseable", () => {

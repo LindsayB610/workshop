@@ -1,5 +1,17 @@
 # Workshop Signed Updates
 
+## For Workshop Users
+
+The packaged Workshop app checks for signed updates when it opens. If it shows
+**Update available**, choose that button to download the update and restart
+Workshop. You can keep using the installed version when no update is found or
+when you are offline. Updating Workshop changes the app itself; it does not
+move, upload, or delete private tool data.
+
+The rest of this document is for maintainers who publish signed releases.
+
+## For Maintainers
+
 Workshop uses Tauri's signed updater. The public key is committed in
 `apps/marketing-builds-desktop/src-tauri/tauri.conf.json`; the private key must
 stay out of git and should live in the release environment only.

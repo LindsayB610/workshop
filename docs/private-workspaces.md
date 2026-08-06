@@ -14,6 +14,8 @@ Recommended layout:
   pulse/
     pulses.yaml
     state/
+  slate/
+    slate.config.json
 ```
 
 Each tool still expects a `clients/<client-id>` folder under the selected root.
@@ -34,6 +36,20 @@ and changing it does not create, delete, or modify workspace files.
 Use `Use demo workspace` to return that tool to the bundled demo root.
 
 ## Tool Contracts
+
+Slate private folder:
+
+```text
+<private-root>/slate/
+  slate.config.json
+```
+
+Slate is configured inside Slate, rather than through Workshop's shared client
+workspace picker. Select the `slate/` folder that contains
+`slate.config.json`, not the configuration file itself. Each Slate source uses
+an absolute Markdown path; Slate reads only those declared files and does not
+discover neighboring folders. See [using-workshop.md](using-workshop.md) for a
+working configuration example.
 
 Redline private root:
 
@@ -108,6 +124,9 @@ Workshop validates this index contract before it is used by the app:
 `workspace.yaml` indexes client-scoped Redline and Megaphone folders. Pulse is
 a runner-scoped workspace, so it is selected directly at `<workspace-root>/pulse`
 and is not a `clients/<client-id>` entry.
+
+Slate is separate from `workspace.yaml`: its private `slate.config.json`
+directly declares the Markdown sources Slate can display.
 
 The current packaged app still loads the selected client folder through the
 tool's normal `clients/<client-id>` path. The next UI step is to surface valid

@@ -1,116 +1,66 @@
 # Public Quickstart
 
-This quickstart uses only the checked-in demo and template folders. It is safe
-for a fresh clone and does not require private client data.
+This guide is for trying or contributing to Workshop from a fresh public clone.
+If you have already installed the desktop app, follow
+[using-workshop.md](using-workshop.md) instead.
 
-Use this path if you want to try Workshop as an app. If you only want the
-standalone Redline or Megaphone packages, use their public repos instead.
-
-## 1. Install
+## 1. Install And Verify
 
 ```sh
-npm install
+git clone https://github.com/LindsayB610/workshop.git
+cd workshop
+npm ci
+npm test
+npm run typecheck
 ```
 
-## 2. Run The Tests
-
-```sh
-npm run test:public
-```
-
-## 3. Start Workshop
+## 2. Start Workshop
 
 ```sh
 npm run desktop:dev
 ```
 
-Open the local dev URL.
+Open the local address Vite prints. An empty shelf is normal for a fresh
+installation. Select **Add New Tools**, install **Slate**, and open it from the
+shelf.
 
-Fresh installs may show an empty picker. Choose `Add New Tools`, install
-Redline or Megaphone, then open the tool from the picker.
+## 3. Try Slate With Local-Only Data
 
-In Redline, inspect the Northstar Demo packet, source readiness, findings, and
-report artifacts. Then return to the tool picker and try Megaphone's demo
-corpus and package views.
+Create a private folder outside this clone, then add a Markdown file and a
+`slate.config.json` file that names it. The configuration must use absolute
+paths. [using-workshop.md](using-workshop.md) provides the full example,
+supported views, and privacy rules.
 
-## 4. Review The Demo Data
+Workshop does not ship a Slate data set. This keeps the public repository free
+of personal inventories and makes Slate useful with your own reference files.
 
-Redline demo:
+## 4. Understand The Included Demo Material
+
+The repository also includes fictional Redline and Megaphone demo folders:
 
 ```text
 clients/demo-redline/
-```
-
-Megaphone demo:
-
-```text
 clients/demo-megaphone/
 ```
 
-The demo data is fictional. It exists so you can see working packets, reports,
-source readiness, review queues, and package outputs without private data.
+They are source fixtures for contributors, not currently installable tools in
+the public Workshop catalog. A fork owner can promote a tool only after it has
+an intentional product flow, tests, and documentation; see
+[contributing-tools.md](contributing-tools.md).
 
-## 5. Create A Private Workspace
+## 5. Keep Real Work Local
 
-Create a folder outside the repo:
+Keep real source material, generated reports, credentials, and private
+configuration outside this repository. Commit only code, sanitized demo
+fixtures, templates, and documentation. See
+[private-workspaces.md](private-workspaces.md) for the broader workspace
+layout and runtime guardrails.
 
-```text
-~/Documents/workshop-private/
-  clients/
+## Before You Share Changes
+
+```sh
+npm test
+npm run typecheck
+npm run build
+npm run public:check
 ```
-
-Copy templates into that folder:
-
-```text
-clients/template-redline/ -> ~/Documents/workshop-private/clients/acme-redline/
-clients/template-megaphone/ -> ~/Documents/workshop-private/clients/acme-megaphone/
-```
-
-Do not add real source material directly under the public repo.
-
-See `docs/private-workspaces.md` for the runtime selector, per-tool folder
-contracts, and git ignore rules.
-
-In the app, open a tool's three-dot menu and choose `Set private workspace`.
-Enter the absolute path to the folder that contains `clients/`:
-
-```text
-~/Documents/workshop-private
-```
-
-Do not select the individual client folder.
-
-## 6. Build Your First Packet
-
-For Redline, follow `docs/redline-packet-building.md`.
-
-For Megaphone, follow `docs/megaphone-corpus-building.md`.
-
-The minimum useful Redline packet has:
-
-- `client.yaml`
-- `source-manifest.json`
-- canonical modules with source references
-- at least one saved target or draft
-
-The minimum useful Megaphone corpus has:
-
-- `client.yaml`
-- `source-manifest.json`
-- canonical modules
-- LinkedIn strategy and policy files
-- a small scored example set
-
-## 7. Keep Generated Work Local
-
-Generated reports, post packages, source snapshots, and credentials should stay
-in your private workspace. Commit only code, sanitized demo fixtures, templates,
-and docs.
-
-## Common Next Steps
-
-- Use `npm run public:check` before publishing or packaging a public build.
-- Use `Use demo workspace` from a tool menu if a private workspace path is
-  wrong or incomplete.
-- Use `docs/troubleshooting-public-workspaces.md` when source readiness is weak
-  or proof gates block draft output.

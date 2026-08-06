@@ -320,6 +320,13 @@ h4 {
 
 .add-tools-button {
   width: fit-content;
+  appearance: none;
+  border: 0;
+}
+
+.add-tools-button:focus-visible {
+  outline: 2px solid var(--color-yellow);
+  outline-offset: 3px;
 }
 
 .tool-shelf-status {

@@ -87,7 +87,7 @@ describe("WorkbenchShell", () => {
     expect(markup).not.toContain("aria-controls=");
   });
 
-  it("renders Pulse routes as self-hosted function screen controls", () => {
+  it("leaves Pulse navigation to its plugin", () => {
     const pulse = getToolById("pulse");
 
     if (!pulse) {
@@ -100,12 +100,8 @@ describe("WorkbenchShell", () => {
       </WorkbenchShell>,
     );
 
-    expect(markup).toContain("aria-label=\"Pulse functions\"");
-    expect(markup).toContain("data-route-path=\"/pulse/active\"");
-    expect(markup).toContain("data-route-path=\"/pulse/runner\"");
-    expect(markup).toContain("Active");
-    expect(markup).toContain("Schedule");
-    expect(markup).toContain("History");
-    expect(markup).toContain("Runner");
+    expect(markup).not.toContain("aria-label=\"Pulse functions\"");
+    expect(markup).not.toContain("data-route-path=\"/pulse/");
+    expect(markup).toContain("Pulse body");
   });
 });

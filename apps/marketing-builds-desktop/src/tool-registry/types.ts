@@ -5,7 +5,9 @@ export type ToolCapability =
   | "file-import"
   | "connector-status"
   | "run-history"
-  | "report-export";
+  | "report-export"
+  | "read_secure_service_metadata"
+  | "request_configured_secure_service";
 
 export type ToolRoute = {
   id: string;
@@ -22,12 +24,12 @@ export type ToolInstallMode = "bundled" | "external";
 export type ToolNavigationMode = "host" | "plugin";
 
 export type ToolRuntime = {
-  kind: "bundled-core" | "bridge-cli" | "external-runner" | "native-bridge";
+  kind: "bundled-core" | "bridge-cli" | "native-bridge" | "generic-secure-service";
   entryPoint: string;
 };
 
 export type ToolPrivateWorkspace = {
-  kind: "client-index" | "runner-root" | "connection";
+  kind: "client-index" | "runner-root" | "connection" | "plugin-config";
   requiredFields: string[];
 };
 

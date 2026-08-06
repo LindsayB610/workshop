@@ -12,9 +12,9 @@ describe("tool registry", () => {
   it("declares stable runtime and private-workspace contracts for registered tools", () => {
     expect(toolManifests.map((manifest) => manifest.id)).toEqual([
       "slate",
+      "pulse",
       "redline",
       "megaphone",
-      "pulse",
     ]);
 
     expect(getToolManifest("redline")).toMatchObject({
@@ -32,13 +32,15 @@ describe("tool registry", () => {
       runtime: { kind: "bridge-cli", entryPoint: "@megaphone/core/bridgeCli" },
     });
     expect(getToolManifest("pulse")).toMatchObject({
-      runtime: { kind: "native-bridge", entryPoint: "pulse_load_snapshot/pulse_mark_done" },
-      privateWorkspace: { kind: "connection", requiredFields: [] },
+      status: "ready",
+      navigationMode: "plugin",
+      runtime: { kind: "generic-secure-service", entryPoint: "request_configured_secure_service" },
+      privateWorkspace: { kind: "plugin-config", requiredFields: ["pulse.config.json"] },
     });
   });
 
   it("keeps the UI registry aligned with the manifest", () => {
-    expect(tools.map((tool) => tool.id)).toEqual(toolManifests.map((manifest) => manifest.id));
+    expect(tools.map((tool) => tool.id).sort()).toEqual(toolManifests.map((manifest) => manifest.id).sort());
     for (const tool of tools) {
       const manifest = getToolManifest(tool.id);
       expect(manifest).toBeDefined();
@@ -51,7 +53,7 @@ describe("tool registry", () => {
     expect(getToolManifest("slate")?.navigationMode).toBe("plugin");
     expect(
       toolManifests
-        .filter((manifest) => manifest.id !== "slate")
+        .filter((manifest) => !["slate", "pulse"].includes(manifest.id))
         .every((manifest) => manifest.navigationMode === "host"),
     ).toBe(true);
   });
@@ -69,9 +71,10 @@ describe("tool registry", () => {
     expect(desktopPackage.dependencies?.[redline?.runtime.entryPoint ?? ""]).toBeDefined();
     expect(megaphone?.runtime.entryPoint).toBe("@megaphone/core/bridgeCli");
     expect(nativeAdapter).toContain("packages/core/dist/bridgeCli.js");
-    expect(pulse?.runtime.entryPoint).toBe("pulse_load_snapshot/pulse_mark_done");
-    expect(nativeAdapter).toContain("fn pulse_load_snapshot");
-    expect(nativeAdapter).toContain("fn pulse_mark_done");
+    expect(pulse?.runtime.entryPoint).toBe("request_configured_secure_service");
+    expect(nativeAdapter).toContain("fn request_configured_secure_service");
+    expect(nativeAdapter).not.toMatch(/\bfn pulse_/);
+    expect(nativeAdapter).not.toContain("workshop-private/pulse");
   });
 
   it("registers Redline as a ready sub-tool", () => {
@@ -127,30 +130,28 @@ describe("tool registry", () => {
   it("registers Pulse as an external self-hosted Workshop tool", () => {
     const tool = getToolById("pulse");
 
-    expect(tool?.status).toBe("planned");
+    expect(tool?.status).toBe("ready");
     expect(tool?.installMode).toBe("external");
     expect(tool?.defaultInstalled).toBe(false);
     expect(tool?.docsPath).toBe("/docs/tools/pulse.md");
-    expect(tool?.description).toContain("recurring obligations");
-    expect(tool?.workspaceRequirement).toContain("private Pulse runner");
+    expect(tool?.description).toContain("recurring reminders");
+    expect(tool?.workspaceRequirement).toContain("pulse.config.json");
     expect(tool?.routes.map((route) => route.id)).toEqual([
-      "active",
-      "schedule",
+      "reminders",
       "history",
-      "runner",
+      "settings",
     ]);
     expect(tool?.routes.map((route) => route.path)).toEqual([
-      "/pulse/active",
-      "/pulse/schedule",
+      "/pulse/reminders",
       "/pulse/history",
-      "/pulse/runner",
+      "/pulse/settings",
     ]);
     expect(tool?.requiredLocalCapabilities).toEqual([
       "local-workspace",
-      "connector-status",
-      "run-history",
+      "read_secure_service_metadata",
+      "request_configured_secure_service",
     ]);
-    expect(tool?.dataRoots).toEqual(["tools/pulse"]);
+    expect(tool?.dataRoots).toEqual([]);
     expect(tool?.importActions).toEqual([]);
     expect(tool?.exportActions).toEqual([]);
   });

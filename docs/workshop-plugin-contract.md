@@ -93,6 +93,45 @@ the declared `id` through `read_configured_markdown_source`.
 `path` stays private: it is validated by Workshop and is never included in the
 metadata response, change event, or plugin declaration.
 
+### Configured secure services
+
+For a plugin that needs an authenticated private service, Workshop provides two
+generic native commands. The selected root must be a regular directory outside
+any repository; the configuration must be a regular JSON file in that root.
+
+```ts
+type SecureServiceMetadata = {
+  version: 1;
+  endpoint: string;
+  credentialRef: string;
+};
+
+type SecureServiceRequest = {
+  method: "GET" | "POST" | "PATCH" | "DELETE";
+  path: string; // an origin-relative /api/ path
+  body?: unknown;
+};
+
+type SecureServiceResponse = { status: number; body: unknown };
+```
+
+```ts
+invoke("read_secure_service_metadata", { workspaceRoot, configFile });
+invoke("request_configured_secure_service", { workspaceRoot, configFile, request });
+```
+
+The config has `version`, an HTTPS origin `endpoint`, and a non-secret
+`credentialRef`. Workshop looks up the referenced credential in the operating
+system keychain under its generic secure-service store; it never returns that
+credential to the plugin. In debug builds only, `http://localhost` and
+`http://127.0.0.1[:port]` are allowed for local development.
+
+Requests are pinned to the configured origin, accept only the methods above
+and `/api/` paths, reject query strings/traversal/control characters, bound
+JSON request and response bodies to 64 KiB, and time out after 15 seconds.
+Plugins cannot supply authorization headers or an arbitrary destination. Host
+errors and responses redact the credential value.
+
 ## Promotion
 
 All plugins are hidden until their declaration has `status: "ready"`.

@@ -12,8 +12,7 @@ Recommended layout:
     acme-redline/
     acme-megaphone/
   pulse/
-    pulses.yaml
-    state/
+    pulse.config.json
   slate/
     slate.config.json
 ```
@@ -79,20 +78,18 @@ Megaphone private root:
       post-packages/
 ```
 
-Pulse private root:
+Pulse private folder:
 
 ```text
-<workspace-root>/pulse/
-  pulses.yaml
-  .env
-  state/
-  backups/
-  logs/
+<private-root>/pulse/
+  pulse.config.json
 ```
 
-Select `<workspace-root>/pulse` for Pulse. Pulse keeps its definitions,
-credentials, and state there; Workshop accesses it only through the registered
-external-runner contract and must not copy it into shared client folders.
+Select the folder containing `pulse.config.json` for Pulse. The file declares
+the service endpoint and credential reference; the credential itself is stored
+in the operating-system keychain. Pulse owns its definitions, runner, and
+state. Workshop exposes only generic service metadata and constrained requests,
+and never copies those data into shared client folders.
 
 ## Workspace Index
 
@@ -122,8 +119,8 @@ Workshop validates this index contract before it is used by the app:
   statuses are rejected.
 
 `workspace.yaml` indexes client-scoped Redline and Megaphone folders. Pulse is
-a runner-scoped workspace, so it is selected directly at `<workspace-root>/pulse`
-and is not a `clients/<client-id>` entry.
+configured directly from its own private folder and is not a
+`clients/<client-id>` entry.
 
 Slate is separate from `workspace.yaml`: its private `slate.config.json`
 directly declares the Markdown sources Slate can display.

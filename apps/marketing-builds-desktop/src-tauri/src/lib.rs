@@ -10,15 +10,6 @@ use std::time::UNIX_EPOCH;
 use tauri::{Emitter, Manager};
 
 const REDLINE_CURL_FINAL_URL_MARKER: &str = "\n__WORKSHOP_FINAL_URL__=";
-const PULSE_CURL_STATUS_MARKER: &str = "\n__WORKSHOP_PULSE_STATUS__=";
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct PulseRunnerResponse {
-    status: u16,
-    body: serde_json::Value,
-}
-
 #[derive(Debug, Deserialize)]
 struct RedlinePacketFile {
     path: String,
@@ -119,6 +110,41 @@ struct ConfiguredMarkdownSourceChange {
     root: String,
     config_file: String,
     source: String,
+}
+
+const SECURE_SERVICE_KEYCHAIN_SERVICE: &str = "Workshop secure service";
+const SECURE_SERVICE_CURL_STATUS_MARKER: &str = "\n__WORKSHOP_SECURE_SERVICE_STATUS__=";
+const SECURE_SERVICE_MAX_BODY_BYTES: usize = 64 * 1024;
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SecureServiceConfig {
+    version: u8,
+    endpoint: String,
+    credential_ref: String,
+}
+
+#[derive(Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+struct SecureServiceMetadata {
+    version: u8,
+    endpoint: String,
+    credential_ref: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SecureServiceRequest {
+    method: String,
+    path: String,
+    body: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SecureServiceResponse {
+    status: u16,
+    body: serde_json::Value,
 }
 
 struct ConfiguredMarkdownWatchState {
@@ -238,6 +264,209 @@ fn validate_config_file_name(config_file: &str) -> Result<&str, String> {
         return Err("Markdown source config must be a JSON filename in the workspace root.".into());
     }
     Ok(config_file)
+}
+
+fn secure_service_root(workspace_root: &str) -> Result<PathBuf, String> {
+    let root = normalize_workspace_root(workspace_root)?;
+    let metadata = fs::symlink_metadata(&root)
+        .map_err(|_| "Secure service private root is unavailable.".to_string())?;
+    if metadata.file_type().is_symlink() || !metadata.is_dir() {
+        return Err("Secure service private root must be a regular directory.".into());
+    }
+
+    for ancestor in root.ancestors() {
+        if ancestor.join(".git").exists() {
+            return Err("Secure service private root must stay outside a repository.".into());
+        }
+    }
+    Ok(root)
+}
+
+fn parse_secure_service_endpoint(endpoint: &str) -> Result<String, String> {
+    let endpoint = endpoint.trim();
+    let (scheme, authority) = if let Some(authority) = endpoint.strip_prefix("https://") {
+        ("https", authority)
+    } else if cfg!(debug_assertions) {
+        if let Some(authority) = endpoint.strip_prefix("http://localhost") {
+            return parse_local_secure_service_endpoint("localhost", authority);
+        }
+        if let Some(authority) = endpoint.strip_prefix("http://127.0.0.1") {
+            return parse_local_secure_service_endpoint("127.0.0.1", authority);
+        }
+        return Err("Secure service endpoint must use HTTPS.".into());
+    } else {
+        return Err("Secure service endpoint must use HTTPS.".into());
+    };
+
+    if authority.is_empty()
+        || authority.contains(['/', '?', '#', '@', '\\'])
+        || authority.chars().any(|character| character.is_control() || character.is_whitespace())
+    {
+        return Err("Secure service endpoint must be an HTTPS origin without a path.".into());
+    }
+    Ok(format!("{scheme}://{authority}"))
+}
+
+fn parse_local_secure_service_endpoint(host: &str, suffix: &str) -> Result<String, String> {
+    if suffix.is_empty() {
+        return Ok(format!("http://{host}"));
+    }
+    if let Some(port) = suffix.strip_prefix(':') {
+        if !port.is_empty() && port.chars().all(|character| character.is_ascii_digit()) {
+            return Ok(format!("http://{host}:{port}"));
+        }
+    }
+    Err("Secure service endpoint must be an origin without a path.".into())
+}
+
+fn parse_secure_service_config(contents: &str) -> Result<SecureServiceConfig, String> {
+    let config: SecureServiceConfig = serde_json::from_str(contents)
+        .map_err(|_| "Secure service configuration is invalid.".to_string())?;
+    if config.version != 1 {
+        return Err("Secure service configuration version must be 1.".into());
+    }
+    parse_secure_service_endpoint(&config.endpoint)?;
+    if config.credential_ref.is_empty()
+        || config.credential_ref.len() > 128
+        || !config.credential_ref.chars().all(|character| {
+            character.is_ascii_alphanumeric() || matches!(character, '-' | '_' | '.')
+        })
+    {
+        return Err("Secure service credential reference is invalid.".into());
+    }
+    Ok(config)
+}
+
+fn secure_service_config_from_root(
+    workspace_root: &str,
+    config_file: &str,
+) -> Result<SecureServiceConfig, String> {
+    let root = secure_service_root(workspace_root)?;
+    let config_path = root.join(validate_config_file_name(config_file)?);
+    let metadata = fs::symlink_metadata(&config_path)
+        .map_err(|_| "Secure service configuration is unavailable.".to_string())?;
+    if metadata.file_type().is_symlink() || !metadata.is_file() {
+        return Err("Secure service configuration must be a regular JSON file.".into());
+    }
+    let contents = fs::read_to_string(config_path)
+        .map_err(|_| "Could not read secure service configuration.".to_string())?;
+    parse_secure_service_config(&contents)
+}
+
+fn secure_service_metadata_from_root(
+    workspace_root: &str,
+    config_file: &str,
+) -> Result<SecureServiceMetadata, String> {
+    let config = secure_service_config_from_root(workspace_root, config_file)?;
+    Ok(SecureServiceMetadata {
+        version: config.version,
+        endpoint: parse_secure_service_endpoint(&config.endpoint)?,
+        credential_ref: config.credential_ref,
+    })
+}
+
+fn validate_secure_service_request(request: &SecureServiceRequest) -> Result<(String, Option<String>), String> {
+    if !matches!(request.method.as_str(), "GET" | "POST" | "PATCH" | "DELETE") {
+        return Err("Secure service request method is not allowed.".into());
+    }
+    if !request.path.starts_with("/api/")
+        || request.path.contains(['?', '#', '\\'])
+        || request.path.contains("..")
+        || request.path.chars().any(|character| character.is_control() || character.is_whitespace())
+    {
+        return Err("Secure service request path is invalid.".into());
+    }
+    let body = match &request.body {
+        Some(body) => {
+            if request.method == "GET" || request.method == "DELETE" {
+                return Err("Secure service request body is not allowed for this method.".into());
+            }
+            let serialized = serde_json::to_string(body)
+                .map_err(|_| "Secure service request body is invalid.".to_string())?;
+            if serialized.len() > SECURE_SERVICE_MAX_BODY_BYTES {
+                return Err("Secure service request body is too large.".into());
+            }
+            Some(serialized)
+        }
+        None => None,
+    };
+    Ok((request.path.clone(), body))
+}
+
+fn secure_service_keychain_secret(credential_ref: &str) -> Result<String, String> {
+    let output = Command::new("security")
+        .args([
+            "find-generic-password",
+            "-s",
+            SECURE_SERVICE_KEYCHAIN_SERVICE,
+            "-a",
+            credential_ref,
+            "-w",
+        ])
+        .output()
+        .map_err(|_| "Secure service credential is unavailable.".to_string())?;
+    if !output.status.success() {
+        return Err("Secure service credential is not configured.".into());
+    }
+    let credential = String::from_utf8(output.stdout)
+        .map_err(|_| "Secure service credential is invalid.".to_string())?
+        .trim()
+        .to_string();
+    if credential.is_empty() || credential.chars().any(|character| character.is_control() || character.is_whitespace()) {
+        return Err("Secure service credential is invalid.".into());
+    }
+    Ok(credential)
+}
+
+fn parse_secure_service_response(output: &[u8], credential: &str) -> Result<SecureServiceResponse, String> {
+    let output = String::from_utf8(output.to_vec())
+        .map_err(|_| "Secure service returned an invalid response.".to_string())?;
+    let (body, status) = output
+        .rsplit_once(SECURE_SERVICE_CURL_STATUS_MARKER)
+        .ok_or("Secure service returned an invalid response.".to_string())?;
+    if body.len() > SECURE_SERVICE_MAX_BODY_BYTES {
+        return Err("Secure service response is too large.".into());
+    }
+    let status = status.trim().parse::<u16>()
+        .map_err(|_| "Secure service returned an invalid response.".to_string())?;
+    let safe_body = body.replace(credential, "[redacted]");
+    Ok(SecureServiceResponse {
+        status,
+        body: serde_json::from_str(safe_body.trim())
+            .unwrap_or_else(|_| serde_json::json!({ "message": "Service returned an invalid response." })),
+    })
+}
+
+fn request_configured_secure_service_from_root(
+    workspace_root: &str,
+    config_file: &str,
+    request: SecureServiceRequest,
+) -> Result<SecureServiceResponse, String> {
+    let config = secure_service_config_from_root(workspace_root, config_file)?;
+    let endpoint = parse_secure_service_endpoint(&config.endpoint)?;
+    let credential = secure_service_keychain_secret(&config.credential_ref)?;
+    let (path, body) = validate_secure_service_request(&request)?;
+    let mut command = Command::new("curl");
+    command
+        .args(["--config", "-", "--silent", "--show-error", "--max-time", "15", "--request", &request.method, "--write-out", &format!("{SECURE_SERVICE_CURL_STATUS_MARKER}%{{http_code}}")])
+        .arg(format!("{endpoint}{path}"))
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let mut child = command.spawn().map_err(|_| "Could not reach secure service.".to_string())?;
+    let mut curl_config = format!("header = \"Authorization: Bearer {}\"\n", escape_curl_config_value(&credential));
+    if let Some(body) = body {
+        curl_config.push_str("header = \"Content-Type: application/json\"\n");
+        curl_config.push_str(&format!("data = \"{}\"\n", escape_curl_config_value(&body)));
+    }
+    child.stdin.take().ok_or("Could not send secure service request.".to_string())?
+        .write_all(curl_config.as_bytes())
+        .map_err(|_| "Could not send secure service request.".to_string())?;
+    let output = child.wait_with_output().map_err(|_| "Could not read secure service response.".to_string())?;
+    if !output.status.success() {
+        return Err("Secure service request failed.".into());
+    }
+    parse_secure_service_response(&output.stdout, &credential)
 }
 
 fn parse_configured_markdown_config(contents: &str) -> Result<ConfiguredMarkdownConfig, String> {
@@ -1575,106 +1804,8 @@ fn redline_fetch_live_url(url: String) -> Result<RedlineLiveUrlFetchResult, Stri
     })
 }
 
-fn normalize_pulse_runner_url(url: &str) -> Result<String, String> {
-    let normalized = url.trim().trim_end_matches('/');
-    if normalized == "https://lindsay-pulse-reminders.netlify.app" {
-        return Ok(normalized.to_string());
-    }
-    let host = normalized
-        .strip_prefix("http://127.0.0.1")
-        .or_else(|| normalized.strip_prefix("http://localhost"))
-        .ok_or("Pulse runner URL must be the configured Netlify Pulse site or a local SSH tunnel.")?;
-
-    if host.is_empty() {
-        return Ok(normalized.to_string());
-    }
-    if let Some(port) = host.strip_prefix(':') {
-        if !port.is_empty() && port.chars().all(|character| character.is_ascii_digit()) {
-            return Ok(normalized.to_string());
-        }
-    }
-    Err("Pulse runner URL must be a local HTTP host with an optional numeric port.".into())
-}
-
-fn validate_pulse_api_token(token: &str) -> Result<(), String> {
-    if token.len() < 32 || token.chars().any(|character| character.is_control() || character.is_whitespace()) {
-        return Err("Pulse API token must be a private token of at least 32 non-whitespace characters.".into());
-    }
-    Ok(())
-}
-
 fn escape_curl_config_value(value: &str) -> String {
     value.replace('\\', "\\\\").replace('"', "\\\"")
-}
-
-fn parse_pulse_curl_output(output: &[u8]) -> Result<PulseRunnerResponse, String> {
-    let output = String::from_utf8(output.to_vec())
-        .map_err(|_| "Pulse runner returned a non-UTF-8 response.".to_string())?;
-    let (body, status) = output
-        .rsplit_once(PULSE_CURL_STATUS_MARKER)
-        .ok_or("Pulse runner response did not include an HTTP status.")?;
-    let status = status.trim().parse::<u16>().map_err(|_| "Pulse runner returned an invalid HTTP status.")?;
-    let body = serde_json::from_str(body.trim()).unwrap_or_else(|_| serde_json::json!({ "message": body.trim() }));
-    Ok(PulseRunnerResponse { status, body })
-}
-
-fn pulse_runner_request(
-    runner_url: &str,
-    api_token: &str,
-    method: &str,
-    path: &str,
-    completion_note: Option<&str>,
-) -> Result<PulseRunnerResponse, String> {
-    let runner_url = normalize_pulse_runner_url(runner_url)?;
-    validate_pulse_api_token(api_token)?;
-    let mut command = Command::new("curl");
-    command
-        .args(["--config", "-", "--silent", "--show-error", "--max-time", "15", "--request", method, "--write-out", &format!("{PULSE_CURL_STATUS_MARKER}%{{http_code}}")])
-        .arg(format!("{runner_url}{path}"))
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-    let mut child = command.spawn().map_err(|error| format!("Could not reach Pulse runner with curl: {error}"))?;
-    let mut config = format!("header = \"Authorization: Bearer {}\"\n", escape_curl_config_value(api_token));
-    if let Some(note) = completion_note {
-        if note.contains(['\r', '\n']) {
-            return Err("Pulse completion note cannot contain line breaks.".into());
-        }
-        config.push_str("header = \"Content-Type: application/x-www-form-urlencoded\"\n");
-        config.push_str(&format!("data-urlencode = \"completionNote={}\"\n", escape_curl_config_value(note)));
-    }
-    child.stdin.take().ok_or("Could not open private Pulse request input.")?
-        .write_all(config.as_bytes()).map_err(|error| format!("Could not send private Pulse request: {error}"))?;
-    let output = child.wait_with_output().map_err(|error| format!("Could not read Pulse runner response: {error}"))?;
-    if !output.status.success() {
-        return Err(format!("Pulse runner request failed: {}", String::from_utf8_lossy(&output.stderr).trim()));
-    }
-    parse_pulse_curl_output(&output.stdout)
-}
-
-#[tauri::command]
-fn pulse_load_snapshot(runner_url: String, api_token: String) -> Result<PulseRunnerResponse, String> {
-    pulse_runner_request(&runner_url, &api_token, "GET", "/api/v1/snapshot", None)
-}
-
-#[tauri::command]
-fn pulse_mark_done(
-    runner_url: String,
-    api_token: String,
-    occurrence_id: String,
-    completion_note: Option<String>,
-) -> Result<PulseRunnerResponse, String> {
-    if occurrence_id.is_empty() || occurrence_id.contains('/') {
-        return Err("Pulse occurrence id is invalid.".into());
-    }
-    let encoded_occurrence = occurrence_id.replace(':', "%3A");
-    pulse_runner_request(
-        &runner_url,
-        &api_token,
-        "POST",
-        &format!("/api/v1/occurrences/{encoded_occurrence}/done"),
-        completion_note.as_deref(),
-    )
 }
 
 #[tauri::command]
@@ -1709,6 +1840,23 @@ fn read_configured_markdown_sources(
     config_file: String,
 ) -> Result<Vec<ConfiguredMarkdownSourceMetadata>, String> {
     configured_markdown_source_metadata_from_root(&workspace_root, &config_file)
+}
+
+#[tauri::command]
+fn read_secure_service_metadata(
+    workspace_root: String,
+    config_file: String,
+) -> Result<SecureServiceMetadata, String> {
+    secure_service_metadata_from_root(&workspace_root, &config_file)
+}
+
+#[tauri::command]
+fn request_configured_secure_service(
+    workspace_root: String,
+    config_file: String,
+    request: SecureServiceRequest,
+) -> Result<SecureServiceResponse, String> {
+    request_configured_secure_service_from_root(&workspace_root, &config_file, request)
 }
 
 #[tauri::command]
@@ -1790,8 +1938,8 @@ pub fn run() {
             redline_fetch_live_url,
             redline_write_target_snapshot_files,
             redline_write_packet_files,
-            pulse_load_snapshot,
-            pulse_mark_done,
+            read_secure_service_metadata,
+            request_configured_secure_service,
             read_configured_markdown_sources,
             read_configured_markdown_source,
             start_configured_markdown_watch
@@ -1821,30 +1969,6 @@ mod tests {
             .expect("system time should be after epoch")
             .as_nanos();
         std::env::temp_dir().join(format!("workshop-redline-{label}-{nanos}"))
-    }
-
-    #[test]
-    fn pulse_proxy_accepts_only_local_tunnel_urls_and_private_tokens() {
-        assert_eq!(
-            normalize_pulse_runner_url("http://127.0.0.1:8787/").expect("local tunnel should be accepted"),
-            "http://127.0.0.1:8787"
-        );
-        assert_eq!(
-            normalize_pulse_runner_url("https://lindsay-pulse-reminders.netlify.app").expect("configured Netlify site should be accepted"),
-            "https://lindsay-pulse-reminders.netlify.app"
-        );
-        assert!(normalize_pulse_runner_url("https://runner.example").is_err());
-        assert!(normalize_pulse_runner_url("http://127.0.0.1:8787/path").is_err());
-        assert!(validate_pulse_api_token("short").is_err());
-        assert!(validate_pulse_api_token("a-private-pulse-token-with-32-characters").is_ok());
-    }
-
-    #[test]
-    fn pulse_proxy_preserves_http_status_and_json_body() {
-        let parsed = parse_pulse_curl_output(b"{\"state\":\"ok\"}\n__WORKSHOP_PULSE_STATUS__=200")
-            .expect("response should parse");
-        assert_eq!(parsed.status, 200);
-        assert_eq!(parsed.body["state"], "ok");
     }
 
     #[test]
@@ -1926,6 +2050,90 @@ mod tests {
         );
 
         let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn secure_service_config_exposes_metadata_without_a_credential_value() {
+        let config = parse_secure_service_config(
+            r#"{"version":1,"endpoint":"https://service.example","credentialRef":"private-token"}"#,
+        )
+        .expect("secure service config should parse");
+        let metadata = SecureServiceMetadata {
+            version: config.version,
+            endpoint: parse_secure_service_endpoint(&config.endpoint).expect("endpoint should normalize"),
+            credential_ref: config.credential_ref,
+        };
+        let serialized = serde_json::to_string(&metadata).expect("metadata should serialize");
+
+        assert!(serialized.contains("https://service.example"));
+        assert!(serialized.contains("private-token"));
+        assert!(!serialized.contains("Bearer"));
+        assert!(parse_secure_service_config(r#"{"version":1,"endpoint":"https://service.example/api","credentialRef":"x"}"#).is_err());
+        assert!(parse_secure_service_config(r#"{"version":2,"endpoint":"https://service.example","credentialRef":"x"}"#).is_err());
+    }
+
+    #[test]
+    fn secure_service_requests_are_constrained_and_redact_credentials() {
+        let request = SecureServiceRequest {
+            method: "POST".into(),
+            path: "/api/v1/items".into(),
+            body: Some(serde_json::json!({ "name": "item" })),
+        };
+        assert!(validate_secure_service_request(&request).is_ok());
+        assert!(validate_secure_service_request(&SecureServiceRequest { method: "PUT".into(), path: "/api/v1/items".into(), body: None }).is_err());
+        assert!(validate_secure_service_request(&SecureServiceRequest { method: "GET".into(), path: "https://service.example/api".into(), body: None }).is_err());
+        assert!(validate_secure_service_request(&SecureServiceRequest { method: "GET".into(), path: "/api/../secrets".into(), body: None }).is_err());
+
+        let response = parse_secure_service_response(
+            b"{\"message\":\"token-should-not-escape\"}\n__WORKSHOP_SECURE_SERVICE_STATUS__=401",
+            "token-should-not-escape",
+        )
+        .expect("response should parse");
+        let serialized = serde_json::to_string(&response).expect("response should serialize");
+        assert!(serialized.contains("[redacted]"));
+        assert!(!serialized.contains("token-should-not-escape"));
+    }
+
+    #[test]
+    fn secure_service_config_rejects_repository_roots() {
+        let root = unique_temp_root("secure-service-repository-root");
+        fs::create_dir_all(root.join(".git")).expect("git marker should be created");
+        fs::write(
+            root.join("service.config.json"),
+            r#"{"version":1,"endpoint":"https://service.example","credentialRef":"private-token"}"#,
+        )
+        .expect("config should be written");
+
+        assert!(secure_service_metadata_from_root(
+            root.to_str().expect("root should be utf8"),
+            "service.config.json",
+        )
+        .is_err());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn secure_service_config_rejects_symlinked_roots() {
+        use std::os::unix::fs::symlink;
+
+        let target = unique_temp_root("secure-service-root-target");
+        let link = unique_temp_root("secure-service-root-link");
+        fs::create_dir_all(&target).expect("target root should be created");
+        fs::write(
+            target.join("service.config.json"),
+            r#"{"version":1,"endpoint":"https://service.example","credentialRef":"private-token"}"#,
+        )
+        .expect("config should be written");
+        symlink(&target, &link).expect("symlink should be created");
+
+        assert!(secure_service_metadata_from_root(
+            link.to_str().expect("link should be utf8"),
+            "service.config.json",
+        )
+        .is_err());
+        let _ = fs::remove_file(link);
+        let _ = fs::remove_dir_all(target);
     }
 
     #[test]

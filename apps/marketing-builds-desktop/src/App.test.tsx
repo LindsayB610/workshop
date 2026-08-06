@@ -11,7 +11,7 @@ const appSource = readFileSync(path.join(testDir, "App.tsx"), "utf8");
 const workbenchShellSource = readFileSync(path.join(testDir, "app-shell/WorkbenchShell.tsx"), "utf8");
 
 describe("Workshop desktop app", () => {
-  it("opens to an empty shelf with ready Slate available to install", () => {
+  it("opens to an empty shelf with ready external tools available to install", () => {
     const markup = renderToStaticMarkup(<App />);
 
     expect(markup).toContain("Marketing builds");
@@ -19,10 +19,10 @@ describe("Workshop desktop app", () => {
     expect(markup).toContain("Add New Tools");
     expect(markup).toContain("Choose apps from Add New Tools.");
     expect(markup).toContain("Slate");
+    expect(markup).toContain("Pulse");
     expect(markup).toContain("Install");
     expect(markup).not.toContain("Redline");
     expect(markup).not.toContain("Megaphone");
-    expect(markup).not.toContain("Pulse");
     expect(markup).not.toContain(["clients", ["para", "sail"].join("")].join("/"));
     expect(markup).not.toContain("Export Reports");
     expect(markup).not.toContain("Updates check on launch.");

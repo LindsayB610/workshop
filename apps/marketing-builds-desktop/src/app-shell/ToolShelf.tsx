@@ -183,7 +183,7 @@ function ToolChiclet({
   onSetWorkspace: () => void;
   workspaceSelection: ToolWorkspaceSelection;
 }) {
-  const isConnectionTool = tool.privateWorkspace.kind === "connection";
+  const isToolConfigured = ["connection", "plugin-config"].includes(tool.privateWorkspace.kind);
 
   return (
     <article className="tool-chiclet-wrap">
@@ -211,8 +211,8 @@ function ToolChiclet({
             View docs
           </a>
           <p className="tool-workspace-menu-summary">
-            {isConnectionTool ? (
-              "Private connection: session-only over the local SSH tunnel."
+            {isToolConfigured ? (
+              "Private configuration is selected and managed inside this tool."
             ) : (
               <>
                 {workspaceSelection.mode === "external" ? "Private root" : "Demo root"}:{" "}
@@ -220,7 +220,7 @@ function ToolChiclet({
               </>
             )}
           </p>
-          {!isConnectionTool ? <>
+          {!isToolConfigured ? <>
             <button type="button" role="menuitem" onClick={onChooseWorkspace}>
               <FolderOpen size={15} aria-hidden="true" />
               <span>Open workspace</span>

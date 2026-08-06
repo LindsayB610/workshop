@@ -77,7 +77,7 @@ async function createFixtureRepo() {
   writeFileSync(
     path.join(root, "README.md"),
     [
-      "install Slate from **Add New Tools**",
+      "install Slate or Pulse from **Add New Tools**",
       "npm ci",
       "npm test",
       "npm run public:check",

@@ -1,4 +1,5 @@
 import type { ToolManifest } from "./types";
+import { workshopPluginDeclaration as pulsePluginDeclaration } from "@marketing-builds/pulse/workshop-plugin";
 import { workshopPluginDeclaration } from "slate-core";
 
 export const toolManifests: ToolManifest[] = [
@@ -7,6 +8,20 @@ export const toolManifests: ToolManifest[] = [
     defaultWorkspaceRoot: "",
     requiredLocalCapabilities: [...workshopPluginDeclaration.requiredLocalCapabilities],
     navigationMode: "plugin",
+  },
+  {
+    ...pulsePluginDeclaration,
+    defaultWorkspaceRoot: "",
+    routes: pulsePluginDeclaration.routes.map((route) => ({ ...route })),
+    requiredLocalCapabilities: [...pulsePluginDeclaration.requiredLocalCapabilities],
+    dataRoots: [...pulsePluginDeclaration.dataRoots],
+    importActions: [...pulsePluginDeclaration.importActions],
+    exportActions: [...pulsePluginDeclaration.exportActions],
+    navigationMode: "plugin",
+    privateWorkspace: {
+      kind: pulsePluginDeclaration.privateWorkspace.kind,
+      requiredFields: [...pulsePluginDeclaration.privateWorkspace.requiredFields],
+    },
   },
   {
     id: "redline",
@@ -68,29 +83,6 @@ export const toolManifests: ToolManifest[] = [
     status: "planned",
     runtime: { kind: "bridge-cli", entryPoint: "@megaphone/core/bridgeCli" },
     privateWorkspace: { kind: "client-index", requiredFields: ["workspace.yaml", "client.yaml"] },
-  },
-  {
-    id: "pulse",
-    displayName: "Pulse",
-    description: "Track persistent recurring obligations that keep notifying until done.",
-    docsPath: "/docs/tools/pulse.md",
-    defaultWorkspaceRoot: "",
-    workspaceRequirement: "Needs a local SSH tunnel to a private Pulse runner and a session-only API token; config, state, and ntfy credentials stay outside Workshop.",
-    uninstallSafetyCopy: "Disabling Pulse hides the Workshop UI only. Your private Pulse runner and state stay untouched.",
-    routes: [
-      { id: "active", label: "Active", path: "/pulse/active", sectionId: "pulse-active" },
-      { id: "schedule", label: "Schedule", path: "/pulse/schedule", sectionId: "pulse-schedule" },
-      { id: "history", label: "History", path: "/pulse/history", sectionId: "pulse-history" },
-      { id: "runner", label: "Runner", path: "/pulse/runner", sectionId: "pulse-runner" },
-    ],
-    navigationMode: "host",
-    requiredLocalCapabilities: ["local-workspace", "connector-status", "run-history"],
-    dataRoots: ["tools/pulse"],
-    importActions: [],
-    exportActions: [],
-    status: "planned",
-    runtime: { kind: "native-bridge", entryPoint: "pulse_load_snapshot/pulse_mark_done" },
-    privateWorkspace: { kind: "connection", requiredFields: [] },
   },
 ];
 

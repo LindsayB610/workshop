@@ -21,7 +21,7 @@ describe("tool install state", () => {
     expect(state.enabledToolIds).toEqual([]);
     expect(getInstalledTools(tools, state)).toEqual([]);
     expect(getAvailableBundledTools(tools, state).map((tool) => tool.id)).toEqual(["slate"]);
-    expect(getAvailableTools(tools, state).map((tool) => tool.id)).toEqual(["slate"]);
+    expect(getAvailableTools(tools, state).map((tool) => tool.id)).toEqual(["slate", "pulse"]);
   });
 
   it("removes unpromoted tools from persisted install state", () => {
@@ -30,10 +30,10 @@ describe("tool install state", () => {
         schemaVersion: 4,
         enabledToolIds: ["redline", "pulse", "unknown", "redline"],
       }),
-    ).toEqual({ schemaVersion: 4, enabledToolIds: [] });
+    ).toEqual({ schemaVersion: 4, enabledToolIds: ["pulse"] });
   });
 
-  it("does not revive legacy installs before their tools are promoted", () => {
+  it("restores only tools that are currently promoted", () => {
     expect(
       normalizeToolInstallState(tools, {
         enabledToolIds: [],
@@ -43,7 +43,7 @@ describe("tool install state", () => {
       normalizeToolInstallState(tools, {
         enabledToolIds: ["pulse"],
       }),
-    ).toEqual({ schemaVersion: 4, enabledToolIds: [] });
+    ).toEqual({ schemaVersion: 4, enabledToolIds: ["pulse"] });
   });
 
   it("does not add planned tools during the version-three install-state migration", () => {
@@ -52,7 +52,7 @@ describe("tool install state", () => {
         schemaVersion: 3,
         enabledToolIds: ["redline", "pulse"],
       }),
-    ).toEqual({ schemaVersion: 4, enabledToolIds: [] });
+    ).toEqual({ schemaVersion: 4, enabledToolIds: ["pulse"] });
     expect(
       normalizeToolInstallState(tools, {
         schemaVersion: 3,
@@ -67,7 +67,7 @@ describe("tool install state", () => {
     });
 
     expect(getInstalledTools(tools, state)).toEqual([]);
-    expect(getAvailableTools(tools, state).map((tool) => tool.id)).toEqual(["slate"]);
+    expect(getAvailableTools(tools, state).map((tool) => tool.id)).toEqual(["slate", "pulse"]);
   });
 
   it("refuses to install an unpromoted bundled app", () => {
@@ -84,12 +84,12 @@ describe("tool install state", () => {
     expect(getAvailableBundledTools(tools, disabled.state).map((tool) => tool.id)).toEqual(["slate"]);
   });
 
-  it("refuses to install an unpromoted external app launcher", () => {
+  it("allows a ready external app launcher to be installed", () => {
     const initialState = defaultToolInstallState(tools);
     const installed = enableTool(tools, initialState, "pulse");
 
     expect(installed.workspaceFilesTouched).toBe(false);
-    expect(getInstalledTools(tools, installed.state)).toEqual([]);
+    expect(getInstalledTools(tools, installed.state).map((tool) => tool.id)).toEqual(["pulse"]);
     expect(getAvailableTools(tools, installed.state).map((tool) => tool.id)).toEqual(["slate"]);
   });
 
@@ -99,7 +99,7 @@ describe("tool install state", () => {
 
     expect(installed.workspaceFilesTouched).toBe(false);
     expect(getInstalledTools(tools, installed.state).map((tool) => tool.id)).toEqual(["slate"]);
-    expect(getAvailableTools(tools, installed.state)).toEqual([]);
+    expect(getAvailableTools(tools, installed.state).map((tool) => tool.id)).toEqual(["pulse"]);
   });
 
   it("resets only namespaced local UI state for one tool", () => {

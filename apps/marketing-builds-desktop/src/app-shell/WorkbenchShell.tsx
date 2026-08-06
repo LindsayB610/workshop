@@ -15,6 +15,8 @@ const capabilityLabels: Record<ToolCapability, string> = {
   "connector-status": "Connector status",
   "run-history": "Run history",
   "report-export": "Report export",
+  "read_secure_service_metadata": "Secure service metadata",
+  "request_configured_secure_service": "Secure service requests",
 };
 
 const readyCapabilities = new Set<ToolCapability>(["local-workspace", "run-history"]);
@@ -72,6 +74,8 @@ export function WorkbenchShell({
     dispatchWorkbenchRouteSelected(activeTool.id, route);
   }
 
+  const shouldShowRouteNav = showRouteNav && activeTool.navigationMode === "host";
+
   return (
     <div className="workbench-shell">
       <main className="shell-main">
@@ -90,7 +94,7 @@ export function WorkbenchShell({
             </div>
           </div>
         </header>
-        {showRouteNav ? <nav className="workbench-route-nav" aria-label={`${activeTool.displayName} functions`}>
+        {shouldShowRouteNav ? <nav className="workbench-route-nav" aria-label={`${activeTool.displayName} functions`}>
           {activeTool.routes.map((route) => {
             return (
               <button

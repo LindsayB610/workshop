@@ -27,6 +27,7 @@
     "node": ">=20"
   },
   "dependencies": {
-    "slate-core": "git+https://github.com/LindsayB610/slate.git#79d0d4514503808573e91285bdc4f9a0ea63c3f2"
+    "slate-core": "github:LindsayB610/slate#48446d9c3467c0a26f1b3aa084fa76f6253fa6bb",
+    "@marketing-builds/pulse": "git+https://github.com/LindsayB610/pulse.git#25e146bdf98a717aa537da629a1aefe6606e65e2"
   }
 }

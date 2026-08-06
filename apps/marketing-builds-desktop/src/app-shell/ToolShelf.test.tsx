@@ -74,7 +74,7 @@ describe("ToolShelf", () => {
     expect(markup).toContain("Megaphone tool actions");
   });
 
-  it("treats Pulse as a session-only private connection, not a workspace", () => {
+  it("treats Pulse as a plugin-configured tool, not a shared workspace", () => {
     const pulse = tools.find((tool) => tool.id === "pulse");
     if (!pulse) {
       throw new Error("Expected Pulse tool.");
@@ -84,7 +84,7 @@ describe("ToolShelf", () => {
       <ToolShelf installedTools={[pulse]} onSelectTool={() => undefined} />,
     );
 
-    expect(markup).toContain("Private connection: session-only over the local SSH tunnel.");
+    expect(markup).toContain("Private configuration is selected and managed inside this tool.");
     expect(markup).not.toContain("Open workspace");
     expect(markup).not.toContain("Set private workspace");
     expect(markup).not.toContain("Use demo workspace");

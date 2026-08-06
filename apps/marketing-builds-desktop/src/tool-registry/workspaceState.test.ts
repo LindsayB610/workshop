@@ -19,7 +19,7 @@ const workspaceExamplePath = fileURLToPath(
 );
 
 describe("tool workspace state", () => {
-  it("defaults registered tools to their declared public-safe demo roots or connection mode", () => {
+  it("defaults registered tools to their declared public-safe demo roots or tool-owned configuration", () => {
     const state = defaultToolWorkspaceState(tools);
 
     expect(getWorkspaceSelection(tools, state, "redline")).toMatchObject({
@@ -33,7 +33,7 @@ describe("tool workspace state", () => {
     expect(getWorkspaceSelection(tools, state, "pulse")).toMatchObject({
       mode: "connection",
       root: "",
-      label: "Session-only private runner connection",
+      label: "Configured in the tool",
     });
     expect(JSON.stringify(state).toLowerCase()).not.toContain(privateClientId);
   });
@@ -82,7 +82,7 @@ describe("tool workspace state", () => {
     });
   });
 
-  it("discards a legacy Pulse workspace path in favor of its session-only connection", () => {
+  it("discards a legacy Pulse workspace path in favor of its plugin-owned configuration", () => {
     const state = normalizeToolWorkspaceState(tools, {
       selections: [{
         toolId: "pulse",
@@ -96,7 +96,7 @@ describe("tool workspace state", () => {
     expect(getWorkspaceSelection(tools, state, "pulse")).toMatchObject({
       mode: "connection",
       root: "",
-      label: "Session-only private runner connection",
+      label: "Configured in the tool",
     });
   });
 

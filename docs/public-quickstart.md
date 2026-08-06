@@ -21,8 +21,8 @@ npm run desktop:dev
 ```
 
 Open the local address Vite prints. An empty shelf is normal for a fresh
-installation. Select **Add New Tools**, install **Slate**, and open it from the
-shelf.
+installation. Select **Add New Tools**, install **Slate** or **Pulse**, and
+open it from the shelf.
 
 ## 3. Try Slate With Local-Only Data
 
@@ -33,6 +33,11 @@ supported views, and privacy rules.
 
 Workshop does not ship a Slate data set. This keeps the public repository free
 of personal inventories and makes Slate useful with your own reference files.
+
+Pulse follows the same private-folder pattern: select a folder containing its
+public-safe `pulse.config.json`, then complete Pulse's own setup. Its endpoint
+metadata is shared with Pulse, but the matching credential stays in the
+operating-system keychain.
 
 ## 4. Understand The Included Demo Material
 

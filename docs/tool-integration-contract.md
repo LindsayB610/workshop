@@ -13,7 +13,7 @@ callback.
 | --- | --- | --- | --- |
 | Redline | `bundled-core` | `@redline/core` | `workspace.yaml`, then a selected client `client.yaml` |
 | Megaphone | `bridge-cli` | `@megaphone/core/bridgeCli` | `workspace.yaml`, then a selected client `client.yaml` |
-| Pulse | `external-runner` | `@marketing-builds/pulse` | Private runner URL plus API bearer token; runner owns `pulses.yaml`, `.env`, and state |
+| Pulse | `generic-secure-service` | `@marketing-builds/pulse/workshop-plugin` | A private `pulse.config.json`; Workshop returns safe metadata and performs constrained credentialed requests. |
 
 The shell owns navigation, presentation, install state, and the constrained
 native adapter. A tool owns its domain behavior, data contracts, and generated
@@ -26,11 +26,10 @@ local artifacts. The shell must not import or persist private client data.
   package must preserve this manifest entry point and pass the adapter tests.
 - `bridge-cli` invokes the standalone Megaphone bridge through Workshop's
   constrained native layer; it does not copy Megaphone corpora into Workshop.
-- `external-runner` means Workshop owns the Pulse management UI while Pulse
-  remains the source of truth for schedules, credentials, Android push delivery,
-  and state. Workshop uses Pulse's authenticated `/api/v1/snapshot` and
-  `/api/v1/occurrences/:id/done` contract; it must not copy runner state into
-  the Workshop repository or persist the API bearer token.
+- `generic-secure-service` gives an external plugin safe service metadata and
+  constrained requests without returning the credential. Pulse owns its
+  management UI, schedules, Android push delivery, runner, and state; Workshop
+  must not copy runner state into its repository or persist the credential.
 - Slate is consumed from its own package and uses Workshop's generic configured
   Markdown capabilities. Its private `slate.config.json` may declare any number
   of local Markdown sources; Workshop returns source metadata without exposing

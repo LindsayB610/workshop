@@ -89,8 +89,13 @@ points to an existing Markdown file.
 - Slate can read only the files explicitly declared in `slate.config.json`.
   It does not search nearby folders or fall back to unrelated data.
 
-Redline, Megaphone, and Pulse are registered as future tools but are not
-available in the public Workshop catalog yet. See
+Pulse is also available from **Add New Tools**. Select the private folder that
+contains `pulse.config.json`, then use Pulse's own connection screen. Workshop
+returns only safe service metadata to Pulse and keeps the configured credential
+in the operating-system keychain; the Pulse package owns its runner, reminder
+data, and management UI.
+
+Redline and Megaphone remain registered as future tools. See
 [private-workspaces.md](private-workspaces.md) for the broader private-data
 layout and [troubleshooting-public-workspaces.md](troubleshooting-public-workspaces.md)
 for help with local workspace issues.

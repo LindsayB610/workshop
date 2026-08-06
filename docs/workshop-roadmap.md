@@ -255,7 +255,7 @@ that release flow on 2026-07-21; Workshop v0.1.27 was published successfully.
 | --- | --- | --- |
 | Redline | Bundled `@redline/core` | Client packets remain in the selected private workspace. |
 | Megaphone | Native `@megaphone/core/bridgeCli` adapter | Corpora and generated post packages remain private. |
-| Pulse | Native bridge over a local SSH tunnel | Runner definitions, credentials, and state remain in Pulse’s private runner; Workshop keeps only session connection inputs in memory. |
+| Pulse | External `@marketing-builds/pulse/workshop-plugin` using the generic secure-service host capability | Pulse owns its UI, runner, definitions, credentials, and state. Workshop returns only safe metadata and makes constrained credentialed requests. |
 
 Any change to these contracts requires a manifest test, affected tool tests, and
 an updated private-workspace doc where behavior changes.

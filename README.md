@@ -24,15 +24,15 @@ Choose the path that fits how you will use Workshop:
 
 ## What a Fresh Install Contains
 
-The repository contains these registered tools. Slate is ready as an optional
-install; the remaining tools are still planned:
+The repository contains these registered tools. Slate and Pulse are ready as
+optional installs; the remaining tools are still planned:
 
 | Tool | Availability | Purpose | Private input boundary |
 | --- | --- | --- | --- |
 | Slate | Available from **Add New Tools** | Configurable local Markdown reference views | A private `slate.config.json` declares the Markdown files and views. |
 | Redline | Planned | Source-backed page and draft review | A private client workspace containing packets, snapshots, and reports. |
 | Megaphone | Planned | Campaign planning and post-package workflows | A private client corpus and generated post packages. |
-| Pulse | Planned | Persistent recurring-obligation view | A local SSH tunnel to a private runner plus a session-only API token. |
+| Pulse | Available from **Add New Tools** | Persistent recurring-obligation view | A private `pulse.config.json`; its credential remains in the operating-system keychain. |
 
 The public repository includes fictional Redline and Megaphone demos and empty
 templates. It does **not** include real client data, Slate inventories, Pulse
@@ -67,7 +67,7 @@ npm run desktop:dev
 ```
 
 Open the local address Vite prints. Seeing an empty shelf is expected until you
-install Slate from **Add New Tools**.
+install Slate or Pulse from **Add New Tools**.
 
 ## Promote a Tool in Your Fork
 
@@ -99,6 +99,8 @@ Keep real data outside this repository. A practical layout is:
     acme-megaphone/
   slate/
     slate.config.json
+  pulse/
+    pulse.config.json
 ```
 
 Use `clients/template-redline/` and `clients/template-megaphone/` as starting
@@ -110,9 +112,10 @@ After you promote Redline or Megaphone, use that tool’s menu to select the
 private workspace root—the folder that contains `clients/`, not an individual
 client folder. Slate reads only the source paths declared in its private
 configuration; the complete user setup is in
-[Using Workshop](docs/using-workshop.md). Pulse does not use a Workshop workspace root; it connects to
-your private runner through a local tunnel and retains its token only for the
-active session.
+[Using Workshop](docs/using-workshop.md). Pulse is also configured in its own
+private folder. Workshop reads only its declared service metadata and retrieves
+the matching credential from the operating-system keychain when Pulse requests
+a constrained service call.
 
 Never commit private workspaces, credentials, source snapshots, generated
 reports, post packages, personal inventories, or filled-in configuration.

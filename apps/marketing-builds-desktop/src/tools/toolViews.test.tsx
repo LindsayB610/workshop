@@ -40,19 +40,14 @@ describe("tool views", () => {
       throw new Error("Pulse tool is not registered.");
     }
 
-    const activeMarkup = renderToStaticMarkup(<ToolView activeRouteId="active" tool={pulse} />);
-    const runnerMarkup = renderToStaticMarkup(<ToolView activeRouteId="runner" tool={pulse} />);
+    const activeMarkup = renderToStaticMarkup(<ToolView activeRouteId="reminders" tool={pulse} />);
+    const settingsMarkup = renderToStaticMarkup(<ToolView activeRouteId="settings" tool={pulse} />);
 
     expect(activeMarkup).toContain("Pulse");
-    expect(activeMarkup).toContain("Due occurrences");
-    expect(activeMarkup).toContain("Runner URL");
-    expect(activeMarkup).toContain("Load live state");
-    expect(activeMarkup).toContain("Android push via ntfy");
-    expect(activeMarkup).toContain("/docs/tools/pulse.md");
-    expect(runnerMarkup).toContain("Runner status");
-    expect(runnerMarkup).toContain("Private runner");
-    expect(runnerMarkup).toContain("Last checked");
-    expect(runnerMarkup).not.toContain("empty-tool");
+    expect(activeMarkup).toContain("Persistent reminders are acknowledged from Android");
+    expect(activeMarkup).not.toContain("Service URL");
+    expect(settingsMarkup).toContain('aria-label="Pulse private folder"');
+    expect(settingsMarkup).toContain("Connect Pulse");
   });
 
   it("renders the external Slate plugin through the shared adapter", () => {

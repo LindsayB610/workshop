@@ -1,9 +1,9 @@
 import type { ComponentType } from "react";
+import { WorkshopToolView as PulseWorkshopToolView } from "@marketing-builds/pulse/workshop-plugin";
 import { WorkshopToolView as SlateWorkshopToolView } from "slate-core";
 import { getToolById } from "../tool-registry/tools";
 import type { ToolDefinition } from "../tool-registry/types";
 import { MegaphoneTool } from "./megaphone/MegaphoneTool";
-import { PulseTool } from "./pulse/PulseTool";
 import { RedlineTool } from "./redline/RedlineTool";
 import { ToolPlaceholder } from "./ToolPlaceholder";
 import type { ToolViewProps } from "./types";
@@ -35,7 +35,7 @@ function adaptExternalToolView(
 
 const toolViewById: Record<string, ComponentType<ToolViewProps>> = {
   megaphone: MegaphoneTool,
-  pulse: PulseTool,
+  pulse: adaptExternalToolView(PulseWorkshopToolView),
   redline: RedlineTool,
   slate: adaptExternalToolView(SlateWorkshopToolView),
 };

@@ -63,9 +63,11 @@ export function defaultToolWorkspaceState(toolList: ToolDefinition[]): ToolWorks
   return {
     selections: toolList.map((tool) => ({
       toolId: tool.id,
-      mode: tool.privateWorkspace.kind === "connection" ? "connection" : "demo",
+      mode: ["connection", "plugin-config"].includes(tool.privateWorkspace.kind) ? "connection" : "demo",
       root: defaultWorkspaceRootForTool(tool),
-      label: tool.privateWorkspace.kind === "connection" ? "Session-only private runner connection" : "Bundled demo workspace",
+      label: ["connection", "plugin-config"].includes(tool.privateWorkspace.kind)
+        ? "Configured in the tool"
+        : "Bundled demo workspace",
       updatedAt: "1970-01-01T00:00:00.000Z",
     })),
   };
@@ -217,9 +219,9 @@ export function normalizeToolWorkspaceState(
         continue;
       }
 
-      // Connection-only tools do not have a workspace root. Discard any legacy
-      // stored path rather than carrying it into the session-only contract.
-      if (tool.privateWorkspace.kind === "connection") {
+      // Tool-owned configuration does not use a shared Workshop workspace root.
+      // Discard legacy stored paths rather than carrying them into that contract.
+      if (["connection", "plugin-config"].includes(tool.privateWorkspace.kind)) {
         continue;
       }
 

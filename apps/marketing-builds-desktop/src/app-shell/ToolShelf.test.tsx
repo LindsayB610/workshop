@@ -118,8 +118,8 @@ describe("ToolShelf", () => {
     expect(styles).toContain("display: none;");
   });
 
-  it("uses a neutral, accessible button edge for Add New Tools", () => {
-    expect(styles).toContain(".add-tools-button {\n  width: fit-content;\n  appearance: none;\n  border: 0;");
+  it("removes the shared transparent button border from Add New Tools", () => {
+    expect(styles).toContain(".mb-button.add-tools-button {\n  border: 0;");
     expect(styles).toContain(".add-tools-button:focus-visible");
     expect(styles).toContain("outline: 2px solid var(--color-yellow);");
   });

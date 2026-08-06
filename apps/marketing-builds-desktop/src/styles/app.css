@@ -321,7 +321,6 @@ h4 {
 .add-tools-button {
   width: fit-content;
   appearance: none;
-  border: 0;
 }
 
 .add-tools-button:focus-visible {
@@ -1029,6 +1028,12 @@ h4 {
 .mb-button-primary {
   background: var(--gradient-main);
   color: white;
+}
+
+/* Must follow .mb-button: its transparent border otherwise exposes the button
+   gradient as a one-pixel fringe around this rounded, full-bleed control. */
+.mb-button.add-tools-button {
+  border: 0;
 }
 
 .mb-button-secondary {

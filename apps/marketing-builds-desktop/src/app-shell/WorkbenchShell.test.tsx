@@ -1,7 +1,13 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { getToolById } from "../tool-registry/tools";
 import { WorkbenchShell } from "./WorkbenchShell";
+
+const testDir = path.dirname(fileURLToPath(import.meta.url));
+const styles = readFileSync(path.join(testDir, "../styles/app.css"), "utf8");
 
 describe("WorkbenchShell", () => {
   it("renders active tool routes as shared workbench navigation", () => {
@@ -103,5 +109,11 @@ describe("WorkbenchShell", () => {
     expect(markup).not.toContain("aria-label=\"Pulse functions\"");
     expect(markup).not.toContain("data-route-path=\"/pulse/");
     expect(markup).toContain("Pulse body");
+  });
+
+  it("gives every tool view a shared, responsive left reading inset", () => {
+    expect(styles).toContain("--workshop-app-left-inset: clamp(2.5rem, 5vw, 5rem);");
+    expect(styles).toContain("padding: 1rem 1.25rem 1rem var(--workshop-app-left-inset);");
+    expect(styles).toContain(".shell-main,\n  .tool-shelf-screen {\n    padding: 0.75rem;");
   });
 });

@@ -14,6 +14,7 @@
   --dark-text: #ffffff;
   --dark-text-secondary: #cccccc;
   --dark-text-muted: #888888;
+  --workshop-app-left-inset: clamp(2.5rem, 5vw, 5rem);
   --gradient-main: linear-gradient(
     135deg,
     var(--color-red) 0%,
@@ -749,7 +750,7 @@ h4 {
 
 .shell-main {
   min-width: 0;
-  padding: 1rem 1.25rem;
+  padding: 1rem 1.25rem 1rem var(--workshop-app-left-inset);
 }
 
 .shell-header {

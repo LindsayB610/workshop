@@ -38,7 +38,7 @@ describe("SettingsPanelView", () => {
     );
 
     expect(markup).not.toContain("update-available-button");
-    expect(markup).toContain("You’re up to date");
+    expect(markup).toContain("you&#x27;re up to date");
     expect(markup).not.toContain("not_available");
     expect(markup).toContain("Updates check on launch and restart after install.");
   });
@@ -111,5 +111,6 @@ describe("SettingsPanelView", () => {
     expect(styles).toMatch(/\.update-available-button\s*\{[^}]*background:\s*#ffe600[^}]*box-shadow:\s*0 7px 24px rgba\(255, 230, 0, 0\.14\)/s);
     expect(styles).toMatch(/\.update-available-button:hover:not\(:disabled\)\s*\{[^}]*background:\s*#fff04a/s);
     expect(styles).toMatch(/\.update-available-button:active:not\(:disabled\)\s*\{[^}]*transform:\s*translateY\(1px\)/s);
+    expect(styles).toMatch(/\.settings-panel\s*\{[^}]*max-width:\s*65rem/s);
   });
 });

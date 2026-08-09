@@ -16,7 +16,7 @@ const updateStatusLabels: Record<WorkshopUpdateState["status"], string> = {
   idle: "Waiting to check",
   checking: "Checking for updates",
   available: "Update ready",
-  not_available: "You’re up to date",
+  not_available: "you're up to date",
   downloading: "Downloading update",
   installing: "Installing update",
   installed: "Updated",

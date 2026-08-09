@@ -4,8 +4,9 @@ Workshop is a desktop home for small local tools. The app code is public, but
 your working files stay on your computer. A new installation starts with an
 empty shelf by design: install only the tools you want to use.
 
-Slate is the first tool currently available. It displays Markdown files that
-you explicitly list in a private configuration file.
+Slate and Pulse are currently available. Slate displays Markdown files that you
+explicitly list in a private configuration file; Pulse manages recurring
+personal reminders through its own private runner.
 
 ## 1. Keep Workshop Up To Date
 
@@ -89,11 +90,20 @@ points to an existing Markdown file.
 - Slate can read only the files explicitly declared in `slate.config.json`.
   It does not search nearby folders or fall back to unrelated data.
 
-Pulse is also available from **Add New Tools**. Select the private folder that
-contains `pulse.config.json`, then use Pulse's own connection screen. Workshop
+## 6. Install Pulse
+
+1. Open **Add New Tools** and install **Pulse**.
+2. Open Pulse from the shelf.
+3. If asked, select the private folder that contains `pulse.config.json`—for
+   example, `~/Documents/workshop-private/pulse`.
+
+Workshop remembers that folder after a successful connection. Pulse owns its
+dashboard, reminder timing, history, and runner health screens. Workshop
 returns only safe service metadata to Pulse and keeps the configured credential
-in the operating-system keychain; the Pulse package owns its runner, reminder
-data, and management UI.
+in the operating-system keychain; Pulse never receives the credential itself.
+
+For private-runner deployment, Android setup, and backup guidance, use the
+[Pulse repository](https://github.com/LindsayB610/pulse).
 
 Redline and Megaphone remain registered as future tools. See
 [private-workspaces.md](private-workspaces.md) for the broader private-data

@@ -5,9 +5,9 @@ keeps the application code, tests, fictional demos, and templates in this
 repository while keeping real client material, credentials, and personal files
 on the user’s machine.
 
-It is deliberately quiet by default: Slate is available to install, but no tool
-is installed automatically. A fresh install opens to an empty Workshop shelf,
-so each user explicitly chooses when to add Slate.
+It is deliberately quiet by default: Slate and Pulse are available to install,
+but no tool is installed automatically. A fresh install opens to an empty
+Workshop shelf, so each user explicitly chooses which personal apps to add.
 
 ## Start Here
 
@@ -40,8 +40,8 @@ state, credentials, local paths, or private configuration.
 
 ## Set Up From Source
 
-This path is for contributors. If you installed the app and want to use Slate,
-start with [Using Workshop](docs/using-workshop.md) instead.
+This path is for contributors. If you installed the app and want to use Slate
+or Pulse, start with [Using Workshop](docs/using-workshop.md) instead.
 
 ### Prerequisites
 
@@ -113,9 +113,10 @@ private workspace root—the folder that contains `clients/`, not an individual
 client folder. Slate reads only the source paths declared in its private
 configuration; the complete user setup is in
 [Using Workshop](docs/using-workshop.md). Pulse is also configured in its own
-private folder. Workshop reads only its declared service metadata and retrieves
-the matching credential from the operating-system keychain when Pulse requests
-a constrained service call.
+private folder. Its dashboard manages reminders, timing, history, and runner
+health; Workshop reads only declared service metadata and retrieves the matching
+credential from the operating-system keychain when Pulse requests a constrained
+service call.
 
 Never commit private workspaces, credentials, source snapshots, generated
 reports, post packages, personal inventories, or filled-in configuration.
@@ -172,8 +173,8 @@ bin/redline.js                 Redline CLI entry point
 
 - [docs/public-quickstart.md](docs/public-quickstart.md) — demo and local
   development orientation
-- [docs/using-workshop.md](docs/using-workshop.md) — install, update, and Slate
-  setup for app users
+- [docs/using-workshop.md](docs/using-workshop.md) — install, update, Slate,
+  and Pulse setup for app users
 - [docs/private-workspaces.md](docs/private-workspaces.md) — private-workspace
   layout and runtime guardrails
 - [docs/public-clean-clone-install.md](docs/public-clean-clone-install.md) —

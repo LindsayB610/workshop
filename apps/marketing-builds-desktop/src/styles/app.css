@@ -995,14 +995,28 @@ h4 {
 }
 
 .update-available-button {
-  border-color: rgba(37, 99, 235, 0.7);
-  background: #2563eb;
-  color: #fff;
-  box-shadow: 0 14px 32px rgba(37, 99, 235, 0.28);
+  min-height: 2.625rem;
+  border-color: #ffe600;
+  border-radius: 0.6875rem;
+  background: #ffe600;
+  color: #08080a;
+  font-weight: 750;
+  box-shadow: 0 7px 24px rgba(255, 230, 0, 0.14);
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
 
-.update-available-button:hover {
-  background: #1d4ed8;
+.update-available-button:hover:not(:disabled) {
+  border-color: #fff04a;
+  background: #fff04a;
+}
+
+.update-available-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.update-available-button:focus-visible {
+  outline: 3px solid rgba(255, 230, 0, 0.82);
+  outline-offset: 3px;
 }
 
 .mb-button {

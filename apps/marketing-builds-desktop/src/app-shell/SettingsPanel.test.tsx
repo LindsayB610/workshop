@@ -1,9 +1,15 @@
 import { renderToStaticMarkup } from "react-dom/server";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 import { SettingsPanelView } from "./SettingsPanel";
 
+const testDir = dirname(fileURLToPath(import.meta.url));
+const styles = readFileSync(resolve(testDir, "../styles/app.css"), "utf8");
+
 describe("SettingsPanelView", () => {
-  it("shows the blue update button when a signed update is available", () => {
+  it("shows the Pulse-style update button when a signed update is available", () => {
     const markup = renderToStaticMarkup(
       <SettingsPanelView
         updateState={{
@@ -18,6 +24,7 @@ describe("SettingsPanelView", () => {
 
     expect(markup).toContain("update-available-button");
     expect(markup).toContain("Install and restart");
+    expect(markup).toContain("Update ready");
     expect(markup).toContain("v0.2.0 is available");
     expect(markup).toContain("Installing it will restart Workshop.");
   });
@@ -31,6 +38,8 @@ describe("SettingsPanelView", () => {
     );
 
     expect(markup).not.toContain("update-available-button");
+    expect(markup).toContain("You’re up to date");
+    expect(markup).not.toContain("not_available");
     expect(markup).toContain("Updates check on launch and restart after install.");
   });
 
@@ -96,5 +105,11 @@ describe("SettingsPanelView", () => {
 
     expect(markup).toContain("Update installed");
     expect(markup).toContain("Workshop should restart automatically.");
+  });
+
+  it("keeps the update action aligned with Pulse’s primary-button feedback", () => {
+    expect(styles).toMatch(/\.update-available-button\s*\{[^}]*background:\s*#ffe600[^}]*box-shadow:\s*0 7px 24px rgba\(255, 230, 0, 0\.14\)/s);
+    expect(styles).toMatch(/\.update-available-button:hover:not\(:disabled\)\s*\{[^}]*background:\s*#fff04a/s);
+    expect(styles).toMatch(/\.update-available-button:active:not\(:disabled\)\s*\{[^}]*transform:\s*translateY\(1px\)/s);
   });
 });

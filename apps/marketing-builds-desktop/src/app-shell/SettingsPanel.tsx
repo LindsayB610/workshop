@@ -12,6 +12,17 @@ import {
   runStartupWorkshopUpdateCheck,
 } from "./updater/workshopUpdater";
 
+const updateStatusLabels: Record<WorkshopUpdateState["status"], string> = {
+  idle: "Waiting to check",
+  checking: "Checking for updates",
+  available: "Update ready",
+  not_available: "You’re up to date",
+  downloading: "Downloading update",
+  installing: "Installing update",
+  installed: "Updated",
+  error: "Update problem",
+};
+
 export function createPreviewUpdaterClient(): WorkshopUpdaterClient {
   return {
     async check() {
@@ -38,6 +49,7 @@ export function SettingsPanelView({
   onInstallUpdate: () => void;
   visibility?: "always" | "actionable";
 }) {
+  const statusLabel = updateStatusLabels[updateState.status];
   const isActionable =
     updateState.status === "available" ||
     updateState.status === "installing" ||
@@ -61,7 +73,7 @@ export function SettingsPanelView({
         <span>Updates check on launch and restart after install.</span>
         <div className="settings-status">
           <Badge tone={updateState.status === "error" ? "red" : "pink"}>
-            {updateState.status}
+            {statusLabel}
           </Badge>
         </div>
 

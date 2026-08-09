@@ -15,11 +15,12 @@ const capabilityLabels: Record<ToolCapability, string> = {
   "connector-status": "Connector status",
   "run-history": "Run history",
   "report-export": "Report export",
+  "open_external_url": "External links",
   "read_secure_service_metadata": "Secure service metadata",
   "request_configured_secure_service": "Secure service requests",
 };
 
-const readyCapabilities = new Set<ToolCapability>(["local-workspace", "run-history"]);
+const readyCapabilities = new Set<ToolCapability>(["local-workspace", "run-history", "open_external_url"]);
 
 type WorkbenchShellChildren =
   | ReactNode

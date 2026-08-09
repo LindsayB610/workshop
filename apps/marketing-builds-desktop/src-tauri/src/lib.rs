@@ -319,6 +319,39 @@ fn parse_local_secure_service_endpoint(host: &str, suffix: &str) -> Result<Strin
     Err("Secure service endpoint must be an origin without a path.".into())
 }
 
+fn validate_external_url(url: &str) -> Result<String, String> {
+    if url.is_empty() || url.chars().any(|character| character.is_control() || character.is_whitespace()) {
+        return Err("External URLs cannot contain whitespace or control characters.".into());
+    }
+    if url.starts_with("https:///") || url.starts_with("http:///") {
+        return Err("External web URLs must include a valid host.".into());
+    }
+    let parsed = url::Url::parse(url).map_err(|_| "External URL is malformed.".to_string())?;
+    match parsed.scheme() {
+        "http" | "https"
+            if parsed.host_str().is_some()
+                && parsed.username().is_empty()
+                && parsed.password().is_none() =>
+        {
+            Ok(url.to_string())
+        }
+        "http" | "https" => Err("External web URLs must include a host and cannot include credentials.".into()),
+        "mailto" => {
+            let recipient = parsed.path();
+            if recipient.split('@').count() == 2
+                && !recipient.starts_with('@')
+                && !recipient.ends_with('@')
+                && !recipient.contains(['/', '\\', ':'])
+            {
+                Ok(url.to_string())
+            } else {
+                Err("External mail links must include one valid recipient.".into())
+            }
+        }
+        _ => Err("External URLs must use http, https, or mailto.".into()),
+    }
+}
+
 fn parse_secure_service_config(contents: &str) -> Result<SecureServiceConfig, String> {
     let config: SecureServiceConfig = serde_json::from_str(contents)
         .map_err(|_| "Secure service configuration is invalid.".to_string())?;
@@ -1860,6 +1893,16 @@ fn request_configured_secure_service(
 }
 
 #[tauri::command]
+fn open_external_url(app: tauri::AppHandle, url: String) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+
+    let url = validate_external_url(&url)?;
+    app.opener()
+        .open_url(&url, None::<&str>)
+        .map_err(|error| format!("Could not open external URL: {error}"))
+}
+
+#[tauri::command]
 fn start_configured_markdown_watch(
     app: tauri::AppHandle,
     state: tauri::State<'_, ConfiguredMarkdownWatchState>,
@@ -1940,6 +1983,7 @@ pub fn run() {
             redline_write_packet_files,
             read_secure_service_metadata,
             request_configured_secure_service,
+            open_external_url,
             read_configured_markdown_sources,
             read_configured_markdown_source,
             start_configured_markdown_watch
@@ -1948,6 +1992,7 @@ pub fn run() {
             #[cfg(desktop)]
             {
                 app.handle().plugin(tauri_plugin_process::init())?;
+                app.handle().plugin(tauri_plugin_opener::init())?;
                 app.handle()
                     .plugin(tauri_plugin_updater::Builder::new().build())?;
             }
@@ -1969,6 +2014,36 @@ mod tests {
             .expect("system time should be after epoch")
             .as_nanos();
         std::env::temp_dir().join(format!("workshop-redline-{label}-{nanos}"))
+    }
+
+    #[test]
+    fn external_url_capability_allows_only_safe_browser_and_mail_links() {
+        assert_eq!(
+            validate_external_url("https://docs.example.com/getting-started?from=workshop#install")
+                .expect("https links should be allowed"),
+            "https://docs.example.com/getting-started?from=workshop#install"
+        );
+        assert_eq!(
+            validate_external_url("http://localhost:3000/help").expect("http links should be allowed"),
+            "http://localhost:3000/help"
+        );
+        assert_eq!(
+            validate_external_url("mailto:hello@example.com?subject=Workshop").expect("mailto links should be allowed"),
+            "mailto:hello@example.com?subject=Workshop"
+        );
+
+        for unsafe_url in [
+            "javascript:alert(1)",
+            "data:text/html,hello",
+            "file:///Users/example/private.md",
+            "https:///missing-host",
+            "https://user:secret@example.com/private",
+            "mailto:",
+            "https://example.com\nInjected: value",
+            " https://example.com",
+        ] {
+            assert!(validate_external_url(unsafe_url).is_err(), "{unsafe_url} should be rejected");
+        }
     }
 
     #[test]

@@ -74,6 +74,9 @@ describe("public corpus-building docs", () => {
     expect(contract).toContain("must not hard-code a plugin id");
     expect(contract).toMatch(/must never become\s+an unrestricted bearer-token proxy/);
     expect(contract).toContain("read_configured_markdown_sources");
+    expect(contract).toContain("open_external_url");
+    expect(contract).toMatch(/Only `http`, `https`, and `mailto` schemes are accepted/);
+    expect(contract).toMatch(/must not import a Tauri opener package/);
     expect(contract).toMatch(/without\s+exposing private paths or file contents/);
     expect(contract).toContain('"id": "current-state"');
     expect(contract).toMatch(/never included in the\s+metadata response/);

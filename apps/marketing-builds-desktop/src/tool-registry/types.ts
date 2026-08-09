@@ -6,6 +6,7 @@ export type ToolCapability =
   | "connector-status"
   | "run-history"
   | "report-export"
+  | "open_external_url"
   | "read_secure_service_metadata"
   | "request_configured_secure_service";
 

@@ -62,12 +62,30 @@ and provides the implementation. Examples include:
   exposing private paths or file contents;
 - read one source declared in a plugin-owned JSON configuration file;
 - watch only the declared files and emit a generic change event;
+- open an approved external `http`, `https`, or `mailto` URL in the operating
+  system's default handler;
 - select a private workspace root without persisting private content.
 
 A plugin must not receive arbitrary filesystem access, recursive discovery, or
 a host fallback to unrelated data. A future authenticated-service capability
 must use a plugin-declared, host-validated allowlist; Workshop must never become
 an unrestricted bearer-token proxy.
+
+### External URLs
+
+Plugins invoke `open_external_url` when a user explicitly follows an external
+link. Workshop validates the complete URL before handing it to the operating
+system opener:
+
+```ts
+invoke("open_external_url", { url: "https://example.com/docs" });
+```
+
+Only `http`, `https`, and `mailto` schemes are accepted. Web URLs must have a
+host; mail links must have a recipient. `file:`, custom protocols,
+`javascript:`, `data:`, whitespace, and control characters are rejected.
+Plugins must not import a Tauri opener package or attempt `target="_blank"` as
+a desktop fallback—the generic host command is the sole native boundary.
 
 For configured Markdown sources, the selected private root contains a regular
 JSON file such as `sources.config.json`. Version 1 declares an array of source

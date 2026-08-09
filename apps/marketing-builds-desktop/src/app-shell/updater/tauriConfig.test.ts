@@ -49,7 +49,10 @@ describe("Workshop updater Tauri config", () => {
 
   it("allows installed updates to restart Workshop automatically", () => {
     expect(packageJson.dependencies["@tauri-apps/plugin-process"]).toBeDefined();
+    expect(packageJson.dependencies["@tauri-apps/plugin-opener"]).toBeDefined();
     expect(cargoToml).toContain("tauri-plugin-process");
+    expect(cargoToml).toContain("tauri-plugin-opener");
     expect(capabilities.permissions).toContain("process:allow-restart");
+    expect(capabilities.permissions).toContain("opener:default");
   });
 });

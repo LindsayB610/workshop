@@ -73,6 +73,8 @@ describe("tool registry", () => {
     expect(nativeAdapter).toContain("packages/core/dist/bridgeCli.js");
     expect(pulse?.runtime.entryPoint).toBe("request_configured_secure_service");
     expect(nativeAdapter).toContain("fn request_configured_secure_service");
+    expect(nativeAdapter).toContain("fn open_external_url");
+    expect(nativeAdapter).not.toMatch(/\bfn slate_/);
     expect(nativeAdapter).not.toMatch(/\bfn pulse_/);
     expect(nativeAdapter).not.toContain("workshop-private/pulse");
   });

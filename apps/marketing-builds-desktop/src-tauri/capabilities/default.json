@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "Default Workshop desktop permissions",
   "windows": ["main"],
-  "permissions": ["core:default", "updater:default", "process:allow-restart"]
+  "permissions": ["core:default", "updater:default", "process:allow-restart", "opener:default"]
 }

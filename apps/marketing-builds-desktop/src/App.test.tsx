@@ -14,7 +14,7 @@ describe("Workshop desktop app", () => {
   it("opens to an empty shelf with ready external tools available to install", () => {
     const markup = renderToStaticMarkup(<App />);
 
-    expect(markup).toContain("Marketing builds");
+    expect(markup).toContain("Personal app platform");
     expect(markup).toContain("Workshop");
     expect(markup).toContain("Add New Tools");
     expect(markup).toContain("Choose apps from Add New Tools.");

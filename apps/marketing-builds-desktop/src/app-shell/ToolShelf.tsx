@@ -51,7 +51,7 @@ export function ToolShelf({
           LB
         </div>
         <div>
-          <p className="eyebrow">Marketing builds</p>
+          <p className="eyebrow">Personal app platform</p>
           <h1>Workshop</h1>
         </div>
       </header>

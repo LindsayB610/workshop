@@ -51,10 +51,8 @@ export function App() {
     window.addEventListener("workshop:check-for-updates", checkForUpdates);
     let unlistenPreferences: (() => void) | undefined;
     let unlistenUpdates: (() => void) | undefined;
-    if (window.__TAURI_INTERNALS__) {
-      void listen("workshop:open-preferences", openPreferences).then((release) => { unlistenPreferences = release; });
-      void listen("workshop:check-for-updates", checkForUpdates).then((release) => { unlistenUpdates = release; });
-    }
+    void listen("workshop:open-preferences", openPreferences).then((release) => { unlistenPreferences = release; }).catch(() => undefined);
+    void listen("workshop:check-for-updates", checkForUpdates).then((release) => { unlistenUpdates = release; }).catch(() => undefined);
     return () => {
       window.removeEventListener("workshop:open-preferences", openPreferences);
       window.removeEventListener("workshop:check-for-updates", checkForUpdates);
@@ -66,7 +64,7 @@ export function App() {
   return (
     <div className="app-frame">
       {activeTool && activeToolIsInstalled ? (
-        <WorkbenchShell activeTool={activeTool} onBackToTools={() => setActiveToolId(null)} onOpenPreferences={() => setPreferencesOpen(true)} updater={updater} showRouteNav={activeTool.navigationMode === "host"}>
+        <WorkbenchShell activeTool={activeTool} onBackToTools={() => setActiveToolId(null)} updater={updater} showRouteNav={activeTool.navigationMode === "host"}>
           {({ activeRouteId }) => (
             <ToolView
               activeRouteId={activeRouteId}
@@ -95,7 +93,6 @@ export function App() {
           onSetWorkspace={(toolId, root) => setSelection(toolId, root)}
           getWorkspaceSelection={getSelection}
           initials={appearance.initials}
-          onOpenPreferences={() => setPreferencesOpen(true)}
           updater={updater}
         />
       )}

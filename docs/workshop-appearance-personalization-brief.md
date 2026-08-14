@@ -189,7 +189,7 @@ Slack's official behavior reference:
 
 | Job | Success | Failure/recovery |
 | --- | --- | --- |
-| Open Preferences | Opens above the current Workshop context without resetting it | Unsupported/native-event failure leaves the app usable and offers an in-app entry point |
+| Open Preferences | Opens above the current Workshop context without resetting it | Unsupported/native-event failure leaves the app usable and does not add a redundant in-app entry point |
 | Choose preset | Preview and active Workshop tokens update coherently | Invalid stored selection falls back to Workshop default |
 | Enter custom colors | Valid palette previews and persists according to the chosen save model | Malformed or low-contrast input remains editable, is not applied, and explains the correction |
 | Change initials | Exactly two accepted characters update every runtime brand mark | Invalid input is preserved locally with specific guidance; saved initials remain unchanged |

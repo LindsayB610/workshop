@@ -23,7 +23,7 @@ The control-room direction wins: preferences are host configuration, not a tool 
 
 | Job | Entry | Success | Failure/recovery |
 | --- | --- | --- | --- |
-| Open Preferences | Workshop → Preferences… / in-app trigger | Opens over the exact current shelf or workbench state | In-app trigger remains available if native event delivery is unavailable |
+| Open Preferences | Workshop → Preferences… or ⌘, | Opens over the exact current shelf or workbench state | A failed native event leaves the current app state untouched; no duplicate in-app Preferences control is shown |
 | Select preset | Accessible radio card | Applies and persists immediately | Invalid stored preset resolves to Workshop default |
 | Draft custom colors | Custom palette tab | Preview appears only for a valid four-color palette | Draft remains visible; syntax, count, duplicate, and contrast errors explain the fix |
 | Save initials | Appearance form | Two normalized visible characters update the runtime mark | Existing initials remain active while invalid draft is corrected |

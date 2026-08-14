@@ -1,4 +1,4 @@
-import { Ellipsis, FolderOpen, PackagePlus, RotateCcw, Settings, Trash2 } from "lucide-react";
+import { Ellipsis, FolderOpen, PackagePlus, RotateCcw, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { SettingsPanel } from "./SettingsPanel";
 import type { WorkshopUpdaterController } from "./SettingsPanel";
@@ -27,7 +27,6 @@ export function ToolShelf({
     updatedAt: "1970-01-01T00:00:00.000Z",
   }),
   initials = "LB",
-  onOpenPreferences = () => undefined,
   updater,
 }: {
   installedTools?: ToolDefinition[];
@@ -42,7 +41,6 @@ export function ToolShelf({
   onSetWorkspace?: (toolId: string, root: string) => WorkspaceValidationResult;
   getWorkspaceSelection?: (toolId: string) => ToolWorkspaceSelection;
   initials?: string;
-  onOpenPreferences?: () => void;
   updater?: WorkshopUpdaterController;
 }) {
   const [catalogOpen, setCatalogOpen] = useState(
@@ -61,9 +59,6 @@ export function ToolShelf({
           <p className="eyebrow">Personal app platform</p>
           <h1>Workshop</h1>
         </div>
-        <button type="button" className="preferences-trigger" onClick={onOpenPreferences}>
-          <Settings size={16} aria-hidden="true" /> Preferences
-        </button>
       </header>
 
       <div className="tool-shelf-update">

@@ -1,11 +1,16 @@
 import { expect, test } from "@playwright/test";
 
+async function openPreferencesFromHostMenu(page: import("@playwright/test").Page) {
+  await expect(page.getByRole("heading", { name: "Workshop" })).toBeVisible();
+  await page.evaluate(() => window.dispatchEvent(new Event("workshop:open-preferences")));
+  await expect(page.getByRole("dialog", { name: "Preferences" })).toBeVisible();
+}
+
 test.describe("Workshop Preferences", () => {
   test("keeps the shelf intact while applying an accessible preset and validating custom input", async ({ page }) => {
     await page.addInitScript(() => window.localStorage.clear());
     await page.goto("/");
-    await page.getByRole("button", { name: "Preferences" }).click();
-    await expect(page.getByRole("dialog", { name: "Preferences" })).toBeVisible();
+    await openPreferencesFromHostMenu(page);
     await page.getByRole("radio", { name: /Lagoon/ }).click();
     await expect(page.getByRole("radio", { name: /Lagoon/ })).toHaveAttribute("aria-checked", "true");
     await page.getByRole("tab", { name: "Custom palette" }).click();
@@ -20,7 +25,7 @@ test.describe("Workshop Preferences", () => {
   test("manages folder selections through the host without exposing a private file browser", async ({ page }) => {
     await page.addInitScript(() => window.localStorage.clear());
     await page.goto("/");
-    await page.getByRole("button", { name: "Preferences" }).click();
+    await openPreferencesFromHostMenu(page);
     await page.getByRole("button", { name: "Folders" }).click();
     await expect(page.getByRole("heading", { name: "Folders" })).toBeVisible();
     await expect(page.getByText("Changing or forgetting one never edits, moves, discovers, or deletes private files.")).toBeVisible();
@@ -30,7 +35,7 @@ test.describe("Workshop Preferences", () => {
   test("offers a manual update check without installing anything automatically", async ({ page }) => {
     await page.addInitScript(() => window.localStorage.clear());
     await page.goto("/");
-    await page.getByRole("button", { name: "Preferences" }).click();
+    await openPreferencesFromHostMenu(page);
     await page.getByRole("button", { name: "Updates" }).click();
     await page.getByRole("button", { name: "Check for updates" }).click();
     await expect(page.getByRole("region", { name: "Workshop update status" })).toContainText("you're up to date");

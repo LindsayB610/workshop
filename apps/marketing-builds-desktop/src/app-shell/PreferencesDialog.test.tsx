@@ -30,6 +30,15 @@ describe("Workshop Preferences", () => {
     expect(onChangeAppearance).toHaveBeenCalledWith(expect.objectContaining({ theme: { kind: "preset", presetId: "lagoon" } }));
   });
 
+  it("renders each palette as a complete themed card rather than a two-color dot", () => {
+    renderDialog();
+    const workshop = screen.getByRole("radio", { name: /workshop/i });
+    expect(workshop.textContent).toContain("canvas #000000");
+    expect(workshop.textContent).toContain("primary #ff1b8d");
+    expect(workshop.textContent).toContain("warm #ffdd00");
+    expect(workshop.querySelector(".preset-swatch")?.textContent).toBe("LB");
+  });
+
   it("keeps invalid custom draft visible and blocks its save", async () => {
     const user = userEvent.setup(); renderDialog();
     await user.click(screen.getByRole("tab", { name: /custom palette/i }));

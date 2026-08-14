@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { contrast, defaultAppearance, normalizeInitials, paletteAccessibilityIssue, parseCustomPalette, resolveAppearance, themePresets, tokenVariables, tokensForAppearance } from "./appearance";
+import { contrast, defaultAppearance, normalizeInitials, paletteAccessibilityIssue, parseCustomPalette, resolveAppearance, themeGradient, themePresets, tokenVariables, tokensForAppearance } from "./appearance";
 
 describe("Workshop appearance model", () => {
   it("ships exactly ten complete, accessible dark presets", () => {
     expect(themePresets).toHaveLength(10);
     for (const preset of themePresets) {
-      expect(Object.keys(preset.tokens)).toHaveLength(15);
+      expect(Object.keys(preset.tokens)).toHaveLength(16);
       expect(contrast(preset.tokens.text, preset.tokens.canvas)).toBeGreaterThanOrEqual(4.5);
       expect(paletteAccessibilityIssue(preset.tokens)).toBeNull();
     }
@@ -32,5 +32,13 @@ describe("Workshop appearance model", () => {
     const variables = tokenVariables(tokensForAppearance(defaultAppearance));
     expect(variables["--workshop-canvas"]).toBe("#000000");
     expect(variables["--workshop-focus-ring"]).toBe("#ffdd00");
+    expect(variables["--workshop-gradient-middle"]).toBe("#ff7654");
+  });
+
+  it("keeps the Workshop mark pink through coral into yellow", () => {
+    const tokens = tokensForAppearance(defaultAppearance);
+    expect(tokens.gradientStart).toBe("#ff1b8d");
+    expect(tokens.gradientMiddle).toBe("#ff7654");
+    expect(themeGradient(tokens)).toBe("linear-gradient(135deg, #ff1b8d 0%, #ff7654 52%, #ffdd00 100%)");
   });
 });

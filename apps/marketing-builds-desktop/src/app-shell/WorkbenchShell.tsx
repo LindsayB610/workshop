@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { ArrowLeft, Settings } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import type { ToolCapability, ToolDefinition } from "../tool-registry/types";
 import { SettingsPanel } from "./SettingsPanel";
 import type { WorkshopUpdaterController } from "./SettingsPanel";
@@ -30,7 +30,6 @@ type WorkbenchShellChildren =
 export function WorkbenchShell({
   activeTool,
   onBackToTools,
-  onOpenPreferences = () => undefined,
   updater,
   showBackToTools = true,
   showRouteNav = true,
@@ -38,7 +37,6 @@ export function WorkbenchShell({
 }: {
   activeTool: ToolDefinition;
   onBackToTools: () => void;
-  onOpenPreferences?: () => void;
   updater?: WorkshopUpdaterController;
   showBackToTools?: boolean;
   showRouteNav?: boolean;
@@ -99,9 +97,6 @@ export function WorkbenchShell({
               <h1>{activeTool.displayName}</h1>
             </div>
           </div>
-          <button type="button" className="preferences-trigger" onClick={onOpenPreferences}>
-            <Settings size={16} aria-hidden="true" /> Preferences
-          </button>
         </header>
         {shouldShowRouteNav ? <nav className="workbench-route-nav" aria-label={`${activeTool.displayName} functions`}>
           {activeTool.routes.map((route) => {

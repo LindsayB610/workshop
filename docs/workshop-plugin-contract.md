@@ -38,7 +38,7 @@ continue to work unchanged; apps running standalone receive their fallback.
 
 The stable v1 properties are `canvas`, `surface`, `surface-raised`, `border`,
 `text`, `text-muted`, `accent`, `accent-strong`, `accent-warm`, `focus-ring`,
-`success`, `warning`, `danger`, `gradient-start`, and `gradient-end`, each
+`success`, `warning`, `danger`, `gradient-start`, `gradient-middle`, and `gradient-end`, each
 named `--workshop-<property>`. Use them for host-like surfaces, controls,
 focus, and status. Keep domain visualizations scoped to the app; never import
 Workshop source or treat missing variables as an installation failure.

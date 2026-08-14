@@ -9,6 +9,8 @@ const testDir = path.dirname(fileURLToPath(import.meta.url));
 const styles = readFileSync(path.join(testDir, "styles/app.css"), "utf8");
 const appSource = readFileSync(path.join(testDir, "App.tsx"), "utf8");
 const workbenchShellSource = readFileSync(path.join(testDir, "app-shell/WorkbenchShell.tsx"), "utf8");
+const toolShelfSource = readFileSync(path.join(testDir, "app-shell/ToolShelf.tsx"), "utf8");
+const nativeShellSource = readFileSync(path.join(testDir, "../src-tauri/src/lib.rs"), "utf8");
 
 describe("Workshop desktop app", () => {
   it("opens to an empty shelf with ready external tools available to install", () => {
@@ -77,5 +79,15 @@ describe("Workshop desktop app", () => {
     expect(appSource).not.toContain('activeTool.id !== "slate"');
     expect(workbenchShellSource).toContain('activeTool.navigationMode === "host"');
     expect(workbenchShellSource).not.toContain('activeTool.id !== "slate"');
+  });
+
+  it("keeps Preferences in the native Workshop menu and targets the active webview", () => {
+    expect(toolShelfSource).not.toContain("preferences-trigger");
+    expect(workbenchShellSource).not.toContain("preferences-trigger");
+    expect(styles).not.toContain(".preferences-trigger");
+    expect(appSource).toContain('listen("workshop:open-preferences", openPreferences)');
+    expect(appSource).not.toContain("window.__TAURI_INTERNALS__");
+    expect(nativeShellSource).toContain('app.get_webview_window("main")');
+    expect(nativeShellSource).toContain("emit_workshop_menu_event(app, event.id().0.as_str())");
   });
 });

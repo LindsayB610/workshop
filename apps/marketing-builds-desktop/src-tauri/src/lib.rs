@@ -22,6 +22,26 @@ fn is_check_for_updates_menu_id(id: &str) -> bool {
     id == WORKSHOP_CHECK_FOR_UPDATES_MENU_ID
 }
 
+fn workshop_menu_event_name(id: &str) -> Option<&'static str> {
+    if is_preferences_menu_id(id) {
+        Some(WORKSHOP_OPEN_PREFERENCES_EVENT)
+    } else if is_check_for_updates_menu_id(id) {
+        Some(WORKSHOP_CHECK_FOR_UPDATES_EVENT)
+    } else {
+        None
+    }
+}
+
+fn emit_workshop_menu_event<R: tauri::Runtime>(app: &tauri::AppHandle<R>, menu_id: &str) {
+    let Some(event_name) = workshop_menu_event_name(menu_id) else {
+        return;
+    };
+
+    if let Some(main_window) = app.get_webview_window("main") {
+        let _ = main_window.emit(event_name, ());
+    }
+}
+
 #[cfg(desktop)]
 fn workshop_menu<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<Menu<R>> {
     let preferences = MenuItem::with_id(app, WORKSHOP_PREFERENCES_MENU_ID, "Preferences…", true, Some("CmdOrCtrl+,"))?;
@@ -2036,12 +2056,7 @@ pub fn run() {
     tauri::Builder::default()
         .menu(|app| workshop_menu(app))
         .on_menu_event(|app, event| {
-            if is_preferences_menu_id(event.id().0.as_str()) {
-                let _ = app.emit(WORKSHOP_OPEN_PREFERENCES_EVENT, ());
-            }
-            if is_check_for_updates_menu_id(event.id().0.as_str()) {
-                let _ = app.emit(WORKSHOP_CHECK_FOR_UPDATES_EVENT, ());
-            }
+            emit_workshop_menu_event(app, event.id().0.as_str());
         })
         .manage(ConfiguredMarkdownWatchState {
             watchers: Mutex::new(HashMap::new()),
@@ -2135,6 +2150,7 @@ mod tests {
         assert!(is_preferences_menu_id(WORKSHOP_PREFERENCES_MENU_ID));
         assert!(!is_preferences_menu_id("slate:preferences"));
         assert_eq!(WORKSHOP_OPEN_PREFERENCES_EVENT, "workshop:open-preferences");
+        assert_eq!(workshop_menu_event_name(WORKSHOP_PREFERENCES_MENU_ID), Some(WORKSHOP_OPEN_PREFERENCES_EVENT));
     }
 
     #[test]
@@ -2142,6 +2158,8 @@ mod tests {
         assert!(is_check_for_updates_menu_id(WORKSHOP_CHECK_FOR_UPDATES_MENU_ID));
         assert!(!is_check_for_updates_menu_id("pulse:check-for-updates"));
         assert_eq!(WORKSHOP_CHECK_FOR_UPDATES_EVENT, "workshop:check-for-updates");
+        assert_eq!(workshop_menu_event_name(WORKSHOP_CHECK_FOR_UPDATES_MENU_ID), Some(WORKSHOP_CHECK_FOR_UPDATES_EVENT));
+        assert_eq!(workshop_menu_event_name("not-a-workshop-menu-action"), None);
     }
 
     #[test]

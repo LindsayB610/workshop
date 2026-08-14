@@ -10,7 +10,7 @@ use std::time::UNIX_EPOCH;
 use tauri::{Emitter, Manager};
 
 const REDLINE_CURL_FINAL_URL_MARKER: &str = "\n__WORKSHOP_FINAL_URL__=";
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 struct RedlinePacketFile {
     path: String,
     contents: String,
@@ -66,14 +66,14 @@ struct MegaphoneAiCredentialStatus {
     fallback_enabled: bool,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 struct MegaphoneBridgeEnvelope<T> {
     ok: bool,
     data: Option<T>,
     error: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ConfiguredMarkdownSource {
     id: String,
@@ -82,7 +82,7 @@ struct ConfiguredMarkdownSource {
     path: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ConfiguredMarkdownConfig {
     version: u8,
@@ -508,9 +508,6 @@ fn parse_configured_markdown_config(contents: &str) -> Result<ConfiguredMarkdown
     if config.version != 1 {
         return Err("Markdown source configuration version must be 1.".into());
     }
-    if config.sources.is_empty() {
-        return Err("Markdown source configuration must declare at least one source.".into());
-    }
 
     let mut ids = HashSet::new();
     let mut paths = HashSet::new();
@@ -618,6 +615,35 @@ fn configured_markdown_config_from_root(workspace_root: &str, config_file: &str)
     let config_contents = fs::read_to_string(config_path)
         .map_err(|error| format!("Could not read Markdown source configuration: {error}"))?;
     parse_configured_markdown_config(&config_contents)
+}
+
+/// Deliberately narrow configuration writer for plugin-owned Markdown source
+/// lists. The host rebuilds the known schema; plugins never write arbitrary
+/// files or JSON through this capability.
+fn write_configured_markdown_config_from_root(
+    workspace_root: &str,
+    config_file: &str,
+    config: ConfiguredMarkdownConfig,
+) -> Result<ConfiguredMarkdownConfig, String> {
+    let root = normalize_workspace_root(workspace_root)?;
+    let config_name = validate_config_file_name(config_file)?;
+    let config_path = root.join(config_name);
+    let metadata = fs::symlink_metadata(&config_path)
+        .map_err(|error| format!("Markdown source configuration is unavailable: {error}"))?;
+    if metadata.file_type().is_symlink() || !metadata.is_file() {
+        return Err("Markdown source configuration must be a regular JSON file.".into());
+    }
+    let config = parse_configured_markdown_config(&serde_json::to_string(&config)
+        .map_err(|error| format!("Could not validate Markdown source configuration: {error}"))?)?;
+    for source in &config.sources {
+        validate_configured_markdown_source_path(&source.path)?;
+    }
+    let contents = serde_json::to_string_pretty(&config)
+        .map_err(|error| format!("Could not serialize Markdown source configuration: {error}"))? + "\n";
+    let temporary = root.join(format!(".{config_name}.tmp"));
+    fs::write(&temporary, contents).map_err(|error| format!("Could not stage Markdown source configuration: {error}"))?;
+    fs::rename(&temporary, &config_path).map_err(|error| format!("Could not save Markdown source configuration: {error}"))?;
+    Ok(config)
 }
 
 fn configured_markdown_source_locations_from_root(workspace_root: &str, config_file: &str) -> Result<Vec<(PathBuf, String)>, String> {
@@ -1876,6 +1902,23 @@ fn read_configured_markdown_sources(
 }
 
 #[tauri::command]
+fn read_configured_markdown_config(
+    workspace_root: String,
+    config_file: String,
+) -> Result<ConfiguredMarkdownConfig, String> {
+    configured_markdown_config_from_root(&workspace_root, &config_file)
+}
+
+#[tauri::command]
+fn write_configured_markdown_config(
+    workspace_root: String,
+    config_file: String,
+    config: ConfiguredMarkdownConfig,
+) -> Result<ConfiguredMarkdownConfig, String> {
+    write_configured_markdown_config_from_root(&workspace_root, &config_file, config)
+}
+
+#[tauri::command]
 fn read_secure_service_metadata(
     workspace_root: String,
     config_file: String,
@@ -1917,9 +1960,9 @@ fn start_configured_markdown_watch(
         .lock()
         .map_err(|_| "Markdown source watcher state is unavailable.".to_string())?;
     let watch_key = root.join(&config_file);
-    if watchers.contains_key(&watch_key) {
-        return Ok(());
-    }
+    // A configuration editor may add or remove sources. Replacing an existing
+    // watcher keeps its scope exactly aligned with the current config.
+    watchers.remove(&watch_key);
 
     let mut watched_sources = HashMap::new();
     for (path, source_id) in source_locations {
@@ -1986,6 +2029,8 @@ pub fn run() {
             open_external_url,
             read_configured_markdown_sources,
             read_configured_markdown_source,
+            read_configured_markdown_config,
+            write_configured_markdown_config,
             start_configured_markdown_watch
         ])
         .setup(|app| {
@@ -2125,6 +2170,25 @@ mod tests {
         );
 
         let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn writes_only_a_valid_existing_config_with_regular_declared_sources() {
+        let root = unique_temp_root("markdown-config-write");
+        fs::create_dir_all(&root).expect("root should be created");
+        let source = root.join("notes.md");
+        fs::write(&source, "# Notes\n").expect("source should be written");
+        fs::write(root.join("sources.config.json"), r#"{"version":1,"sources":[]}"#).expect("config should exist");
+        let saved = write_configured_markdown_config_from_root(
+            root.to_str().expect("temp root should be utf8"),
+            "sources.config.json",
+            ConfiguredMarkdownConfig { version: 1, sources: vec![ConfiguredMarkdownSource { id: "notes".into(), label: "Notes".into(), view: "markdown".into(), path: source.to_string_lossy().to_string() }] },
+        ).expect("valid source config should save");
+        assert_eq!(saved.sources.len(), 1);
+        assert!(fs::read_to_string(root.join("sources.config.json")).expect("config should read").contains("\"notes\""));
+        let missing = ConfiguredMarkdownConfig { version: 1, sources: vec![ConfiguredMarkdownSource { id: "missing".into(), label: "Missing".into(), view: "markdown".into(), path: root.join("missing.md").to_string_lossy().to_string() }] };
+        assert!(write_configured_markdown_config_from_root(root.to_str().expect("temp root should be utf8"), "sources.config.json", missing).is_err());
+        fs::remove_dir_all(root).expect("temp root should be removed");
     }
 
     #[test]

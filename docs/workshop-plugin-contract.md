@@ -63,6 +63,11 @@ and provides the implementation. Examples include:
   exposing private paths or file contents;
 - read one source declared in a plugin-owned JSON configuration file;
 - watch only the declared files and emit a generic change event;
+- read or replace the structured source list in an existing declared JSON
+  configuration file, when a plugin explicitly requests configuration
+  management. This capability accepts only the versioned source-list schema;
+  it cannot create a config, write arbitrary JSON, edit Markdown, or select an
+  arbitrary file;
 - open an approved external `http`, `https`, or `mailto` URL in the operating
   system's default handler;
 - select, remember, or clear a private workspace root without persisting private
@@ -113,6 +118,25 @@ the declared `id` through `read_configured_markdown_source`.
 
 `path` stays private: it is validated by Workshop and is never included in the
 metadata response, change event, or plugin declaration.
+
+### Configured Markdown management
+
+A plugin that needs to manage its own configured Markdown source list may
+declare the optional `configured_markdown_config_management` capability. The
+host then exposes only these commands for the selected root and declared config
+file:
+
+```ts
+invoke("read_configured_markdown_config", { workspaceRoot, configFile });
+invoke("write_configured_markdown_config", { workspaceRoot, configFile, config });
+```
+
+The read command returns the versioned source list, including local paths, to
+the requesting local plugin view only. The write command requires that the
+configuration already exists as a regular file, reconstructs the known schema,
+validates unique ids and paths, and verifies every declared Markdown source is
+an existing regular non-symlink file before atomically replacing that one
+configuration file. It does not write arbitrary content or modify the sources.
 
 ### Configured secure services
 

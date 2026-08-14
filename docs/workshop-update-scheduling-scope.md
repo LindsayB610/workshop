@@ -20,8 +20,8 @@ telemetry, plugin update polling, or a server-side scheduler.
 
 ## Chosen behavior
 
-- Check automatically on launch only when the last attempt is at least 24 hours
-  old, or no valid schedule record exists.
+- Check automatically on every app launch; then begin the 24-hour in-app
+  cadence from that launch check.
 - While Workshop remains open, schedule one subsequent check 24 hours after the
   current attempt. Use a chained timeout, never competing intervals.
 - **Check for Updates…** in the native Workshop menu and the Updates preference
@@ -37,7 +37,7 @@ telemetry, plugin update polling, or a server-side scheduler.
 | Job | Entry | Success | Failure / recovery |
 | --- | --- | --- | --- |
 | First automatic check | App launch | Signed update becomes actionable; otherwise no interruption | Quiet failure; retry at the next window |
-| Deferred launch | App launch before 24h | No network call | Manual check remains available |
+| Repeated launch | App launch before 24h | Signed update check runs again | Manual check remains available |
 | Long-running app | 24h chained timeout | Same as launch | One later retry; no duplicate timers |
 | Manual check | Workshop menu / Preferences | Truthful available or up-to-date state | Visible error and retry button |
 | Install | Existing install action | Downloads, installs, restarts | Existing error surface; no automatic retry/install |

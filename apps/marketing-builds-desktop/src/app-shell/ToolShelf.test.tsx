@@ -113,6 +113,13 @@ describe("ToolShelf", () => {
     expect(styles).toContain("opacity: 0;");
   });
 
+  it("derives shelf hover, tooltip, and action-menu colors from host theme tokens", () => {
+    expect(styles).toContain("color-mix(in srgb, var(--workshop-accent) 48%, transparent)");
+    expect(styles).toContain("color-mix(in srgb, var(--workshop-accent-warm) 4.5%, transparent)");
+    expect(styles).toContain("background: var(--workshop-surface-raised);");
+    expect(styles).not.toContain("border-color: rgba(255, 27, 141, 0.48);");
+  });
+
   it("does not let empty update or action rows distort the original first-page spacing", () => {
     expect(styles).toContain(".tool-shelf-update:empty,\n.tool-shelf-actions:empty");
     expect(styles).toContain("display: none;");

@@ -114,7 +114,7 @@ export function tokenVariables(tokens: ThemeTokens): Record<string, string> {
 }
 
 export function themeGradient(tokens: Pick<ThemeTokens, "gradientStart" | "gradientMiddle" | "gradientEnd">): string {
-  return `linear-gradient(135deg, ${tokens.gradientStart} 0%, ${tokens.gradientMiddle} 52%, ${tokens.gradientEnd} 100%)`;
+  return `linear-gradient(135deg, ${tokens.gradientStart} 0%, ${tokens.gradientMiddle} 50%, ${tokens.gradientEnd} 100%)`;
 }
 
 function mix(first: string, second: string, amount: number) {

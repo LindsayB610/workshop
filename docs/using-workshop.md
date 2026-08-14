@@ -10,8 +10,8 @@ personal reminders through its own private runner.
 
 ## 1. Keep Workshop Up To Date
 
-The packaged app checks for signed updates when it opens if it has not checked
-in the last 24 hours, then once every 24 hours while it remains open. Choose **Workshop → Check for Updates…** or
+The packaged app checks for signed updates every time it opens, then once every
+24 hours while it remains open. Choose **Workshop → Check for Updates…** or
 open **Workshop → Preferences… → Updates** when you want to check immediately. If Workshop
 shows **Update available**, choose it to install the signed update and restart
 the app. You can continue using the current version if no update is available

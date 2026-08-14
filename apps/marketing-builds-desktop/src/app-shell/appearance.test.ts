@@ -39,6 +39,6 @@ describe("Workshop appearance model", () => {
     const tokens = tokensForAppearance(defaultAppearance);
     expect(tokens.gradientStart).toBe("#ff0037");
     expect(tokens.gradientMiddle).toBe("#ff1b8d");
-    expect(themeGradient(tokens)).toBe("linear-gradient(135deg, #ff0037 0%, #ff1b8d 52%, #ffdd00 100%)");
+    expect(themeGradient(tokens)).toBe("linear-gradient(135deg, #ff0037 0%, #ff1b8d 50%, #ffdd00 100%)");
   });
 });

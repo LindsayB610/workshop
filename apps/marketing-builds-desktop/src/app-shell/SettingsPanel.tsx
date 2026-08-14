@@ -96,7 +96,9 @@ export function useWorkshopUpdater(updaterClient?: WorkshopUpdaterClient): Works
   checkRef.current = check;
 
   useEffect(() => {
-    scheduleNext();
+    // A new app launch is an explicit opportunity to discover a just-published
+    // signed update. The 24-hour cadence begins only after that launch check.
+    void checkRef.current("automatic");
     return () => window.clearTimeout(timerRef.current);
   // The client is stable for the app lifetime; re-creating the schedule would duplicate checks.
   // eslint-disable-next-line react-hooks/exhaustive-deps

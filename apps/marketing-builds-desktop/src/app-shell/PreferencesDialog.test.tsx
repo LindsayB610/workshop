@@ -7,6 +7,9 @@ import { PreferencesDialog } from "./PreferencesDialog";
 import type { WorkshopUpdaterController } from "./SettingsPanel";
 import { tools } from "../tool-registry/tools";
 import { defaultToolWorkspaceState, getWorkspaceSelection } from "../tool-registry/workspaceState";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 afterEach(() => cleanup());
 
@@ -18,6 +21,7 @@ function renderDialog() {
 }
 
 const updater: WorkshopUpdaterController = { updateState: { currentVersion: "0.1.5", status: "not_available" }, checkNow: vi.fn(async () => undefined), installUpdate: vi.fn(async () => undefined) };
+const styleSheet = readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "../styles/app.css"), "utf8");
 
 describe("Workshop Preferences", () => {
   it("exposes real radio cards and saves a selected preset immediately", async () => {
@@ -37,6 +41,12 @@ describe("Workshop Preferences", () => {
     expect(workshop.textContent).toContain("primary #ff1b8d");
     expect(workshop.textContent).toContain("warm #ffdd00");
     expect(workshop.querySelector(".preset-swatch")?.textContent).toBe("LB");
+  });
+
+  it("uses one selected-card border instead of stacking an inset ring and focus outline", () => {
+    expect(styleSheet).toContain('.preset-card[aria-checked="true"] { border-color: var(--workshop-focus-ring); }');
+    expect(styleSheet).not.toContain('box-shadow: inset 0 0 0 2px var(--workshop-focus-ring)');
+    expect(styleSheet).toContain('.preset-card[aria-checked="true"]:focus-visible { outline: 0; }');
   });
 
   it("keeps invalid custom draft visible and blocks its save", async () => {

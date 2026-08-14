@@ -31,7 +31,7 @@ describe("Workshop desktop app", () => {
   it("keeps ready Slate in the catalog until it is installed", () => {
     const markup = renderToStaticMarkup(<App />);
 
-    expect(markup).toContain("aria-label=\"Lindsay Brunner brand mark\"");
+    expect(markup).toContain("aria-label=\"LB personal brand mark\"");
     expect(markup).toContain("tool-logo-slate");
     expect(markup).not.toContain("Slate tool actions");
   });
@@ -45,11 +45,11 @@ describe("Workshop desktop app", () => {
     expect(styles).not.toContain(".workspace-title .tool-logo-frame");
   });
 
-  it("includes the Lindsay Brunner brand tokens", () => {
-    expect(styles).toContain("--color-red: #ff0037");
-    expect(styles).toContain("--color-pink: #ff1b8d");
-    expect(styles).toContain("--color-yellow: #ffdd00");
-    expect(styles).toContain("--dark-bg: #000000");
+  it("includes Workshop's default semantic appearance tokens", () => {
+    expect(styles).toContain("--workshop-canvas: #000000");
+    expect(styles).toContain("--workshop-accent: #ff1b8d");
+    expect(styles).toContain("--workshop-accent-warm: #ffdd00");
+    expect(styles).toContain("--dark-bg: var(--workshop-canvas)");
     expect(styles).toContain("Space Grotesk");
     expect(styles).toContain("font-family: \"Inter\", \"Space Grotesk\"");
   });

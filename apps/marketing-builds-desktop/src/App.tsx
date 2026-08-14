@@ -1,6 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { listen } from "@tauri-apps/api/event";
+import { PreferencesDialog } from "./app-shell/PreferencesDialog";
 import { ToolShelf } from "./app-shell/ToolShelf";
 import { WorkbenchShell } from "./app-shell/WorkbenchShell";
+import { useAppearance } from "./app-shell/useAppearance";
+import { useWorkshopUpdater } from "./app-shell/SettingsPanel";
 import { useToolInstallState } from "./tool-registry/installState";
 import { getToolById, tools } from "./tool-registry/tools";
 import { useToolWorkspaceState } from "./tool-registry/workspaceState";
@@ -8,6 +12,9 @@ import { ToolView } from "./tools/toolViews";
 
 export function App() {
   const [activeToolId, setActiveToolId] = useState<string | null>(null);
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
+  const { appearance, setAppearance, tokens } = useAppearance();
+  const updater = useWorkshopUpdater();
   const { installedTools, availableTools, enableTool, disableTool, resetToolLocalState } =
     useToolInstallState(tools);
   const { getSelection, setSelection, resetSelection } = useToolWorkspaceState(tools);
@@ -37,10 +44,29 @@ export function App() {
     return setSelection(tool.id, root);
   }
 
+  useEffect(() => {
+    const openPreferences = () => setPreferencesOpen(true);
+    const checkForUpdates = () => { void updater.checkNow(); };
+    window.addEventListener("workshop:open-preferences", openPreferences);
+    window.addEventListener("workshop:check-for-updates", checkForUpdates);
+    let unlistenPreferences: (() => void) | undefined;
+    let unlistenUpdates: (() => void) | undefined;
+    if (window.__TAURI_INTERNALS__) {
+      void listen("workshop:open-preferences", openPreferences).then((release) => { unlistenPreferences = release; });
+      void listen("workshop:check-for-updates", checkForUpdates).then((release) => { unlistenUpdates = release; });
+    }
+    return () => {
+      window.removeEventListener("workshop:open-preferences", openPreferences);
+      window.removeEventListener("workshop:check-for-updates", checkForUpdates);
+      unlistenPreferences?.();
+      unlistenUpdates?.();
+    };
+  }, []);
+
   return (
     <div className="app-frame">
       {activeTool && activeToolIsInstalled ? (
-        <WorkbenchShell activeTool={activeTool} onBackToTools={() => setActiveToolId(null)} showRouteNav={activeTool.navigationMode === "host"}>
+        <WorkbenchShell activeTool={activeTool} onBackToTools={() => setActiveToolId(null)} onOpenPreferences={() => setPreferencesOpen(true)} updater={updater} showRouteNav={activeTool.navigationMode === "host"}>
           {({ activeRouteId }) => (
             <ToolView
               activeRouteId={activeRouteId}
@@ -68,8 +94,23 @@ export function App() {
           onSelectTool={setActiveToolId}
           onSetWorkspace={(toolId, root) => setSelection(toolId, root)}
           getWorkspaceSelection={getSelection}
+          initials={appearance.initials}
+          onOpenPreferences={() => setPreferencesOpen(true)}
+          updater={updater}
         />
       )}
+      <PreferencesDialog
+        open={preferencesOpen}
+        onClose={() => setPreferencesOpen(false)}
+        appearance={appearance}
+        tokens={tokens}
+        onChangeAppearance={setAppearance}
+        installedTools={installedTools}
+        getWorkspaceSelection={getSelection}
+        onRequestWorkspace={(toolId) => promptForWorkspaceRoot(toolId)}
+        onForgetWorkspace={resetSelection}
+        updater={updater}
+      />
     </div>
   );
 }

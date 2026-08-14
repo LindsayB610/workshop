@@ -31,7 +31,9 @@ async function openMegaphone(page: Page) {
   await expect(page.getByRole("heading", { name: "Megaphone" })).toBeVisible();
 }
 
-test.describe("Megaphone Workshop integration", () => {
+// Megaphone remains deliberately hidden while it is planned. Its promotion
+// suite stays here, but does not define the public Workshop regression path.
+test.describe.skip("Megaphone Workshop integration (planned tool)", () => {
   test("opens Megaphone and route buttons switch function screens", async ({ page }) => {
     await openMegaphone(page);
 

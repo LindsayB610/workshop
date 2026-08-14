@@ -9,8 +9,9 @@ import type { WorkshopUpdaterClient, WorkshopUpdateState } from "./updater/types
 import {
   createInitialUpdateState,
   installWorkshopUpdate,
-  runStartupWorkshopUpdateCheck,
+  checkForWorkshopUpdate,
 } from "./updater/workshopUpdater";
+import { delayUntilAutomaticUpdateCheck, recordUpdateCheckAttempt, resolveUpdateSchedule, updateScheduleStorageKey } from "./updater/updateSchedule";
 
 const updateStatusLabels: Record<WorkshopUpdateState["status"], string> = {
   idle: "Waiting to check",
@@ -40,13 +41,84 @@ export function getUpdaterClient(): WorkshopUpdaterClient {
     : createPreviewUpdaterClient();
 }
 
+export type WorkshopUpdaterController = {
+  updateState: WorkshopUpdateState;
+  checkNow: () => Promise<void>;
+  installUpdate: () => Promise<void>;
+};
+
+function readUpdateSchedule() {
+  try {
+    return resolveUpdateSchedule(JSON.parse(window.localStorage.getItem(updateScheduleStorageKey) ?? "null"));
+  } catch {
+    return null;
+  }
+}
+
+function writeUpdateSchedule(value: ReturnType<typeof readUpdateSchedule>) {
+  try {
+    if (value) window.localStorage.setItem(updateScheduleStorageKey, JSON.stringify(value));
+  } catch {
+    // Update checks must not make local storage availability a startup failure.
+  }
+}
+
+export function useWorkshopUpdater(updaterClient?: WorkshopUpdaterClient): WorkshopUpdaterController {
+  const defaultClient = useMemo(() => getUpdaterClient(), []);
+  const client = updaterClient ?? defaultClient;
+  const timerRef = useRef<number | undefined>(undefined);
+  const checkingRef = useRef(false);
+  const checkRef = useRef<(source: "automatic" | "manual") => Promise<void>>(async () => undefined);
+  const [updateState, setUpdateState] = useState<WorkshopUpdateState>(createInitialUpdateState(WORKSHOP_VERSION));
+
+  function scheduleNext(record = readUpdateSchedule()) {
+    window.clearTimeout(timerRef.current);
+    timerRef.current = window.setTimeout(() => { void checkRef.current("automatic"); }, delayUntilAutomaticUpdateCheck(record, Date.now()));
+  }
+
+  async function check(source: "automatic" | "manual") {
+    if (checkingRef.current) return;
+    checkingRef.current = true;
+    window.clearTimeout(timerRef.current);
+    if (source === "manual") setUpdateState((state) => ({ ...state, status: "checking", error: undefined }));
+    const checkedAt = Date.now();
+    const result = await checkForWorkshopUpdate(WORKSHOP_VERSION, client);
+    const successful = result.status !== "error";
+    writeUpdateSchedule(recordUpdateCheckAttempt(readUpdateSchedule(), checkedAt, successful));
+
+    if (source === "manual" || successful || result.status === "available") {
+      setUpdateState(result);
+    }
+    checkingRef.current = false;
+    scheduleNext(readUpdateSchedule());
+  }
+
+  checkRef.current = check;
+
+  useEffect(() => {
+    scheduleNext();
+    return () => window.clearTimeout(timerRef.current);
+  // The client is stable for the app lifetime; re-creating the schedule would duplicate checks.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [client]);
+
+  async function installUpdate() {
+    setUpdateState((state) => ({ ...state, status: "installing", error: undefined }));
+    setUpdateState(await installWorkshopUpdate(updateState, client));
+  }
+
+  return { updateState, checkNow: () => check("manual"), installUpdate };
+}
+
 export function SettingsPanelView({
   updateState,
   onInstallUpdate,
+  onCheckForUpdates,
   visibility = "always",
 }: {
   updateState: WorkshopUpdateState;
   onInstallUpdate: () => void;
+  onCheckForUpdates?: () => void;
   visibility?: "always" | "actionable";
 }) {
   const statusLabel = updateStatusLabels[updateState.status];
@@ -70,7 +142,7 @@ export function SettingsPanelView({
           <ShieldCheck size={17} aria-hidden="true" />
           <strong>Workshop v{updateState.currentVersion}</strong>
         </div>
-        <span>Updates check on launch and restart after install.</span>
+        <span>Checks daily while Workshop is open and restarts after install.</span>
         <div className="settings-status">
           <Badge tone={updateState.status === "error" ? "red" : "pink"}>
             {statusLabel}
@@ -91,6 +163,7 @@ export function SettingsPanelView({
             {updateState.status === "available" ? "Install and restart" : null}
           </Button>
         ) : null}
+        {onCheckForUpdates && visibility === "always" ? <Button variant="secondary" disabled={updateState.status === "checking"} onClick={onCheckForUpdates}>{updateState.status === "checking" ? "Checking…" : "Check for updates"}</Button> : null}
       </div>
 
       {isInstalled ? (
@@ -114,34 +187,25 @@ export function SettingsPanelView({
 
 export function SettingsPanel({
   visibility = "always",
+  controller,
 }: {
   visibility?: "always" | "actionable";
+  controller?: WorkshopUpdaterController;
 }) {
-  const updaterClient = useMemo(() => getUpdaterClient(), []);
-  const didRunUpdateCheck = useRef(false);
-  const [updateState, setUpdateState] = useState<WorkshopUpdateState>(
-    createInitialUpdateState(WORKSHOP_VERSION),
-  );
-
-  useEffect(() => {
-    if (didRunUpdateCheck.current) {
-      return;
-    }
-
-    didRunUpdateCheck.current = true;
-    setUpdateState((state) => ({ ...state, status: "checking", error: undefined }));
-    void runStartupWorkshopUpdateCheck(WORKSHOP_VERSION, updaterClient).then(setUpdateState);
-  }, [updaterClient]);
-
-  async function handleInstallUpdate() {
-    setUpdateState((state) => ({ ...state, status: "installing", error: undefined }));
-    setUpdateState(await installWorkshopUpdate(updateState, updaterClient));
+  if (controller) {
+    return <SettingsPanelView updateState={controller.updateState} onInstallUpdate={() => { void controller.installUpdate(); }} onCheckForUpdates={() => { void controller.checkNow(); }} visibility={visibility} />;
   }
 
+  return <SelfManagedSettingsPanel visibility={visibility} />;
+}
+
+function SelfManagedSettingsPanel({ visibility }: { visibility: "always" | "actionable" }) {
+  const ownedController = useWorkshopUpdater();
   return (
     <SettingsPanelView
-      updateState={updateState}
-      onInstallUpdate={handleInstallUpdate}
+      updateState={ownedController.updateState}
+      onInstallUpdate={() => { void ownedController.installUpdate(); }}
+      onCheckForUpdates={() => { void ownedController.checkNow(); }}
       visibility={visibility}
     />
   );

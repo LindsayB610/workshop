@@ -31,7 +31,10 @@ async function openRedline(page: Page) {
   await expect(page.getByRole("heading", { name: "Redline" })).toBeVisible();
 }
 
-test.describe("Redline Workshop integration", () => {
+// Redline remains deliberately hidden while it is planned. Its former public
+// host integration suite is retained for promotion, but must not assert that a
+// hidden tool can be installed in the current product.
+test.describe.skip("Redline Workshop integration (planned tool)", () => {
   test.beforeEach(async ({ context }) => {
     await context.grantPermissions(["clipboard-write"], { origin: "http://127.0.0.1:1420" });
   });

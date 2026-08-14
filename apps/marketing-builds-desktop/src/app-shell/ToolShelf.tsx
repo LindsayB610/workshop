@@ -1,6 +1,7 @@
-import { Ellipsis, FolderOpen, PackagePlus, RotateCcw, Trash2 } from "lucide-react";
+import { Ellipsis, FolderOpen, PackagePlus, RotateCcw, Settings, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { SettingsPanel } from "./SettingsPanel";
+import type { WorkshopUpdaterController } from "./SettingsPanel";
 import { ToolLogo } from "./ToolLogo";
 import { Button } from "../components/ui/button";
 import type { ToolDefinition } from "../tool-registry/types";
@@ -25,6 +26,9 @@ export function ToolShelf({
     label: "Bundled demo workspace",
     updatedAt: "1970-01-01T00:00:00.000Z",
   }),
+  initials = "LB",
+  onOpenPreferences = () => undefined,
+  updater,
 }: {
   installedTools?: ToolDefinition[];
   availableTools?: ToolDefinition[];
@@ -37,6 +41,9 @@ export function ToolShelf({
   onResetToolState?: (toolId: string) => void;
   onSetWorkspace?: (toolId: string, root: string) => WorkspaceValidationResult;
   getWorkspaceSelection?: (toolId: string) => ToolWorkspaceSelection;
+  initials?: string;
+  onOpenPreferences?: () => void;
+  updater?: WorkshopUpdaterController;
 }) {
   const [catalogOpen, setCatalogOpen] = useState(
     catalogInitiallyOpen || installedTools.length === 0,
@@ -47,17 +54,20 @@ export function ToolShelf({
   return (
     <main className="tool-shelf-screen">
       <header className="tool-shelf-header">
-        <div className="brand-mark" aria-label="Lindsay Brunner brand mark">
-          LB
+        <div className="brand-mark" aria-label={`${initials} personal brand mark`}>
+          {initials}
         </div>
         <div>
           <p className="eyebrow">Personal app platform</p>
           <h1>Workshop</h1>
         </div>
+        <button type="button" className="preferences-trigger" onClick={onOpenPreferences}>
+          <Settings size={16} aria-hidden="true" /> Preferences
+        </button>
       </header>
 
       <div className="tool-shelf-update">
-        <SettingsPanel visibility="actionable" />
+        <SettingsPanel visibility="actionable" controller={updater} />
       </div>
 
       <div className="tool-shelf-actions">

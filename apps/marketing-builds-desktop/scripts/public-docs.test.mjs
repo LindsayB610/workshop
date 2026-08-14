@@ -19,6 +19,7 @@ const requiredDocs = [
   "docs/troubleshooting-public-workspaces.md",
   "docs/contributing-tools.md",
   "docs/workshop-plugin-contract.md",
+  "docs/workshop-appearance-design.md",
 ];
 
 function readRepoFile(relativePath) {
@@ -80,6 +81,17 @@ describe("public corpus-building docs", () => {
     expect(contract).toMatch(/without\s+exposing private paths or file contents/);
     expect(contract).toContain('"id": "current-state"');
     expect(contract).toMatch(/never included in the\s+metadata response/);
+    expect(contract).toContain("Appearance inheritance");
+    expect(contract).toContain("var(--workshop-surface, #0f0f0f)");
+    expect(contract).toContain("progressive enhancement");
+    expect(contract).not.toContain("Slate or Pulse into global theme logic");
+  });
+
+  it("documents that appearance and folders are host-local and non-destructive", () => {
+    const design = readRepoFile("docs/workshop-appearance-design.md");
+    expect(design).toContain("ten palette definitions");
+    expect(design).toContain("no preference action reads, changes, moves, discovers, or deletes private files");
+    expect(design).toContain("signed app bundle icon");
   });
 
   it("gives installed-app users a complete Slate setup path", () => {
@@ -90,6 +102,7 @@ describe("public corpus-building docs", () => {
     expect(guide).toContain("Slate");
     expect(guide).toContain("slate.config.json");
     expect(guide).toContain("Update available");
+    expect(guide).toContain("Check for Updates…");
     expect(guide).toContain('"path"');
     expect(guide).toContain("outside the Workshop repository");
     expect(slateDocs).toContain("slate.config.json");

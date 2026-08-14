@@ -17,6 +17,32 @@ Workshop must not hard-code a plugin id in application control flow or duplicate
 its configuration schema, route labels, source identifiers, parser behavior, or
 private-data conventions.
 
+## Appearance inheritance
+
+Workshop exposes optional semantic CSS custom properties on the host document.
+They are a progressive enhancement: an app must provide a fallback and must not
+store, require, or acknowledge the host appearance preference. Existing apps
+continue to work unchanged; apps running standalone receive their fallback.
+
+```css
+.tool-root {
+  background: var(--workshop-surface, #0f0f0f);
+  color: var(--workshop-text, #ffffff);
+  border-color: var(--workshop-border, #3d3d3d);
+}
+
+.tool-root button:focus-visible {
+  outline: 3px solid var(--workshop-focus-ring, #ffdd00);
+}
+```
+
+The stable v1 properties are `canvas`, `surface`, `surface-raised`, `border`,
+`text`, `text-muted`, `accent`, `accent-strong`, `accent-warm`, `focus-ring`,
+`success`, `warning`, `danger`, `gradient-start`, and `gradient-end`, each
+named `--workshop-<property>`. Use them for host-like surfaces, controls,
+focus, and status. Keep domain visualizations scoped to the app; never import
+Workshop source or treat missing variables as an installation failure.
+
 ## Plugin Package Surface
 
 An external plugin package must export a data-only declaration and a view. The

@@ -32,9 +32,9 @@ capability or block an app from loading.
   Appearance is the only section implemented in this feature; the other two
   are reserved navigation slots, not placeholder product work.
 - The Appearance screen offers **System**, **Dark**, and **Light** modes.
-- Ship six curated presets: Workshop, Lagoon, Evergreen, Aubergine, Ember, and
-  Indigo. The existing Workshop black/pink/yellow presentation is the Workshop
-  preset and default.
+- Ship ten curated presets: Workshop, Lagoon, Evergreen, Aubergine, Ember,
+  Indigo, Iron, Field, Harbor, and Kiln. The existing Workshop black/pink/yellow
+  presentation is the Workshop preset and default.
 - A custom palette accepts exactly four colors: canvas, surface, primary
   accent, and warm accent. Text, muted text, borders, focus rings, and semantic
   success/warning/danger values are derived or remain protected host tokens.

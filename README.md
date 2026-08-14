@@ -1,5 +1,15 @@
 # Workshop
 
+## Appearance and folders
+
+Workshop → **Preferences…** opens host-owned Appearance and Folders settings.
+Appearance choices and the two-character in-app personal mark are saved only in
+local app UI storage; they never enter a tool repository, Slate/Pulse config,
+or private workspace. Folders only review, change, reconnect, or forget the
+local selection Workshop already remembers—Workshop never modifies the folder
+or its files. See [the appearance contract](docs/workshop-appearance-design.md)
+and [plugin token guidance](docs/workshop-plugin-contract.md#appearance-inheritance).
+
 Workshop is a local desktop shell for small, private-data-aware work tools. It
 keeps the application code, tests, fictional demos, and templates in this
 repository while keeping real client material, credentials, and personal files

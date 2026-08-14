@@ -2,11 +2,13 @@
 
 ## For Workshop Users
 
-The packaged Workshop app checks for signed updates when it opens. If it shows
-**Update available**, choose that button to download the update and restart
-Workshop. You can keep using the installed version when no update is found or
-when you are offline. Updating Workshop changes the app itself; it does not
-move, upload, or delete private tool data.
+The packaged Workshop app checks for signed updates when it opens if it has not
+checked in the last 24 hours, then once every 24 hours while it remains open. **Workshop → Check for Updates…**
+and **Preferences → Updates** check immediately. If it shows **Update
+available**, choose that button to download the update and restart Workshop.
+You can keep using the installed version when no update is found or when you
+are offline. Updating Workshop changes the app itself; it does not move,
+upload, or delete private tool data.
 
 The rest of this document is for maintainers who publish signed releases.
 

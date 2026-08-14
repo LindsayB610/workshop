@@ -40,7 +40,7 @@ describe("SettingsPanelView", () => {
     expect(markup).not.toContain("update-available-button");
     expect(markup).toContain("you&#x27;re up to date");
     expect(markup).not.toContain("not_available");
-    expect(markup).toContain("Updates check on launch and restart after install.");
+    expect(markup).toContain("Checks daily while Workshop is open and restarts after install.");
   });
 
   it("renders nothing in actionable mode when no update is available", () => {

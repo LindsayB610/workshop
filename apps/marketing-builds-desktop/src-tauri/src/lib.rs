@@ -7,7 +7,37 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::Mutex;
 use std::time::UNIX_EPOCH;
-use tauri::{Emitter, Manager};
+use tauri::{menu::{Menu, MenuItem, PredefinedMenuItem, Submenu}, Emitter, Manager};
+
+const WORKSHOP_PREFERENCES_MENU_ID: &str = "workshop:preferences";
+const WORKSHOP_OPEN_PREFERENCES_EVENT: &str = "workshop:open-preferences";
+const WORKSHOP_CHECK_FOR_UPDATES_MENU_ID: &str = "workshop:check-for-updates";
+const WORKSHOP_CHECK_FOR_UPDATES_EVENT: &str = "workshop:check-for-updates";
+
+fn is_preferences_menu_id(id: &str) -> bool {
+    id == WORKSHOP_PREFERENCES_MENU_ID
+}
+
+fn is_check_for_updates_menu_id(id: &str) -> bool {
+    id == WORKSHOP_CHECK_FOR_UPDATES_MENU_ID
+}
+
+#[cfg(desktop)]
+fn workshop_menu<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<Menu<R>> {
+    let preferences = MenuItem::with_id(app, WORKSHOP_PREFERENCES_MENU_ID, "Preferences…", true, Some("CmdOrCtrl+,"))?;
+    let check_for_updates = MenuItem::with_id(app, WORKSHOP_CHECK_FOR_UPDATES_MENU_ID, "Check for Updates…", true, None::<&str>)?;
+    let app_menu = Submenu::with_items(app, "Workshop", true, &[
+        &PredefinedMenuItem::about(app, Some("About Workshop"), None)?,
+        &PredefinedMenuItem::separator(app)?,
+        &preferences,
+        &check_for_updates,
+        &PredefinedMenuItem::separator(app)?,
+        &PredefinedMenuItem::hide(app, None)?,
+        &PredefinedMenuItem::hide_others(app, None)?,
+        &PredefinedMenuItem::quit(app, None)?,
+    ])?;
+    Menu::with_items(app, &[&app_menu])
+}
 
 const REDLINE_CURL_FINAL_URL_MARKER: &str = "\n__WORKSHOP_FINAL_URL__=";
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -2004,6 +2034,15 @@ fn start_configured_markdown_watch(
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .menu(|app| workshop_menu(app))
+        .on_menu_event(|app, event| {
+            if is_preferences_menu_id(event.id().0.as_str()) {
+                let _ = app.emit(WORKSHOP_OPEN_PREFERENCES_EVENT, ());
+            }
+            if is_check_for_updates_menu_id(event.id().0.as_str()) {
+                let _ = app.emit(WORKSHOP_CHECK_FOR_UPDATES_EVENT, ());
+            }
+        })
         .manage(ConfiguredMarkdownWatchState {
             watchers: Mutex::new(HashMap::new()),
         })
@@ -2089,6 +2128,20 @@ mod tests {
         ] {
             assert!(validate_external_url(unsafe_url).is_err(), "{unsafe_url} should be rejected");
         }
+    }
+
+    #[test]
+    fn preferences_menu_uses_a_neutral_host_event_contract() {
+        assert!(is_preferences_menu_id(WORKSHOP_PREFERENCES_MENU_ID));
+        assert!(!is_preferences_menu_id("slate:preferences"));
+        assert_eq!(WORKSHOP_OPEN_PREFERENCES_EVENT, "workshop:open-preferences");
+    }
+
+    #[test]
+    fn update_menu_uses_a_neutral_host_event_contract() {
+        assert!(is_check_for_updates_menu_id(WORKSHOP_CHECK_FOR_UPDATES_MENU_ID));
+        assert!(!is_check_for_updates_menu_id("pulse:check-for-updates"));
+        assert_eq!(WORKSHOP_CHECK_FOR_UPDATES_EVENT, "workshop:check-for-updates");
     }
 
     #[test]

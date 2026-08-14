@@ -14,8 +14,8 @@
   --workshop-success: #56d68b;
   --workshop-warning: #ffd34d;
   --workshop-danger: #ff5a79;
-  --workshop-gradient-start: #ff1b8d;
-  --workshop-gradient-middle: #ff7654;
+  --workshop-gradient-start: #ff0037;
+  --workshop-gradient-middle: #ff1b8d;
   --workshop-gradient-end: #ffdd00;
   --color-red: var(--workshop-gradient-start);
   --color-pink: var(--workshop-accent);

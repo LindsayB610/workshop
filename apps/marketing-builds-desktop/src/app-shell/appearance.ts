@@ -45,7 +45,7 @@ const darkTokens = (colors: CustomPalette): ThemeTokens => ({
 });
 
 export const themePresets: ThemePreset[] = [
-  { id: "workshop", name: "Workshop", description: "The original hot-pink workshop floor.", tokens: { ...darkTokens({ canvas: "#000000", surface: "#0f0f0f", accent: "#ff1b8d", accentWarm: "#ffdd00" }), gradientMiddle: "#ff7654" } },
+  { id: "workshop", name: "Workshop", description: "The original hot-pink workshop floor.", tokens: { ...darkTokens({ canvas: "#000000", surface: "#0f0f0f", accent: "#ff1b8d", accentWarm: "#ffdd00" }), gradientStart: "#ff0037", gradientMiddle: "#ff1b8d" } },
   { id: "lagoon", name: "Lagoon", description: "Deep water, electric blue, sea-glass heat.", tokens: darkTokens({ canvas: "#071116", surface: "#0d1d24", accent: "#2bb7e8", accentWarm: "#62e6bd" }) },
   { id: "evergreen", name: "Evergreen", description: "Ink-dark pine with a clean acid-green edge.", tokens: darkTokens({ canvas: "#08120d", surface: "#112219", accent: "#46cf85", accentWarm: "#d4ed5b" }) },
   { id: "aubergine", name: "Aubergine", description: "Plum-black surfaces with a vivid orchid signal.", tokens: darkTokens({ canvas: "#130916", surface: "#241129", accent: "#ca78f2", accentWarm: "#ff9d71" }) },

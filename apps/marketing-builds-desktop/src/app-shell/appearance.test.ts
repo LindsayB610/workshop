@@ -32,13 +32,13 @@ describe("Workshop appearance model", () => {
     const variables = tokenVariables(tokensForAppearance(defaultAppearance));
     expect(variables["--workshop-canvas"]).toBe("#000000");
     expect(variables["--workshop-focus-ring"]).toBe("#ffdd00");
-    expect(variables["--workshop-gradient-middle"]).toBe("#ff7654");
+    expect(variables["--workshop-gradient-middle"]).toBe("#ff1b8d");
   });
 
-  it("keeps the Workshop mark pink through coral into yellow", () => {
+  it("keeps the Workshop mark red through hot pink into yellow", () => {
     const tokens = tokensForAppearance(defaultAppearance);
-    expect(tokens.gradientStart).toBe("#ff1b8d");
-    expect(tokens.gradientMiddle).toBe("#ff7654");
-    expect(themeGradient(tokens)).toBe("linear-gradient(135deg, #ff1b8d 0%, #ff7654 52%, #ffdd00 100%)");
+    expect(tokens.gradientStart).toBe("#ff0037");
+    expect(tokens.gradientMiddle).toBe("#ff1b8d");
+    expect(themeGradient(tokens)).toBe("linear-gradient(135deg, #ff0037 0%, #ff1b8d 52%, #ffdd00 100%)");
   });
 });

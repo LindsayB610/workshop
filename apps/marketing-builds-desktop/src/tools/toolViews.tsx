@@ -3,6 +3,7 @@ import { WorkshopToolView as PulseWorkshopToolView } from "@marketing-builds/pul
 import { WorkshopToolView as SlateWorkshopToolView } from "slate-core";
 import { getToolById } from "../tool-registry/tools";
 import type { ToolDefinition } from "../tool-registry/types";
+import type { WorkspaceValidationResult } from "../tool-registry/workspaceState";
 import { MegaphoneTool } from "./megaphone/MegaphoneTool";
 import { RedlineTool } from "./redline/RedlineTool";
 import { ToolPlaceholder } from "./ToolPlaceholder";
@@ -11,7 +12,8 @@ import type { ToolViewProps } from "./types";
 type ExternalWorkshopToolViewProps = {
   activeRouteId?: string;
   workspaceRoot?: string;
-  requestWorkspaceRoot: (root?: string) => void;
+  requestWorkspaceRoot: (root?: string) => { ok: true } | { ok: false; message: string } | void;
+  clearWorkspaceRoot?: () => void;
 };
 
 function adaptExternalToolView(
@@ -19,6 +21,7 @@ function adaptExternalToolView(
 ): ComponentType<ToolViewProps> {
   return function ExternalToolViewAdapter({
     activeRouteId,
+    onClearWorkspaceRequest,
     onSetWorkspaceRequest,
     tool,
     workspaceRoot,
@@ -28,6 +31,7 @@ function adaptExternalToolView(
         activeRouteId={activeRouteId}
         workspaceRoot={workspaceRoot}
         requestWorkspaceRoot={(root) => onSetWorkspaceRequest?.(tool.id, root)}
+        clearWorkspaceRoot={onClearWorkspaceRequest ? () => onClearWorkspaceRequest(tool.id) : undefined}
       />
     );
   };
@@ -42,12 +46,14 @@ const toolViewById: Record<string, ComponentType<ToolViewProps>> = {
 
 export function ToolView({
   activeRouteId,
+  onClearWorkspaceRequest,
   onSetWorkspaceRequest,
   tool,
   workspaceRoot,
 }: {
   activeRouteId?: string;
-  onSetWorkspaceRequest?: (toolId: string) => void;
+  onSetWorkspaceRequest?: (toolId: string, root?: string) => WorkspaceValidationResult | undefined;
+  onClearWorkspaceRequest?: (toolId: string) => void;
   tool: ToolDefinition;
   workspaceRoot?: string;
 }) {
@@ -55,6 +61,7 @@ export function ToolView({
   return (
     <View
       activeRouteId={activeRouteId}
+      onClearWorkspaceRequest={onClearWorkspaceRequest}
       onSetWorkspaceRequest={onSetWorkspaceRequest}
       tool={tool}
       workspaceRoot={workspaceRoot}

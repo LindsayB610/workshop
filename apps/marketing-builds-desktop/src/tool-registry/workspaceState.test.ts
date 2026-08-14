@@ -100,6 +100,42 @@ describe("tool workspace state", () => {
     });
   });
 
+  it("restores a remembered runner-root folder without touching its private files", () => {
+    const state = normalizeToolWorkspaceState(tools, {
+      selections: [{
+        toolId: "slate",
+        mode: "external",
+        root: "/Users/example/slate-private",
+        label: "Slate folder",
+        updatedAt: "2026-08-14T00:00:00.000Z",
+      }],
+    });
+
+    expect(getWorkspaceSelection(tools, state, "slate")).toMatchObject({
+      mode: "external",
+      root: "/Users/example/slate-private",
+      label: "Slate folder",
+    });
+  });
+
+  it("forgets a runner-root selection only when explicitly reset", () => {
+    const selected = setToolWorkspaceSelection(
+      tools,
+      defaultToolWorkspaceState(tools),
+      "slate",
+      "/Users/example/slate-private",
+      "Slate folder",
+    ).state;
+
+    const reset = resetToolWorkspaceSelection(tools, selected, "slate");
+
+    expect(reset.workspaceFilesTouched).toBe(false);
+    expect(getWorkspaceSelection(tools, reset.state, "slate")).toMatchObject({
+      mode: "demo",
+      root: "",
+    });
+  });
+
   it("resets an external workspace to demo without deleting files", () => {
     const selected = setToolWorkspaceSelection(
       tools,

@@ -19,12 +19,11 @@ export function App() {
   function promptForWorkspaceRoot(toolId: string, requestedRoot?: string) {
     const tool = getToolById(toolId);
     if (!tool) {
-      return;
+      return undefined;
     }
 
     if (requestedRoot !== undefined) {
-      setSelection(tool.id, requestedRoot);
-      return;
+      return setSelection(tool.id, requestedRoot);
     }
 
     const root = window.prompt(
@@ -32,10 +31,10 @@ export function App() {
       getSelection(tool.id).root,
     );
     if (root === null) {
-      return;
+      return undefined;
     }
 
-    setSelection(tool.id, root);
+    return setSelection(tool.id, root);
   }
 
   return (
@@ -45,6 +44,7 @@ export function App() {
           {({ activeRouteId }) => (
             <ToolView
               activeRouteId={activeRouteId}
+              onClearWorkspaceRequest={(toolId) => resetSelection(toolId)}
               onSetWorkspaceRequest={promptForWorkspaceRoot}
               tool={activeTool}
               workspaceRoot={getSelection(activeTool.id).root}

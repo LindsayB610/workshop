@@ -45,7 +45,8 @@ export const workshopPluginDeclaration = {
 export function WorkshopToolView(props: {
   activeRouteId?: string;
   workspaceRoot?: string;
-  requestWorkspaceRoot: (root?: string) => void;
+  requestWorkspaceRoot: (root?: string) => { ok: true } | { ok: false; message: string } | void;
+  clearWorkspaceRoot?: () => void;
 }): React.ReactElement;
 ```
 
@@ -64,7 +65,9 @@ and provides the implementation. Examples include:
 - watch only the declared files and emit a generic change event;
 - open an approved external `http`, `https`, or `mailto` URL in the operating
   system's default handler;
-- select a private workspace root without persisting private content.
+- select, remember, or clear a private workspace root without persisting private
+  content. The root path is local host UI state only; source text, configuration
+  values, and credential material remain private to the tool's folder.
 
 A plugin must not receive arbitrary filesystem access, recursive discovery, or
 a host fallback to unrelated data. A future authenticated-service capability

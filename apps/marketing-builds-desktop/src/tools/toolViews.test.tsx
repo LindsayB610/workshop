@@ -59,8 +59,28 @@ describe("tool views", () => {
 
     const markup = renderToStaticMarkup(<ToolView tool={slate} />);
 
-    expect(markup).toContain('aria-label="Slate private folder"');
-    expect(markup).toContain("Connect Slate");
+    expect(markup).toContain('aria-label="Folder containing slate.config.json"');
+    expect(markup).toContain("Connect a Slate folder");
+    expect(markup).toContain("Connect folder");
+  });
+
+  it("passes generic change and disconnect controls to a connected plugin workspace", () => {
+    const slate = getToolById("slate");
+
+    if (!slate) {
+      throw new Error("Slate tool is not registered.");
+    }
+
+    const markup = renderToStaticMarkup(
+      <ToolView
+        tool={slate}
+        workspaceRoot="/Users/example/slate-private"
+        onClearWorkspaceRequest={() => undefined}
+      />,
+    );
+
+    expect(markup).toContain("Change Slate folder");
+    expect(markup).toContain("Disconnect");
   });
 
   it("exposes the fallback view for every registered tool id", () => {

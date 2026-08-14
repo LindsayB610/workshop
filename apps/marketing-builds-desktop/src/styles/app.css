@@ -1094,7 +1094,7 @@ h4 {
 }
 
 .mb-badge-pink {
-  border-color: rgba(255, 27, 141, 0.38);
+  border-color: color-mix(in srgb, var(--workshop-accent) 38%, transparent);
   color: var(--color-pink);
 }
 

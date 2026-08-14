@@ -40,7 +40,7 @@ describe("SettingsPanelView", () => {
     expect(markup).not.toContain("update-available-button");
     expect(markup).toContain("you&#x27;re up to date");
     expect(markup).not.toContain("not_available");
-    expect(markup).toContain("Checks daily while Workshop is open and restarts after install.");
+    expect(markup).toContain("Checks on launch and daily while Workshop is open, then restarts after install.");
   });
 
   it("renders nothing in actionable mode when no update is available", () => {
@@ -112,5 +112,10 @@ describe("SettingsPanelView", () => {
     expect(styles).toMatch(/\.update-available-button:hover:not\(:disabled\)\s*\{[^}]*background:\s*#fff04a/s);
     expect(styles).toMatch(/\.update-available-button:active:not\(:disabled\)\s*\{[^}]*transform:\s*translateY\(1px\)/s);
     expect(styles).toMatch(/\.settings-panel\s*\{[^}]*max-width:\s*65rem/s);
+  });
+
+  it("derives the up-to-date badge border from the active Workshop palette", () => {
+    expect(styles).toMatch(/\.mb-badge-pink\s*\{[^}]*border-color:\s*color-mix\(in srgb, var\(--workshop-accent\) 38%, transparent\)[^}]*color:\s*var\(--color-pink\)/s);
+    expect(styles).not.toContain(".mb-badge-pink {\n  border-color: rgba(255, 27, 141, 0.38);");
   });
 });

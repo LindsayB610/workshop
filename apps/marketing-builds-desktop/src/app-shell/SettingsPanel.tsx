@@ -144,7 +144,7 @@ export function SettingsPanelView({
           <ShieldCheck size={17} aria-hidden="true" />
           <strong>Workshop v{updateState.currentVersion}</strong>
         </div>
-        <span>Checks daily while Workshop is open and restarts after install.</span>
+        <span>Checks on launch and daily while Workshop is open, then restarts after install.</span>
         <div className="settings-status">
           <Badge tone={updateState.status === "error" ? "red" : "pink"}>
             {statusLabel}

@@ -14,14 +14,32 @@ import {
 import { tools } from "./tools";
 
 describe("tool install state", () => {
-  it("keeps ready tools available but uninstalled in a fresh Workshop install", () => {
+  it("keeps promoted tools installed in a fresh Workshop install", () => {
     const state = defaultToolInstallState(tools);
 
-    expect(state.schemaVersion).toBe(4);
-    expect(state.enabledToolIds).toEqual([]);
-    expect(getInstalledTools(tools, state)).toEqual([]);
-    expect(getAvailableBundledTools(tools, state).map((tool) => tool.id)).toEqual(["slate"]);
-    expect(getAvailableTools(tools, state).map((tool) => tool.id)).toEqual(["slate", "pulse"]);
+    expect(state.schemaVersion).toBe(5);
+    expect(state.enabledToolIds).toEqual(["slate", "pulse"]);
+    expect(getInstalledTools(tools, state).map((tool) => tool.id)).toEqual(["slate", "pulse"]);
+    expect(getAvailableBundledTools(tools, state)).toEqual([]);
+    expect(getAvailableTools(tools, state)).toEqual([]);
+  });
+
+  it("restores newly promoted default tools for an existing version-four empty shelf", () => {
+    expect(
+      normalizeToolInstallState(tools, {
+        schemaVersion: 4,
+        enabledToolIds: [],
+      }),
+    ).toEqual({ schemaVersion: 5, enabledToolIds: ["slate", "pulse"] });
+  });
+
+  it("keeps an explicit version-five disable choice instead of reinstalling an app on every launch", () => {
+    expect(
+      normalizeToolInstallState(tools, {
+        schemaVersion: 5,
+        enabledToolIds: ["slate"],
+      }),
+    ).toEqual({ schemaVersion: 5, enabledToolIds: ["slate"] });
   });
 
   it("removes unpromoted tools from persisted install state", () => {
@@ -30,7 +48,7 @@ describe("tool install state", () => {
         schemaVersion: 4,
         enabledToolIds: ["redline", "pulse", "unknown", "redline"],
       }),
-    ).toEqual({ schemaVersion: 4, enabledToolIds: ["pulse"] });
+    ).toEqual({ schemaVersion: 5, enabledToolIds: ["slate", "pulse"] });
   });
 
   it("restores only tools that are currently promoted", () => {
@@ -38,12 +56,12 @@ describe("tool install state", () => {
       normalizeToolInstallState(tools, {
         enabledToolIds: [],
       }),
-    ).toEqual({ schemaVersion: 4, enabledToolIds: [] });
+    ).toEqual({ schemaVersion: 5, enabledToolIds: ["slate", "pulse"] });
     expect(
       normalizeToolInstallState(tools, {
         enabledToolIds: ["pulse"],
       }),
-    ).toEqual({ schemaVersion: 4, enabledToolIds: ["pulse"] });
+    ).toEqual({ schemaVersion: 5, enabledToolIds: ["slate", "pulse"] });
   });
 
   it("does not add planned tools during the version-three install-state migration", () => {
@@ -52,13 +70,13 @@ describe("tool install state", () => {
         schemaVersion: 3,
         enabledToolIds: ["redline", "pulse"],
       }),
-    ).toEqual({ schemaVersion: 4, enabledToolIds: ["pulse"] });
+    ).toEqual({ schemaVersion: 5, enabledToolIds: ["slate", "pulse"] });
     expect(
       normalizeToolInstallState(tools, {
         schemaVersion: 3,
         enabledToolIds: [],
       }),
-    ).toEqual({ schemaVersion: 4, enabledToolIds: [] });
+    ).toEqual({ schemaVersion: 5, enabledToolIds: ["slate", "pulse"] });
   });
 
   it("keeps unpromoted persisted installs hidden while preserving ready tools", () => {
@@ -66,8 +84,8 @@ describe("tool install state", () => {
       enabledToolIds: ["redline", "megaphone"],
     });
 
-    expect(getInstalledTools(tools, state)).toEqual([]);
-    expect(getAvailableTools(tools, state).map((tool) => tool.id)).toEqual(["slate", "pulse"]);
+    expect(getInstalledTools(tools, state).map((tool) => tool.id)).toEqual(["slate", "pulse"]);
+    expect(getAvailableTools(tools, state)).toEqual([]);
   });
 
   it("refuses to install an unpromoted bundled app", () => {
@@ -75,13 +93,13 @@ describe("tool install state", () => {
     const restored = enableTool(tools, initialState, "redline");
 
     expect(restored.workspaceFilesTouched).toBe(false);
-    expect(getInstalledTools(tools, restored.state)).toEqual([]);
+    expect(getInstalledTools(tools, restored.state).map((tool) => tool.id)).toEqual(["slate", "pulse"]);
 
     const disabled = disableTool(tools, restored.state, "redline");
 
     expect(disabled.workspaceFilesTouched).toBe(false);
-    expect(getInstalledTools(tools, disabled.state)).toEqual([]);
-    expect(getAvailableBundledTools(tools, disabled.state).map((tool) => tool.id)).toEqual(["slate"]);
+    expect(getInstalledTools(tools, disabled.state).map((tool) => tool.id)).toEqual(["slate", "pulse"]);
+    expect(getAvailableBundledTools(tools, disabled.state)).toEqual([]);
   });
 
   it("allows a ready external app launcher to be installed", () => {
@@ -89,8 +107,8 @@ describe("tool install state", () => {
     const installed = enableTool(tools, initialState, "pulse");
 
     expect(installed.workspaceFilesTouched).toBe(false);
-    expect(getInstalledTools(tools, installed.state).map((tool) => tool.id)).toEqual(["pulse"]);
-    expect(getAvailableTools(tools, installed.state).map((tool) => tool.id)).toEqual(["slate"]);
+    expect(getInstalledTools(tools, installed.state).map((tool) => tool.id)).toEqual(["slate", "pulse"]);
+    expect(getAvailableTools(tools, installed.state)).toEqual([]);
   });
 
   it("allows a ready bundled tool to be installed without touching its private workspace", () => {
@@ -98,8 +116,8 @@ describe("tool install state", () => {
     const installed = enableTool(tools, initialState, "slate");
 
     expect(installed.workspaceFilesTouched).toBe(false);
-    expect(getInstalledTools(tools, installed.state).map((tool) => tool.id)).toEqual(["slate"]);
-    expect(getAvailableTools(tools, installed.state).map((tool) => tool.id)).toEqual(["pulse"]);
+    expect(getInstalledTools(tools, installed.state).map((tool) => tool.id)).toEqual(["slate", "pulse"]);
+    expect(getAvailableTools(tools, installed.state)).toEqual([]);
   });
 
   it("resets only namespaced local UI state for one tool", () => {

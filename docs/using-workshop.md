@@ -1,8 +1,9 @@
 # Using Workshop
 
 Workshop is a desktop home for small local tools. The app code is public, but
-your working files stay on your computer. A new installation starts with an
-empty shelf by design: install only the tools you want to use.
+your working files stay on your computer. A new installation includes the
+currently promoted Slate and Pulse apps; their private folders are not
+connected until you choose them.
 
 This guide begins after Workshop is open. If you need to install it first, use
 the [README](../README.md#run-workshop-from-source) for the supported
@@ -14,15 +15,13 @@ personal reminders through its own private runner.
 
 ## Connect Slate
 
-### 1. Install Slate
+### 1. Open Slate
 
 1. Open Workshop.
-2. Select **Add New Tools**.
-3. Find **Slate** and choose **Install**.
-4. Open Slate from the Workshop shelf.
+2. Open Slate from the Workshop shelf.
 
-Installing or removing Slate changes only Workshop's local tool list. It never
-deletes your Markdown files or private configuration.
+Slate is included with Workshop. Connecting or disabling it never deletes your
+Markdown files or private configuration.
 
 ### 2. Create a private Slate folder
 
@@ -84,11 +83,10 @@ points to an existing Markdown file.
 
 ## Connect Pulse
 
-1. Open **Add New Tools** and install **Pulse**.
-2. Open Pulse from the shelf.
-3. If asked, select the private folder that contains `pulse.config.json`—for
+1. Open Pulse from the Workshop shelf.
+2. If asked, select the private folder that contains `pulse.config.json`—for
    example, `~/Documents/workshop-private/pulse`.
-4. Complete Pulse’s **Connect Pulse** flow. Workshop keeps the configured
+3. Complete Pulse’s **Connect Pulse** flow. Workshop keeps the configured
    credential in the operating-system keychain while Pulse receives only the
    constrained service access it needs.
 

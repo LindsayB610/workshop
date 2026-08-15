@@ -3,7 +3,7 @@ import type { ToolDefinition } from "./types";
 
 export const toolInstallStorageKey = "workshop.toolInstallState.v2";
 export const toolLocalStatePrefix = "workshop.toolLocalState.";
-export const toolInstallStateSchemaVersion = 4;
+export const toolInstallStateSchemaVersion = 5;
 const legacyBundledToolIds = ["redline", "megaphone"];
 
 export type ToolInstallState = {
@@ -39,7 +39,7 @@ export function normalizeToolInstallState(
   const migratedEnabledToolIds =
     storedState.schemaVersion === toolInstallStateSchemaVersion
       ? storedState.enabledToolIds
-      : storedState.schemaVersion === 3
+      : storedState.schemaVersion === 4 || storedState.schemaVersion === 3
         ? [...defaultInstalledToolIds, ...storedState.enabledToolIds]
         : [...defaultInstalledToolIds, ...legacyBundledToolIds, ...storedState.enabledToolIds];
   const enabledToolIds = migratedEnabledToolIds.filter((toolId, index, toolIds) => {

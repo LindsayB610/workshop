@@ -13,7 +13,7 @@ Symptoms:
 
 Fix:
 
-- install Slate from **Add New Tools** first,
+- open Slate from the Workshop shelf,
 - select the private folder containing `slate.config.json`, not the file,
 - use an absolute path for every configured Markdown source,
 - confirm each source has a unique lowercase, hyphenated `id` and a supported

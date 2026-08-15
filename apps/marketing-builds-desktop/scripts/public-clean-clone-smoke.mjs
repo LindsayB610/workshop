@@ -49,7 +49,7 @@ const requiredReadmeSnippets = [
   "npm run public:check",
   "npm run desktop:tauri -- dev",
   "npm run desktop:tauri -- build",
-  "Add New Tools",
+  "Slate and Pulse are part of the shipped Workshop experience",
   "Redline",
   "Megaphone",
   "docs/private-workspaces.md",

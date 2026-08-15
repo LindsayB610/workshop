@@ -29,7 +29,10 @@ test.describe("Workshop Preferences", () => {
     await page.getByRole("button", { name: "Folders" }).click();
     await expect(page.getByRole("heading", { name: "Folders" })).toBeVisible();
     await expect(page.getByText("Changing or forgetting one never edits, moves, discovers, or deletes private files.")).toBeVisible();
-    await expect(page.getByText("Install an app first; its private-folder settings will appear here.")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Slate" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Pulse" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Choose folder" })).toBeVisible();
+    await expect(page.getByText("Managed in app")).toHaveCount(1);
   });
 
   test("offers a manual update check without installing anything automatically", async ({ page }) => {

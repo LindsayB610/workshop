@@ -2,7 +2,7 @@
 
 Slate is an independently versioned, local-first Markdown viewer. To start:
 
-1. From Workshop, select **Add New Tools** and install **Slate**.
+1. Slate is already on the Workshop shelf.
 2. Create a private Slate folder outside the Workshop repository.
 3. Put a `slate.config.json` file in that folder.
 4. Open Slate, select that private Slate folder, and choose **Connect**.

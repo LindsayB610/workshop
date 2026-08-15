@@ -77,7 +77,7 @@ async function createFixtureRepo() {
   writeFileSync(
     path.join(root, "README.md"),
     [
-      "Add New Tools",
+      "Slate and Pulse are part of the shipped Workshop experience",
       "npm ci",
       "npm test",
       "npm run public:check",

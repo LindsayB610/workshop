@@ -134,7 +134,7 @@ describe("tool registry", () => {
 
     expect(tool?.status).toBe("ready");
     expect(tool?.installMode).toBe("external");
-    expect(tool?.defaultInstalled).toBe(false);
+    expect(tool?.defaultInstalled).toBe(true);
     expect(tool?.docsPath).toBe("/docs/tools/pulse.md");
     expect(tool?.description).toContain("recurring reminders");
     expect(tool?.workspaceRequirement).toContain("pulse.config.json");

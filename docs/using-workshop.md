@@ -5,8 +5,8 @@ your working files stay on your computer. A new installation starts with an
 empty shelf by design: install only the tools you want to use.
 
 This guide begins after Workshop is open. If you need to install it first, use
-the [README](../README.md#run-workshop-from-source) for the supported
-source-install path or its instructions for a provided `.dmg`.
+the [README](../README.md#install-workshop) for the supported public installer
+or source-development path.
 
 Slate and Pulse are currently available. Slate displays Markdown files that you
 explicitly list in a private configuration file; Pulse manages recurring

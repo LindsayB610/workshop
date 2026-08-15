@@ -39,7 +39,7 @@ describe("public corpus-building docs", () => {
     expect(readme).toContain("npm run desktop:tauri -- dev");
     expect(readme).toContain("npm run public:check");
     expect(readme).toContain("npm run desktop:tauri -- build");
-    expect(readme).toContain("A fresh installation opens to an empty shelf");
+    expect(readme).toMatch(/brand-new installation opens to an empty shelf/i);
     expect(readme).toContain("GitHub Releases");
   });
 
@@ -96,20 +96,21 @@ describe("public corpus-building docs", () => {
     expect(design).toContain("signed app bundle icon");
   });
 
-  it("keeps the dormant public-distribution design honest until an installer exists", () => {
+  it("documents the live public installer without reviving the retired source-only claim", () => {
     const distribution = readRepoFile("docs/public-distribution.md");
     const readme = readRepoFile("README.md");
 
     expect(distribution).toContain("Workshop-aarch64.dmg");
     expect(distribution).toContain("Workshop-aarch64.dmg.sha256");
-    expect(distribution).toContain("Developer ID-signed");
+    expect(distribution).toMatch(/Developer\s+ID-signed/);
     expect(distribution).toContain("notarized");
     expect(distribution).toContain("com.lindsaybrunner.workshop");
     expect(distribution).toContain("do not modify your private folders");
     expect(distribution).toContain("WORKSHOP_APPLE_DEVELOPER_ID_CERTIFICATE");
-    expect(distribution).toMatch(/first public\s+installer is not published/);
-    expect(readme).toContain("does not yet\npublish a downloadable installer through GitHub Releases");
-    expect(readme).not.toContain("releases/latest/download/Workshop-aarch64.dmg");
+    expect(distribution).toContain("releases/latest/download/Workshop-aarch64.dmg");
+    expect(distribution).not.toMatch(/first public\s+installer is not published/);
+    expect(readme).toContain("releases/latest/download/Workshop-aarch64.dmg");
+    expect(readme).not.toContain("does not yet\npublish a downloadable installer through GitHub Releases");
   });
 
   it("gives installed-app users a complete Slate setup path", () => {

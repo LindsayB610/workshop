@@ -1,87 +1,85 @@
 # Workshop
 
-Workshop is a macOS desktop home for small, private-data-aware tools. It gives
-you one place to install and open independent apps while keeping their code,
-configuration, credentials, and working files in the right places.
+Workshop is a private-first macOS home for small, independent tools. Install
+only the apps you want; keep their code public and their working files,
+configuration, and credentials on your own machine.
 
-The shell is public source. Your real Markdown files, reminder data, service
-credentials, and private configuration stay on your machine. Workshop does not
-upload, discover, edit, move, or delete those files.
+[Download Workshop for Apple Silicon](https://github.com/LindsayB610/workshop/releases/latest/download/Workshop-aarch64.dmg)
+· [View the latest release](https://github.com/LindsayB610/workshop/releases/latest)
+· [Build a tool for Workshop](docs/workshop-plugin-contract.md)
 
-**A fresh installation opens to an empty shelf.** That is intentional: you add
-only the apps you want to use.
+Workshop does not upload, discover, edit, move, or delete your private files.
+A brand-new installation opens to an empty shelf. That is the product, not a
+setup failure.
 
-## Start here
+## Choose your path
 
-| Your goal | Go here |
+| If you want to… | Start here |
 | --- | --- |
-| Run Workshop from this public repository | [Run Workshop from source](#run-workshop-from-source) |
-| Use a Workshop app someone has provided | [Install a provided app](#install-a-provided-app) |
-| Add and configure Slate or Pulse | [Set up your first tool](#set-up-your-first-tool) |
-| Build an app that runs in Workshop | [Build for Workshop](#build-for-workshop) |
-| Contribute to the shell itself | [Development and checks](#development-and-checks) |
+| Install Workshop and add a tool | [Install Workshop](#install-workshop) |
+| Connect Markdown files with Slate | [Set up Slate](#set-up-slate) |
+| Connect recurring reminders with Pulse | [Set up Pulse](#set-up-pulse) |
+| Run or modify Workshop from source | [Develop Workshop](#develop-workshop-from-source) |
+| Build an independent app that runs in Workshop | [Build for Workshop](#build-for-workshop) |
+| Understand privacy, folders, or recovery | [User guides](#user-guides) |
 
-## What you can use today
+## Install Workshop
 
-| Tool | What it does | What you provide privately |
-| --- | --- | --- |
-| Slate | Displays Markdown references you explicitly choose. | A folder with `slate.config.json` and the Markdown paths it declares. |
-| Pulse | Manages recurring reminders and their history. | A folder with `pulse.config.json`; its credential stays in your macOS Keychain. |
+Workshop currently supports Apple Silicon Macs running macOS 11 or later. Intel
+Macs, Windows, Linux, and mobile platforms are not supported yet.
+The installer is published through GitHub Releases.
 
-Redline and Megaphone are registered for future development, but they are not
-available in the public Workshop build. The fictional material
-in `clients/` exists for contributors; it is not your starting data set.
+1. [Download the notarized Workshop DMG](https://github.com/LindsayB610/workshop/releases/latest/download/Workshop-aarch64.dmg).
+2. Open it and drag **Workshop** to **Applications**.
+3. Open Workshop from Applications.
+4. Choose **Add New Tools**, install Slate or Pulse, then open it from your
+   shelf.
 
-## Run Workshop from source
+The first shelf is empty by design. Apps do not arrive pre-installed, and
+installing or removing an app never deletes its private files.
 
-This is currently the complete public installation path. Workshop does not yet
-publish a downloadable installer through GitHub Releases.
+Workshop checks for signed updates when it opens and once per day while it is
+open. Choose **Workshop → Check for Updates…** to check immediately. Updates
+replace Workshop; they do not alter your private tool folders.
 
-### You need
+### Verify a download (optional)
 
-- macOS on Apple Silicon (the maintained signed build target is `darwin-aarch64`)
-- Node.js 20 or later and npm
-- Rust and the [Tauri prerequisites](https://tauri.app/start/prerequisites/)
-
-### Install, verify, and open the native app
+Each release includes `Workshop-aarch64.dmg.sha256`. To verify a downloaded
+installer, place both files in the same folder and compare these outputs:
 
 ```sh
-git clone https://github.com/LindsayB610/workshop.git
-cd workshop
-npm ci
-npm test
-npm run typecheck
-npm run desktop:tauri -- dev
+shasum -a 256 Workshop-aarch64.dmg
+cat Workshop-aarch64.dmg.sha256
 ```
 
-The last command starts Vite and opens the native Workshop window. You do not
-need to open the local Vite address yourself. The first window will show an
-empty shelf and an **Add New Tools** button.
+They must match exactly. The installer is Developer ID-signed and Apple
+notarized; macOS should identify its signer without a security override. For
+the details, see [Public Workshop Distribution](docs/public-distribution.md).
 
-## Install a provided app
+## What you can add today
 
-If you installed Workshop from the public GitHub Release:
+| App | Job | What stays private |
+| --- | --- | --- |
+| [Slate](https://github.com/LindsayB610/slate) | Read Markdown references you explicitly choose. | A folder with `slate.config.json` and the Markdown paths it declares. |
+| [Pulse](https://github.com/LindsayB610/pulse) | Manage recurring reminders and their history. | A folder with `pulse.config.json`; credentials remain in macOS Keychain. |
 
-1. Open the `.dmg` and drag **Workshop** to **Applications**.
-2. Open **Workshop** from Applications.
-3. Choose **Add New Tools**, then install Slate or Pulse.
-4. Open the installed tool from the shelf and connect its private folder.
+Slate and Pulse are independent apps with their own repositories, tests, and
+documentation. Workshop supplies the desktop frame, app installation, local
+folder lifecycle, settings, and narrowly scoped native capabilities.
 
-Workshop checks for signed updates when it opens and daily while it remains
-open. To check immediately, choose **Workshop → Check for Updates…**. An
-update never changes your private tool folders.
+Redline and Megaphone are contributor fixtures and future work, not available
+apps in the public Workshop catalog. The fictional material in `clients/` is
+not your starting data set.
 
-## Set up your first tool
-
-### Slate: local Markdown views
+## Set up Slate
 
 1. In Workshop, choose **Add New Tools** → **Slate** → **Install**.
-2. Create a private folder outside both the Workshop and Slate repositories.
-3. Put `slate.config.json` in that folder and list only the Markdown files you
-   want Slate to read.
-4. Open Slate, select that folder, and choose **Connect**.
+2. Create a private folder outside the Workshop and Slate repositories.
+3. Put `slate.config.json` in that folder, listing only the Markdown files
+   Slate may read.
+4. Open Slate, choose that folder, and select **Connect**.
 
-Minimal example:
+Minimal `slate.config.json`:
 
 ```json
 {
@@ -97,25 +95,25 @@ Minimal example:
 }
 ```
 
-See [Using Workshop](docs/using-workshop.md#connect-slate) for all supported
-Slate views, recovery steps, and the privacy boundary.
+Slate reads only declared files; it does not scan the selected folder. See
+[Using Workshop: Slate](docs/using-workshop.md#connect-slate) for every view,
+folder browsing, and recovery behavior.
 
-### Pulse: recurring reminders
+## Set up Pulse
 
 1. In Workshop, choose **Add New Tools** → **Pulse** → **Install**.
 2. Create a private Pulse folder containing `pulse.config.json`.
-3. Open Pulse and select that folder when prompted.
-4. Use Pulse’s **Connect Pulse** flow to store its credential in your macOS
-   Keychain and load the dashboard.
+3. Open Pulse, choose that folder, and complete **Connect Pulse**.
 
 Workshop remembers the selected folder after a successful connection. It gives
-Pulse only safe service metadata and constrained service results; it never
-hands the credential to Pulse. For Pulse’s runner, Android, backup, and config
-instructions, use the [Pulse repository](https://github.com/LindsayB610/pulse).
+Pulse constrained service access and keeps the corresponding credential in your
+macOS Keychain. Pulse owns its dashboard, runner, Android setup, backup, and
+configuration guidance; use the [Pulse repository](https://github.com/LindsayB610/pulse)
+for those details.
 
-### Your private folder layout
+### Keep private work private
 
-Keep private data outside every public repository. For example:
+Keep tool folders outside public repositories. A simple layout is:
 
 ```text
 ~/Documents/workshop-private/
@@ -125,89 +123,114 @@ Keep private data outside every public repository. For example:
     pulse.config.json
 ```
 
-You may keep the Markdown files Slate reads elsewhere. Their absolute paths
-live only in your private Slate configuration. Never commit private folders,
-credentials, personal inventories, source snapshots, or generated outputs.
+Slate’s Markdown files may live elsewhere; their absolute paths belong only in
+your private Slate configuration. Never commit private folders, credentials,
+personal inventories, source snapshots, or generated outputs.
 
-## Preferences and folders
+## Preferences and recovery
 
 Choose **Workshop → Preferences…** to change Workshop’s local appearance,
-two-character personal mark, and remembered tool folders.
+two-character mark, and remembered tool folders.
 
-- Appearance choices are shell-only. Plugins can inherit theme tokens, but
-  still work with their own standalone fallbacks.
-- Folder actions can review, change, reconnect, or forget a remembered folder.
-  They never search for, modify, move, or delete private files.
-- A disconnected folder affects only its own tool. Reconnect that tool from
-  Preferences or its in-app connection flow.
+- Appearance is Workshop-only. Apps may inherit its semantic tokens but must
+  also work with their own standalone fallback styles.
+- Folder actions let you review, change, reconnect, or forget a remembered
+  folder. They never search, modify, move, or delete private files.
+- A disconnected folder affects only that app. Reconnect it from Preferences
+  or the app’s own connection flow.
 
-## Development and checks
+## Develop Workshop from source
 
-Use the browser-only frontend preview when you are working on shell UI without
-native capabilities:
-
-```sh
-npm run desktop:dev
-```
-
-Before sharing source changes, run:
+Use this path to work on the shell, inspect its source, or contribute changes.
+You need macOS on Apple Silicon, Node.js 20 or later, npm, Rust, and the
+[Tauri prerequisites](https://tauri.app/start/prerequisites/).
 
 ```sh
+git clone https://github.com/LindsayB610/workshop.git
+cd workshop
+npm ci
 npm test
 npm run typecheck
-npm run build
-npm run public:check
+npm run desktop:tauri -- dev
 ```
 
-For the fullest public-install rehearsal—including a clean dependency install,
-browser tests, and a native bundle—run:
+The last command opens the native development app. For shell-only browser UI
+work, run `npm run desktop:dev` instead.
 
-```sh
-npm run public:clean-clone -- --run-commands --keep
-```
-
-To build a local native app bundle:
+To build a local native bundle without publishing anything, run:
 
 ```sh
 npm run desktop:tauri -- build
 ```
 
-Signed updates are intentionally published through the manual **Release
-Workshop** GitHub Actions workflow; see [Workshop signed updates](docs/workshop-updates.md).
+Before proposing a change, run:
+
+```sh
+npm test
+npm run test:coverage
+npm run typecheck
+npm run build
+npm run public:check
+```
+
+For the full public-source rehearsal—including a clean dependency install,
+browser tests, and native bundle—run:
+
+```sh
+npm run public:clean-clone -- --run-commands --keep
+```
 
 ## Build for Workshop
 
-Workshop owns the desktop shell, settings, local folder lifecycle, semantic
-theme tokens, and narrowly scoped native capabilities. Each tool is an
-independently versioned application that owns its interface, parsing, state,
-and private configuration. Tools must never import Workshop source code or
-depend on private Workshop data.
+Workshop is a host, not a monorepo bucket for every tool. A tool should live in
+its own repository and own its UI, parsing, state, documentation, tests, and
+private configuration. Workshop owns the desktop shell, promotion/install
+state, settings, local folder lifecycle, semantic theme tokens, and generic
+native capabilities.
 
-Read the [Workshop plugin contract](docs/workshop-plugin-contract.md) before
-building an app, then use [Contributing tools](docs/contributing-tools.md) to
-add its declaration, tests, and promotion path. Promotion is a source-controlled
-decision: a planned tool does not become visible merely because local state says
-it was installed.
+Before writing code:
 
-## Repository map and deeper docs
+1. Read the [Workshop plugin host contract](docs/workshop-plugin-contract.md).
+2. Follow [Adding a Workshop Tool](docs/contributing-tools.md) for declarations,
+   privacy boundaries, docs, tests, and promotion.
+3. Keep real user data outside this repository and test the tool from a clean
+   public consumer installation.
+
+Tools must not import Workshop source code, depend on private Workshop data, or
+ask the host to learn their domain-specific configuration.
+
+## User guides
+
+- [Using Workshop](docs/using-workshop.md) — detailed Slate and Pulse setup
+- [Public installer and updates](docs/public-distribution.md) — download,
+  verification, signatures, and supported platforms
+- [Private workspaces](docs/private-workspaces.md) — local folder layout and
+  runtime guardrails
+- [Troubleshoot local workspaces](docs/troubleshooting-public-workspaces.md)
+
+## Contributor and maintainer guides
+
+- [Workshop plugin contract](docs/workshop-plugin-contract.md)
+- [Adding a Workshop Tool](docs/contributing-tools.md)
+- [Public quickstart](docs/public-quickstart.md)
+- [Public clean-clone install](docs/public-clean-clone-install.md)
+- [Public release checklist](docs/public-release-checklist.md)
+- [Signed updates and release operations](docs/workshop-updates.md)
+- [Workshop appearance contract](docs/workshop-appearance-design.md)
+- [Repository roadmap](docs/workshop-roadmap.md)
+- [Redline packet building](docs/redline-packet-building.md) — contributor
+  fixture documentation
+- [Megaphone corpus building](docs/megaphone-corpus-building.md) — contributor
+  fixture documentation
+
+## Repository map
 
 ```text
 apps/marketing-builds-desktop/  Tauri shell, plugin host, and desktop UI
-packages/core/                 Redline schemas, audits, and report generation
-clients/                       Fictional fixtures and public templates
-docs/                          User, contributor, product, and release guides
+packages/core/                  Redline schemas, audits, and report generation
+clients/                        Fictional fixtures and public templates
+docs/                           User, contributor, product, and release guides
 ```
-
-- [Using Workshop](docs/using-workshop.md) — detailed Slate and Pulse setup
-- [Public quickstart](docs/public-quickstart.md) — public-clone orientation
-- [Private workspaces](docs/private-workspaces.md) — folder layout and runtime guardrails
-- [Troubleshoot local workspaces](docs/troubleshooting-public-workspaces.md)
-- [Public clean-clone install](docs/public-clean-clone-install.md)
-- [Public release checklist](docs/public-release-checklist.md)
-- [Redline packet building](docs/redline-packet-building.md)
-- [Megaphone corpus building](docs/megaphone-corpus-building.md)
-- [Workshop appearance contract](docs/workshop-appearance-design.md)
-- [Workshop plugin contract](docs/workshop-plugin-contract.md)
 
 ## License
 

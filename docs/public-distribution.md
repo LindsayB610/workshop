@@ -1,17 +1,16 @@
 # Public Workshop Distribution
 
-Workshop will be directly distributed for Apple Silicon Macs as a Developer ID-signed
-and Apple-notarized disk image. GitHub Releases is the canonical installer
-source; Netlify hosts only the signed files used by Workshop's in-app updater.
+Workshop is directly distributed for Apple Silicon Macs as a Developer
+ID-signed and Apple-notarized disk image. GitHub Releases is the canonical
+installer source; Netlify hosts only the signed files used by Workshop's in-app
+updater.
 
-**Current status:** the release pipeline is implemented, but the first public
-installer is not published until its Apple Developer credentials are configured
-in GitHub Actions. This page documents the public path that will exist then; it
-does not claim an installer exists before the first notarized release.
+**Current status:** Workshop `v0.1.60` is the first public notarized installer.
+Future releases publish to the same stable download URL below.
 
 ## Install Workshop
 
-After the first public release, download the current installer from:
+Download the current installer from:
 
 <https://github.com/LindsayB610/workshop/releases/latest/download/Workshop-aarch64.dmg>
 

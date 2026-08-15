@@ -58,6 +58,7 @@ describe("Workshop release workflow", () => {
     expect(workflow).toContain('public_installer=false');
     expect(workflow).toContain("Publishing a signed updater release only.");
     expect(workflow).toContain("if: steps.distribution_mode.outputs.public_installer == 'true'");
+    expect(workflow).toContain("env -u APPLE_CERTIFICATE -u APPLE_CERTIFICATE_PASSWORD -u APPLE_SIGNING_IDENTITY");
     expect(workflow).toContain("xcrun notarytool submit");
     expect(workflow).toContain("xcrun stapler staple");
     expect(workflow).toContain("codesign --verify --deep --strict");

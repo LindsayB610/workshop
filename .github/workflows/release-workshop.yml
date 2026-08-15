@@ -117,7 +117,12 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          npm run tauri --workspace @marketing-builds/desktop -- build 2>&1 | tee "$RUNNER_TEMP/workshop-tauri-build.log"
+          if [ "${{ steps.distribution_mode.outputs.public_installer }}" = "true" ]; then
+            npm run tauri --workspace @marketing-builds/desktop -- build 2>&1 | tee "$RUNNER_TEMP/workshop-tauri-build.log"
+          else
+            env -u APPLE_CERTIFICATE -u APPLE_CERTIFICATE_PASSWORD -u APPLE_SIGNING_IDENTITY \
+              npm run tauri --workspace @marketing-builds/desktop -- build 2>&1 | tee "$RUNNER_TEMP/workshop-tauri-build.log"
+          fi
 
       - name: Verify Developer ID signature
         if: steps.distribution_mode.outputs.public_installer == 'true'

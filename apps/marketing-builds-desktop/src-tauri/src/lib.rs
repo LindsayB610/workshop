@@ -7,14 +7,18 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::Mutex;
 use std::time::UNIX_EPOCH;
-use tauri::{menu::{Menu, MenuItem, PredefinedMenuItem, Submenu}, Emitter, Manager};
+use tauri::{
+    menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
+    Emitter, Manager,
+};
 
 const WORKSHOP_PREFERENCES_MENU_ID: &str = "workshop:preferences";
 const WORKSHOP_OPEN_PREFERENCES_EVENT: &str = "workshop:open-preferences";
 const WORKSHOP_CHECK_FOR_UPDATES_MENU_ID: &str = "workshop:check-for-updates";
 const WORKSHOP_CHECK_FOR_UPDATES_EVENT: &str = "workshop:check-for-updates";
 #[cfg(test)]
-const STANDARD_EDIT_MENU_ACTIONS: [&str; 6] = ["Undo", "Redo", "Cut", "Copy", "Paste", "Select All"];
+const STANDARD_EDIT_MENU_ACTIONS: [&str; 6] =
+    ["Undo", "Redo", "Cut", "Copy", "Paste", "Select All"];
 fn is_preferences_menu_id(id: &str) -> bool {
     id == WORKSHOP_PREFERENCES_MENU_ID
 }
@@ -51,32 +55,54 @@ fn standard_edit_menu<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> tauri::Re
     let copy = PredefinedMenuItem::copy(app, None)?;
     let paste = PredefinedMenuItem::paste(app, None)?;
     let select_all = PredefinedMenuItem::select_all(app, None)?;
-    Submenu::with_items(app, "Edit", true, &[
-        &undo,
-        &redo,
-        &PredefinedMenuItem::separator(app)?,
-        &cut,
-        &copy,
-        &paste,
-        &PredefinedMenuItem::separator(app)?,
-        &select_all,
-    ])
+    Submenu::with_items(
+        app,
+        "Edit",
+        true,
+        &[
+            &undo,
+            &redo,
+            &PredefinedMenuItem::separator(app)?,
+            &cut,
+            &copy,
+            &paste,
+            &PredefinedMenuItem::separator(app)?,
+            &select_all,
+        ],
+    )
 }
 
 #[cfg(desktop)]
 fn workshop_menu<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<Menu<R>> {
-    let preferences = MenuItem::with_id(app, WORKSHOP_PREFERENCES_MENU_ID, "Preferences…", true, Some("CmdOrCtrl+,"))?;
-    let check_for_updates = MenuItem::with_id(app, WORKSHOP_CHECK_FOR_UPDATES_MENU_ID, "Check for Updates…", true, None::<&str>)?;
-    let app_menu = Submenu::with_items(app, "Workshop", true, &[
-        &PredefinedMenuItem::about(app, Some("About Workshop"), None)?,
-        &PredefinedMenuItem::separator(app)?,
-        &preferences,
-        &check_for_updates,
-        &PredefinedMenuItem::separator(app)?,
-        &PredefinedMenuItem::hide(app, None)?,
-        &PredefinedMenuItem::hide_others(app, None)?,
-        &PredefinedMenuItem::quit(app, None)?,
-    ])?;
+    let preferences = MenuItem::with_id(
+        app,
+        WORKSHOP_PREFERENCES_MENU_ID,
+        "Preferences…",
+        true,
+        Some("CmdOrCtrl+,"),
+    )?;
+    let check_for_updates = MenuItem::with_id(
+        app,
+        WORKSHOP_CHECK_FOR_UPDATES_MENU_ID,
+        "Check for Updates…",
+        true,
+        None::<&str>,
+    )?;
+    let app_menu = Submenu::with_items(
+        app,
+        "Workshop",
+        true,
+        &[
+            &PredefinedMenuItem::about(app, Some("About Workshop"), None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &preferences,
+            &check_for_updates,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::hide(app, None)?,
+            &PredefinedMenuItem::hide_others(app, None)?,
+            &PredefinedMenuItem::quit(app, None)?,
+        ],
+    )?;
     let edit_menu = standard_edit_menu(app)?;
     Menu::with_items(app, &[&app_menu, &edit_menu])
 }
@@ -289,24 +315,23 @@ fn normalize_workspace_root(path: &str) -> Result<PathBuf, String> {
         return Err("Private workspace roots must be absolute local paths.".into());
     }
 
-    let normalized =
-        requested
-            .components()
-            .try_fold(PathBuf::new(), |mut acc, component| match component {
-                std::path::Component::Prefix(prefix) => {
-                    acc.push(prefix.as_os_str());
-                    Ok(acc)
-                }
-                std::path::Component::RootDir => {
-                    acc.push(std::path::MAIN_SEPARATOR.to_string());
-                    Ok(acc)
-                }
-                std::path::Component::Normal(part) => {
-                    acc.push(part);
-                    Ok(acc)
-                }
-                _ => Err("Private workspace roots cannot contain traversal segments.".to_string()),
-            })?;
+    let normalized = requested
+        .components()
+        .try_fold(PathBuf::new(), |mut acc, component| match component {
+            std::path::Component::Prefix(prefix) => {
+                acc.push(prefix.as_os_str());
+                Ok(acc)
+            }
+            std::path::Component::RootDir => {
+                acc.push(std::path::MAIN_SEPARATOR.to_string());
+                Ok(acc)
+            }
+            std::path::Component::Normal(part) => {
+                acc.push(part);
+                Ok(acc)
+            }
+            _ => Err("Private workspace roots cannot contain traversal segments.".to_string()),
+        })?;
 
     let blocked_pilot_client = ["para", "sail"].concat();
     if normalized
@@ -372,7 +397,9 @@ fn parse_secure_service_endpoint(endpoint: &str) -> Result<String, String> {
 
     if authority.is_empty()
         || authority.contains(['/', '?', '#', '@', '\\'])
-        || authority.chars().any(|character| character.is_control() || character.is_whitespace())
+        || authority
+            .chars()
+            .any(|character| character.is_control() || character.is_whitespace())
     {
         return Err("Secure service endpoint must be an HTTPS origin without a path.".into());
     }
@@ -392,7 +419,11 @@ fn parse_local_secure_service_endpoint(host: &str, suffix: &str) -> Result<Strin
 }
 
 fn validate_external_url(url: &str) -> Result<String, String> {
-    if url.is_empty() || url.chars().any(|character| character.is_control() || character.is_whitespace()) {
+    if url.is_empty()
+        || url
+            .chars()
+            .any(|character| character.is_control() || character.is_whitespace())
+    {
         return Err("External URLs cannot contain whitespace or control characters.".into());
     }
     if url.starts_with("https:///") || url.starts_with("http:///") {
@@ -407,7 +438,9 @@ fn validate_external_url(url: &str) -> Result<String, String> {
         {
             Ok(url.to_string())
         }
-        "http" | "https" => Err("External web URLs must include a host and cannot include credentials.".into()),
+        "http" | "https" => {
+            Err("External web URLs must include a host and cannot include credentials.".into())
+        }
         "mailto" => {
             let recipient = parsed.path();
             if recipient.split('@').count() == 2
@@ -470,14 +503,19 @@ fn secure_service_metadata_from_root(
     })
 }
 
-fn validate_secure_service_request(request: &SecureServiceRequest) -> Result<(String, Option<String>), String> {
+fn validate_secure_service_request(
+    request: &SecureServiceRequest,
+) -> Result<(String, Option<String>), String> {
     if !matches!(request.method.as_str(), "GET" | "POST" | "PATCH" | "DELETE") {
         return Err("Secure service request method is not allowed.".into());
     }
     if !request.path.starts_with("/api/")
         || request.path.contains(['?', '#', '\\'])
         || request.path.contains("..")
-        || request.path.chars().any(|character| character.is_control() || character.is_whitespace())
+        || request
+            .path
+            .chars()
+            .any(|character| character.is_control() || character.is_whitespace())
     {
         return Err("Secure service request path is invalid.".into());
     }
@@ -517,13 +555,20 @@ fn secure_service_keychain_secret(credential_ref: &str) -> Result<String, String
         .map_err(|_| "Secure service credential is invalid.".to_string())?
         .trim()
         .to_string();
-    if credential.is_empty() || credential.chars().any(|character| character.is_control() || character.is_whitespace()) {
+    if credential.is_empty()
+        || credential
+            .chars()
+            .any(|character| character.is_control() || character.is_whitespace())
+    {
         return Err("Secure service credential is invalid.".into());
     }
     Ok(credential)
 }
 
-fn parse_secure_service_response(output: &[u8], credential: &str) -> Result<SecureServiceResponse, String> {
+fn parse_secure_service_response(
+    output: &[u8],
+    credential: &str,
+) -> Result<SecureServiceResponse, String> {
     let output = String::from_utf8(output.to_vec())
         .map_err(|_| "Secure service returned an invalid response.".to_string())?;
     let (body, status) = output
@@ -532,13 +577,16 @@ fn parse_secure_service_response(output: &[u8], credential: &str) -> Result<Secu
     if body.len() > SECURE_SERVICE_MAX_BODY_BYTES {
         return Err("Secure service response is too large.".into());
     }
-    let status = status.trim().parse::<u16>()
+    let status = status
+        .trim()
+        .parse::<u16>()
         .map_err(|_| "Secure service returned an invalid response.".to_string())?;
     let safe_body = body.replace(credential, "[redacted]");
     Ok(SecureServiceResponse {
         status,
-        body: serde_json::from_str(safe_body.trim())
-            .unwrap_or_else(|_| serde_json::json!({ "message": "Service returned an invalid response." })),
+        body: serde_json::from_str(safe_body.trim()).unwrap_or_else(
+            |_| serde_json::json!({ "message": "Service returned an invalid response." }),
+        ),
     })
 }
 
@@ -553,21 +601,42 @@ fn request_configured_secure_service_from_root(
     let (path, body) = validate_secure_service_request(&request)?;
     let mut command = Command::new("curl");
     command
-        .args(["--config", "-", "--silent", "--show-error", "--max-time", "15", "--request", &request.method, "--write-out", &format!("{SECURE_SERVICE_CURL_STATUS_MARKER}%{{http_code}}")])
+        .args([
+            "--config",
+            "-",
+            "--silent",
+            "--show-error",
+            "--max-time",
+            "15",
+            "--request",
+            &request.method,
+            "--write-out",
+            &format!("{SECURE_SERVICE_CURL_STATUS_MARKER}%{{http_code}}"),
+        ])
         .arg(format!("{endpoint}{path}"))
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
-    let mut child = command.spawn().map_err(|_| "Could not reach secure service.".to_string())?;
-    let mut curl_config = format!("header = \"Authorization: Bearer {}\"\n", escape_curl_config_value(&credential));
+    let mut child = command
+        .spawn()
+        .map_err(|_| "Could not reach secure service.".to_string())?;
+    let mut curl_config = format!(
+        "header = \"Authorization: Bearer {}\"\n",
+        escape_curl_config_value(&credential)
+    );
     if let Some(body) = body {
         curl_config.push_str("header = \"Content-Type: application/json\"\n");
         curl_config.push_str(&format!("data = \"{}\"\n", escape_curl_config_value(&body)));
     }
-    child.stdin.take().ok_or("Could not send secure service request.".to_string())?
+    child
+        .stdin
+        .take()
+        .ok_or("Could not send secure service request.".to_string())?
         .write_all(curl_config.as_bytes())
         .map_err(|_| "Could not send secure service request.".to_string())?;
-    let output = child.wait_with_output().map_err(|_| "Could not read secure service response.".to_string())?;
+    let output = child
+        .wait_with_output()
+        .map_err(|_| "Could not read secure service response.".to_string())?;
     if !output.status.success() {
         return Err("Secure service request failed.".into());
     }
@@ -585,9 +654,13 @@ fn parse_configured_markdown_config(contents: &str) -> Result<ConfiguredMarkdown
     let mut paths = HashSet::new();
     for source in &config.sources {
         if source.id.is_empty()
-            || !source.id.chars().all(|character| character.is_ascii_lowercase() || character.is_ascii_digit() || character == '-')
+            || !source.id.chars().all(|character| {
+                character.is_ascii_lowercase() || character.is_ascii_digit() || character == '-'
+            })
         {
-            return Err("Markdown source ids must use lowercase letters, digits, and hyphens.".into());
+            return Err(
+                "Markdown source ids must use lowercase letters, digits, and hyphens.".into(),
+            );
         }
         if !ids.insert(&source.id) {
             return Err("Markdown source ids must be unique.".into());
@@ -596,12 +669,13 @@ fn parse_configured_markdown_config(contents: &str) -> Result<ConfiguredMarkdown
             return Err("Markdown source labels cannot be empty.".into());
         }
         if source.view.is_empty()
-            || !source
-                .view
-                .chars()
-                .all(|character| character.is_ascii_lowercase() || character.is_ascii_digit() || character == '-')
+            || !source.view.chars().all(|character| {
+                character.is_ascii_lowercase() || character.is_ascii_digit() || character == '-'
+            })
         {
-            return Err("Markdown source views must use lowercase letters, digits, and hyphens.".into());
+            return Err(
+                "Markdown source views must use lowercase letters, digits, and hyphens.".into(),
+            );
         }
         let path = validate_configured_markdown_source_location(&source.path)?;
         if !paths.insert(path) {
@@ -632,7 +706,11 @@ fn validate_configured_markdown_source_location(path: &str) -> Result<PathBuf, S
     if !requested.is_absolute() {
         return Err("Markdown source paths must be absolute local paths.".into());
     }
-    if requested.extension().and_then(|extension| extension.to_str()) != Some("md") {
+    if requested
+        .extension()
+        .and_then(|extension| extension.to_str())
+        != Some("md")
+    {
         return Err("Markdown source files must be Markdown files.".into());
     }
     if requested
@@ -675,7 +753,10 @@ fn configured_markdown_snapshot(path: &Path) -> Result<ConfiguredMarkdownSnapsho
     })
 }
 
-fn configured_markdown_config_from_root(workspace_root: &str, config_file: &str) -> Result<ConfiguredMarkdownConfig, String> {
+fn configured_markdown_config_from_root(
+    workspace_root: &str,
+    config_file: &str,
+) -> Result<ConfiguredMarkdownConfig, String> {
     let root = normalize_workspace_root(workspace_root)?;
     let config_path = root.join(validate_config_file_name(config_file)?);
     let config_metadata = fs::symlink_metadata(&config_path)
@@ -705,29 +786,51 @@ fn write_configured_markdown_config_from_root(
     if metadata.file_type().is_symlink() || !metadata.is_file() {
         return Err("Markdown source configuration must be a regular JSON file.".into());
     }
-    let config = parse_configured_markdown_config(&serde_json::to_string(&config)
-        .map_err(|error| format!("Could not validate Markdown source configuration: {error}"))?)?;
+    let config =
+        parse_configured_markdown_config(&serde_json::to_string(&config).map_err(|error| {
+            format!("Could not validate Markdown source configuration: {error}")
+        })?)?;
     for source in &config.sources {
         validate_configured_markdown_source_path(&source.path)?;
     }
     let contents = serde_json::to_string_pretty(&config)
-        .map_err(|error| format!("Could not serialize Markdown source configuration: {error}"))? + "\n";
+        .map_err(|error| format!("Could not serialize Markdown source configuration: {error}"))?
+        + "\n";
     let temporary = root.join(format!(".{config_name}.tmp"));
-    fs::write(&temporary, contents).map_err(|error| format!("Could not stage Markdown source configuration: {error}"))?;
-    fs::rename(&temporary, &config_path).map_err(|error| format!("Could not save Markdown source configuration: {error}"))?;
+    fs::write(&temporary, contents)
+        .map_err(|error| format!("Could not stage Markdown source configuration: {error}"))?;
+    fs::rename(&temporary, &config_path)
+        .map_err(|error| format!("Could not save Markdown source configuration: {error}"))?;
     Ok(config)
 }
 
-fn configured_markdown_source_locations_from_root(workspace_root: &str, config_file: &str) -> Result<Vec<(PathBuf, String)>, String> {
+fn configured_markdown_source_locations_from_root(
+    workspace_root: &str,
+    config_file: &str,
+) -> Result<Vec<(PathBuf, String)>, String> {
     let config = configured_markdown_config_from_root(workspace_root, config_file)?;
-    config.sources.into_iter().map(|source| {
-        Ok((validate_configured_markdown_source_location(&source.path)?, source.id))
-    }).collect()
+    config
+        .sources
+        .into_iter()
+        .map(|source| {
+            Ok((
+                validate_configured_markdown_source_location(&source.path)?,
+                source.id,
+            ))
+        })
+        .collect()
 }
 
-fn configured_markdown_source_from_root(workspace_root: &str, config_file: &str, source_id: &str) -> Result<ConfiguredMarkdownSnapshot, String> {
+fn configured_markdown_source_from_root(
+    workspace_root: &str,
+    config_file: &str,
+    source_id: &str,
+) -> Result<ConfiguredMarkdownSnapshot, String> {
     let config = configured_markdown_config_from_root(workspace_root, config_file)?;
-    let source = config.sources.into_iter().find(|candidate| candidate.id == source_id)
+    let source = config
+        .sources
+        .into_iter()
+        .find(|candidate| candidate.id == source_id)
         .ok_or("Markdown source id is not configured.")?;
     configured_markdown_snapshot(&validate_configured_markdown_source_path(&source.path)?)
 }
@@ -1463,13 +1566,12 @@ fn megaphone_open_path(
 ) -> Result<(), String> {
     let current_dir = std::env::current_dir().map_err(|error| error.to_string())?;
     let resource_dir = app.path().resource_dir().ok();
-    let full_path =
-        resolve_megaphone_open_path_from_context(
-            &current_dir,
-            resource_dir.as_deref(),
-            workspace_root.as_deref(),
-            &path,
-        )?;
+    let full_path = resolve_megaphone_open_path_from_context(
+        &current_dir,
+        resource_dir.as_deref(),
+        workspace_root.as_deref(),
+        &path,
+    )?;
 
     #[cfg(target_os = "macos")]
     let mut command = {
@@ -1504,7 +1606,11 @@ fn redline_open_path(
 ) -> Result<(), String> {
     let current_dir = std::env::current_dir().map_err(|error| error.to_string())?;
     let resource_dir = app.path().resource_dir().ok();
-    let roots = workspace_roots(&current_dir, resource_dir.as_deref(), workspace_root.as_deref())?;
+    let roots = workspace_roots(
+        &current_dir,
+        resource_dir.as_deref(),
+        workspace_root.as_deref(),
+    )?;
     let full_path = resolve_redline_path_from_roots(&path, &roots)?;
 
     #[cfg(target_os = "macos")]
@@ -2024,7 +2130,8 @@ fn start_configured_markdown_watch(
     workspace_root: String,
     config_file: String,
 ) -> Result<(), String> {
-    let source_locations = configured_markdown_source_locations_from_root(&workspace_root, &config_file)?;
+    let source_locations =
+        configured_markdown_source_locations_from_root(&workspace_root, &config_file)?;
     let root = normalize_workspace_root(&workspace_root)?;
     let config_file = validate_config_file_name(&config_file)?.to_owned();
     let mut watchers = state
@@ -2145,11 +2252,13 @@ mod tests {
             "https://docs.example.com/getting-started?from=workshop#install"
         );
         assert_eq!(
-            validate_external_url("http://localhost:3000/help").expect("http links should be allowed"),
+            validate_external_url("http://localhost:3000/help")
+                .expect("http links should be allowed"),
             "http://localhost:3000/help"
         );
         assert_eq!(
-            validate_external_url("mailto:hello@example.com?subject=Workshop").expect("mailto links should be allowed"),
+            validate_external_url("mailto:hello@example.com?subject=Workshop")
+                .expect("mailto links should be allowed"),
             "mailto:hello@example.com?subject=Workshop"
         );
 
@@ -2163,7 +2272,10 @@ mod tests {
             "https://example.com\nInjected: value",
             " https://example.com",
         ] {
-            assert!(validate_external_url(unsafe_url).is_err(), "{unsafe_url} should be rejected");
+            assert!(
+                validate_external_url(unsafe_url).is_err(),
+                "{unsafe_url} should be rejected"
+            );
         }
     }
 
@@ -2172,12 +2284,18 @@ mod tests {
         assert!(is_preferences_menu_id(WORKSHOP_PREFERENCES_MENU_ID));
         assert!(!is_preferences_menu_id("slate:preferences"));
         assert_eq!(WORKSHOP_OPEN_PREFERENCES_EVENT, "workshop:open-preferences");
-        assert_eq!(workshop_menu_event_name(WORKSHOP_PREFERENCES_MENU_ID), Some(WORKSHOP_OPEN_PREFERENCES_EVENT));
+        assert_eq!(
+            workshop_menu_event_name(WORKSHOP_PREFERENCES_MENU_ID),
+            Some(WORKSHOP_OPEN_PREFERENCES_EVENT)
+        );
     }
 
     #[test]
     fn standard_edit_menu_keeps_macos_text_editing_actions_available() {
-        assert_eq!(STANDARD_EDIT_MENU_ACTIONS, ["Undo", "Redo", "Cut", "Copy", "Paste", "Select All"]);
+        assert_eq!(
+            STANDARD_EDIT_MENU_ACTIONS,
+            ["Undo", "Redo", "Cut", "Copy", "Paste", "Select All"]
+        );
         let menu_source = include_str!("lib.rs");
         for predefined_action in [
             "PredefinedMenuItem::undo(app, None)",
@@ -2188,16 +2306,27 @@ mod tests {
             "PredefinedMenuItem::select_all(app, None)",
             "let edit_menu = standard_edit_menu(app)?;",
         ] {
-            assert!(menu_source.contains(predefined_action), "missing {predefined_action}");
+            assert!(
+                menu_source.contains(predefined_action),
+                "missing {predefined_action}"
+            );
         }
     }
 
     #[test]
     fn update_menu_uses_a_neutral_host_event_contract() {
-        assert!(is_check_for_updates_menu_id(WORKSHOP_CHECK_FOR_UPDATES_MENU_ID));
+        assert!(is_check_for_updates_menu_id(
+            WORKSHOP_CHECK_FOR_UPDATES_MENU_ID
+        ));
         assert!(!is_check_for_updates_menu_id("pulse:check-for-updates"));
-        assert_eq!(WORKSHOP_CHECK_FOR_UPDATES_EVENT, "workshop:check-for-updates");
-        assert_eq!(workshop_menu_event_name(WORKSHOP_CHECK_FOR_UPDATES_MENU_ID), Some(WORKSHOP_CHECK_FOR_UPDATES_EVENT));
+        assert_eq!(
+            WORKSHOP_CHECK_FOR_UPDATES_EVENT,
+            "workshop:check-for-updates"
+        );
+        assert_eq!(
+            workshop_menu_event_name(WORKSHOP_CHECK_FOR_UPDATES_MENU_ID),
+            Some(WORKSHOP_CHECK_FOR_UPDATES_EVENT)
+        );
         assert_eq!(workshop_menu_event_name("not-a-workshop-menu-action"), None);
     }
 
@@ -2252,30 +2381,51 @@ mod tests {
         );
 
         assert_eq!(
-            configured_markdown_source_from_root(root.to_str().expect("temp root should be utf8"), "sources.config.json", "tasks")
-                .expect("configured source should load independently")
-                .contents,
+            configured_markdown_source_from_root(
+                root.to_str().expect("temp root should be utf8"),
+                "sources.config.json",
+                "tasks"
+            )
+            .expect("configured source should load independently")
+            .contents,
             "# Tasks\n"
         );
         assert_eq!(
-            configured_markdown_source_from_root(root.to_str().expect("temp root should be utf8"), "sources.config.json", "inventory")
-                .expect("configured source should load independently")
-                .contents,
+            configured_markdown_source_from_root(
+                root.to_str().expect("temp root should be utf8"),
+                "sources.config.json",
+                "inventory"
+            )
+            .expect("configured source should load independently")
+            .contents,
             "# Inventory\n"
         );
         assert_eq!(
-            configured_markdown_source_from_root(root.to_str().expect("temp root should be utf8"), "sources.config.json", "notes")
-                .expect("configured source should load independently")
-                .contents,
+            configured_markdown_source_from_root(
+                root.to_str().expect("temp root should be utf8"),
+                "sources.config.json",
+                "notes"
+            )
+            .expect("configured source should load independently")
+            .contents,
             "# Notes\n"
         );
-        assert!(configured_markdown_source_from_root(root.to_str().expect("temp root should be utf8"), "sources.config.json", "other").is_err());
+        assert!(configured_markdown_source_from_root(
+            root.to_str().expect("temp root should be utf8"),
+            "sources.config.json",
+            "other"
+        )
+        .is_err());
 
         fs::remove_file(&notes).expect("notes source should be removable");
         assert_eq!(
-            configured_markdown_source_from_root(root.to_str().expect("temp root should be utf8"), "sources.config.json", "tasks")
-                .expect("one source should not depend on another source")
-                .contents,
+            configured_markdown_source_from_root(
+                root.to_str().expect("temp root should be utf8"),
+                "sources.config.json",
+                "tasks"
+            )
+            .expect("one source should not depend on another source")
+            .contents,
             "# Tasks\n"
         );
 
@@ -2288,16 +2438,44 @@ mod tests {
         fs::create_dir_all(&root).expect("root should be created");
         let source = root.join("notes.md");
         fs::write(&source, "# Notes\n").expect("source should be written");
-        fs::write(root.join("sources.config.json"), r#"{"version":1,"sources":[]}"#).expect("config should exist");
+        fs::write(
+            root.join("sources.config.json"),
+            r#"{"version":1,"sources":[]}"#,
+        )
+        .expect("config should exist");
         let saved = write_configured_markdown_config_from_root(
             root.to_str().expect("temp root should be utf8"),
             "sources.config.json",
-            ConfiguredMarkdownConfig { version: 1, sources: vec![ConfiguredMarkdownSource { id: "notes".into(), label: "Notes".into(), view: "markdown".into(), path: source.to_string_lossy().to_string() }] },
-        ).expect("valid source config should save");
+            ConfiguredMarkdownConfig {
+                version: 1,
+                sources: vec![ConfiguredMarkdownSource {
+                    id: "notes".into(),
+                    label: "Notes".into(),
+                    view: "markdown".into(),
+                    path: source.to_string_lossy().to_string(),
+                }],
+            },
+        )
+        .expect("valid source config should save");
         assert_eq!(saved.sources.len(), 1);
-        assert!(fs::read_to_string(root.join("sources.config.json")).expect("config should read").contains("\"notes\""));
-        let missing = ConfiguredMarkdownConfig { version: 1, sources: vec![ConfiguredMarkdownSource { id: "missing".into(), label: "Missing".into(), view: "markdown".into(), path: root.join("missing.md").to_string_lossy().to_string() }] };
-        assert!(write_configured_markdown_config_from_root(root.to_str().expect("temp root should be utf8"), "sources.config.json", missing).is_err());
+        assert!(fs::read_to_string(root.join("sources.config.json"))
+            .expect("config should read")
+            .contains("\"notes\""));
+        let missing = ConfiguredMarkdownConfig {
+            version: 1,
+            sources: vec![ConfiguredMarkdownSource {
+                id: "missing".into(),
+                label: "Missing".into(),
+                view: "markdown".into(),
+                path: root.join("missing.md").to_string_lossy().to_string(),
+            }],
+        };
+        assert!(write_configured_markdown_config_from_root(
+            root.to_str().expect("temp root should be utf8"),
+            "sources.config.json",
+            missing
+        )
+        .is_err());
         fs::remove_dir_all(root).expect("temp root should be removed");
     }
 
@@ -2309,7 +2487,8 @@ mod tests {
         .expect("secure service config should parse");
         let metadata = SecureServiceMetadata {
             version: config.version,
-            endpoint: parse_secure_service_endpoint(&config.endpoint).expect("endpoint should normalize"),
+            endpoint: parse_secure_service_endpoint(&config.endpoint)
+                .expect("endpoint should normalize"),
             credential_ref: config.credential_ref,
         };
         let serialized = serde_json::to_string(&metadata).expect("metadata should serialize");
@@ -2317,8 +2496,14 @@ mod tests {
         assert!(serialized.contains("https://service.example"));
         assert!(serialized.contains("private-token"));
         assert!(!serialized.contains("Bearer"));
-        assert!(parse_secure_service_config(r#"{"version":1,"endpoint":"https://service.example/api","credentialRef":"x"}"#).is_err());
-        assert!(parse_secure_service_config(r#"{"version":2,"endpoint":"https://service.example","credentialRef":"x"}"#).is_err());
+        assert!(parse_secure_service_config(
+            r#"{"version":1,"endpoint":"https://service.example/api","credentialRef":"x"}"#
+        )
+        .is_err());
+        assert!(parse_secure_service_config(
+            r#"{"version":2,"endpoint":"https://service.example","credentialRef":"x"}"#
+        )
+        .is_err());
     }
 
     #[test]
@@ -2329,9 +2514,24 @@ mod tests {
             body: Some(serde_json::json!({ "name": "item" })),
         };
         assert!(validate_secure_service_request(&request).is_ok());
-        assert!(validate_secure_service_request(&SecureServiceRequest { method: "PUT".into(), path: "/api/v1/items".into(), body: None }).is_err());
-        assert!(validate_secure_service_request(&SecureServiceRequest { method: "GET".into(), path: "https://service.example/api".into(), body: None }).is_err());
-        assert!(validate_secure_service_request(&SecureServiceRequest { method: "GET".into(), path: "/api/../secrets".into(), body: None }).is_err());
+        assert!(validate_secure_service_request(&SecureServiceRequest {
+            method: "PUT".into(),
+            path: "/api/v1/items".into(),
+            body: None
+        })
+        .is_err());
+        assert!(validate_secure_service_request(&SecureServiceRequest {
+            method: "GET".into(),
+            path: "https://service.example/api".into(),
+            body: None
+        })
+        .is_err());
+        assert!(validate_secure_service_request(&SecureServiceRequest {
+            method: "GET".into(),
+            path: "/api/../secrets".into(),
+            body: None
+        })
+        .is_err());
 
         let response = parse_secure_service_response(
             b"{\"message\":\"token-should-not-escape\"}\n__WORKSHOP_SECURE_SERVICE_STATUS__=401",
@@ -2395,7 +2595,12 @@ mod tests {
         )
         .expect("source config should be written");
 
-        assert!(configured_markdown_source_from_root(root.to_str().expect("temp root should be utf8"), "sources.config.json", "tasks").is_err());
+        assert!(configured_markdown_source_from_root(
+            root.to_str().expect("temp root should be utf8"),
+            "sources.config.json",
+            "tasks"
+        )
+        .is_err());
         let _ = fs::remove_dir_all(root);
     }
 
@@ -2426,13 +2631,19 @@ mod tests {
             (notes.clone(), "notes".to_string()),
         ]);
 
-        assert_eq!(configured_markdown_source_for_changed_path(&watched_sources, &tasks), Some("tasks".into()));
+        assert_eq!(
+            configured_markdown_source_for_changed_path(&watched_sources, &tasks),
+            Some("tasks".into())
+        );
         assert_eq!(
             configured_markdown_source_for_changed_path(&watched_sources, &notes),
             Some("notes".into())
         );
         assert_eq!(
-            configured_markdown_source_for_changed_path(&watched_sources, Path::new("/private/tasks/other.md")),
+            configured_markdown_source_for_changed_path(
+                &watched_sources,
+                Path::new("/private/tasks/other.md")
+            ),
             None
         );
     }
@@ -2441,13 +2652,16 @@ mod tests {
     fn atomic_save_rename_event_resolves_to_the_configured_source() {
         let tasks = PathBuf::from("/private/tasks/tasks.md");
         let watched_sources = HashMap::from([(tasks.clone(), "tasks".to_string())]);
-        let event = notify::Event::new(notify::EventKind::Modify(
-            notify::event::ModifyKind::Name(notify::event::RenameMode::Both),
-        ))
+        let event = notify::Event::new(notify::EventKind::Modify(notify::event::ModifyKind::Name(
+            notify::event::RenameMode::Both,
+        )))
         .add_path("/private/tasks/.tasks.md.tmp".into())
         .add_path(tasks);
 
-        assert_eq!(configured_markdown_sources_from_event(&watched_sources, &event), vec!["tasks"]);
+        assert_eq!(
+            configured_markdown_sources_from_event(&watched_sources, &event),
+            vec!["tasks"]
+        );
     }
 
     #[test]
@@ -2523,7 +2737,8 @@ mod tests {
     #[test]
     fn resolves_client_artifacts_from_a_workspace_root() {
         let root = unique_temp_root("workspace");
-        let artifact = root.join("clients/demo-megaphone/reports/homepage-pilot/executive-summary.md");
+        let artifact =
+            root.join("clients/demo-megaphone/reports/homepage-pilot/executive-summary.md");
         fs::create_dir_all(artifact.parent().expect("artifact should have a parent"))
             .expect("test artifact directory should be created");
         fs::write(&artifact, "# Executive Summary\n").expect("test artifact should be written");
@@ -2611,11 +2826,19 @@ mod tests {
 
     #[test]
     fn rejects_packet_exports_outside_the_selected_client_folder() {
-        assert!(normalize_redline_write_path("clients/demo-megaphone/client.yaml", "demo-megaphone").is_ok());
-        assert!(normalize_redline_write_path("clients/fixture/client.yaml", "demo-megaphone").is_err());
+        assert!(normalize_redline_write_path(
+            "clients/demo-megaphone/client.yaml",
+            "demo-megaphone"
+        )
+        .is_ok());
         assert!(
-            normalize_redline_write_path("../clients/demo-megaphone/client.yaml", "demo-megaphone").is_err()
+            normalize_redline_write_path("clients/fixture/client.yaml", "demo-megaphone").is_err()
         );
+        assert!(normalize_redline_write_path(
+            "../clients/demo-megaphone/client.yaml",
+            "demo-megaphone"
+        )
+        .is_err());
     }
 
     #[test]
@@ -2666,9 +2889,13 @@ mod tests {
             },
         ];
 
-        let count =
-            redline_write_target_snapshot_files_to_root(&root, "demo-megaphone", &files, Some(false))
-                .expect("snapshot files should write");
+        let count = redline_write_target_snapshot_files_to_root(
+            &root,
+            "demo-megaphone",
+            &files,
+            Some(false),
+        )
+        .expect("snapshot files should write");
 
         assert_eq!(count, 2);
         assert!(root
@@ -2755,9 +2982,11 @@ mod tests {
             "demo-megaphone"
         )
         .is_err());
-        assert!(
-            normalize_megaphone_write_path("clients/demo-megaphone/client.yaml", "demo-megaphone").is_err()
-        );
+        assert!(normalize_megaphone_write_path(
+            "clients/demo-megaphone/client.yaml",
+            "demo-megaphone"
+        )
+        .is_err());
         assert!(normalize_megaphone_write_path(
             "clients/demo-megaphone/post-packages/brief/draft.txt",
             "demo-megaphone"
@@ -2850,8 +3079,7 @@ mod tests {
         fs::create_dir_all(&content_redline_nested).expect("nested current directory should exist");
 
         assert_eq!(
-            megaphone_write_root(&content_redline_nested, None)
-                .expect("write root should resolve"),
+            megaphone_write_root(&content_redline_nested, None).expect("write root should resolve"),
             megaphone_root
         );
         let _ = fs::remove_dir_all(root);
@@ -2937,7 +3165,10 @@ mod tests {
             contents: "clientId: demo-megaphone-onboarding-draft\n".into(),
         };
 
-        assert_eq!(file.path, "clients/demo-megaphone-onboarding-draft/client.yaml");
+        assert_eq!(
+            file.path,
+            "clients/demo-megaphone-onboarding-draft/client.yaml"
+        );
     }
 
     #[test]
@@ -2949,9 +3180,13 @@ mod tests {
         let smoke_root = unique_temp_root("megaphone-packaged-action-smoke");
         fs::create_dir_all(&smoke_root).expect("smoke root should be created");
 
-        let loaded =
-            megaphone_load_client_folder_from_context(&current_dir, None, None, "clients/demo-megaphone")
-                .expect("Tauri helper should load the real Demo Megaphone client folder");
+        let loaded = megaphone_load_client_folder_from_context(
+            &current_dir,
+            None,
+            None,
+            "clients/demo-megaphone",
+        )
+        .expect("Tauri helper should load the real Demo Megaphone client folder");
         assert_eq!(loaded.client_id, "demo-megaphone");
         assert!(loaded.source_count > 0);
 
@@ -2993,9 +3228,13 @@ mod tests {
             .expect("package should include a brief")
             .path
             .clone();
-        let resolved_brief =
-            resolve_megaphone_open_path_from_context(&current_dir, Some(&smoke_root), None, &brief_path)
-                .expect("Tauri helper should resolve a generated artifact for opening");
+        let resolved_brief = resolve_megaphone_open_path_from_context(
+            &current_dir,
+            Some(&smoke_root),
+            None,
+            &brief_path,
+        )
+        .expect("Tauri helper should resolve a generated artifact for opening");
         assert!(resolved_brief.starts_with(&smoke_root));
         assert!(resolved_brief.is_file());
 
@@ -3091,7 +3330,8 @@ mod tests {
         )
         .is_err());
 
-        let blocked_path = smoke_root.join("clients/demo-megaphone/post-packages/blocked-write/brief.md");
+        let blocked_path =
+            smoke_root.join("clients/demo-megaphone/post-packages/blocked-write/brief.md");
         fs::create_dir_all(&blocked_path).expect("blocked write directory should be created");
         assert!(megaphone_write_post_package_files_to_root(
             &smoke_root,

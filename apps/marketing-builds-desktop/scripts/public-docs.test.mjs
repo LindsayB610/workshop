@@ -36,9 +36,11 @@ describe("public corpus-building docs", () => {
     }
 
     expect(readme).toContain("npm test");
-    expect(readme).toContain("npm run desktop:dev");
+    expect(readme).toContain("npm run desktop:tauri -- dev");
     expect(readme).toContain("npm run public:check");
     expect(readme).toContain("npm run desktop:tauri -- build");
+    expect(readme).toContain("A fresh installation opens to an empty shelf");
+    expect(readme).toContain("GitHub Releases");
   });
 
   it("links deeper corpus-building guides from packaged tool docs", () => {

@@ -4,7 +4,10 @@ This guide is for trying or contributing to Workshop from a fresh public clone.
 If you have already installed the desktop app, follow
 [using-workshop.md](using-workshop.md) instead.
 
-## 1. Install And Verify
+## 1. Install, verify, and open the native app
+
+Workshop's public source path requires macOS on Apple Silicon, Node.js 20 or
+later, npm, Rust, and the [Tauri prerequisites](https://tauri.app/start/prerequisites/).
 
 ```sh
 git clone https://github.com/LindsayB610/workshop.git
@@ -12,15 +15,10 @@ cd workshop
 npm ci
 npm test
 npm run typecheck
+npm run desktop:tauri -- dev
 ```
 
-## 2. Start Workshop
-
-```sh
-npm run desktop:dev
-```
-
-Open the local address Vite prints. An empty shelf is normal for a fresh
+Tauri starts Vite and opens Workshop. An empty shelf is normal for a fresh
 installation. Select **Add New Tools**, install **Slate** or **Pulse**, and
 open it from the shelf.
 

@@ -4,20 +4,17 @@ Workshop is a desktop home for small local tools. The app code is public, but
 your working files stay on your computer. A new installation starts with an
 empty shelf by design: install only the tools you want to use.
 
+This guide begins after Workshop is open. If you need to install it first, use
+the [README](../README.md#run-workshop-from-source) for the supported
+source-install path or its instructions for a provided `.dmg`.
+
 Slate and Pulse are currently available. Slate displays Markdown files that you
 explicitly list in a private configuration file; Pulse manages recurring
 personal reminders through its own private runner.
 
-## 1. Keep Workshop Up To Date
+## Connect Slate
 
-The packaged app checks for signed updates every time it opens, then once every
-24 hours while it remains open. Choose **Workshop → Check for Updates…** or
-open **Workshop → Preferences… → Updates** when you want to check immediately. If Workshop
-shows **Update available**, choose it to install the signed update and restart
-the app. You can continue using the current version if no update is available
-or you are offline.
-
-## 2. Install Slate
+### 1. Install Slate
 
 1. Open Workshop.
 2. Select **Add New Tools**.
@@ -27,7 +24,7 @@ or you are offline.
 Installing or removing Slate changes only Workshop's local tool list. It never
 deletes your Markdown files or private configuration.
 
-## 3. Create A Private Slate Folder
+### 2. Create a private Slate folder
 
 Create a folder outside the Workshop repository and outside the Slate source
 repository. For example:
@@ -41,7 +38,7 @@ repository. For example:
 The Markdown files can live anywhere on your computer. The configuration below
 is the only place Slate learns their locations.
 
-## 4. Add Your Sources
+### 3. Add your sources
 
 Create `slate.config.json` in that private Slate folder. Replace the example
 paths with absolute paths to Markdown files you own:
@@ -75,7 +72,7 @@ Each source needs a unique lowercase, hyphenated `id`, a human-readable
 | `markdown` | A straightforward Markdown document. |
 | `table` | Markdown whose primary content is a table. |
 
-## 5. Connect Slate
+### 4. Connect
 
 In Slate, enter or choose the folder containing `slate.config.json`, then
 select **Connect**. Choose a source from Slate to read it. Slate watches the
@@ -85,7 +82,31 @@ If Slate cannot connect, make sure you selected the folder—not the
 `slate.config.json` file itself—and that every configured path is absolute and
 points to an existing Markdown file.
 
-## Privacy And Boundaries
+## Connect Pulse
+
+1. Open **Add New Tools** and install **Pulse**.
+2. Open Pulse from the shelf.
+3. If asked, select the private folder that contains `pulse.config.json`—for
+   example, `~/Documents/workshop-private/pulse`.
+4. Complete Pulse’s **Connect Pulse** flow. Workshop keeps the configured
+   credential in the operating-system keychain while Pulse receives only the
+   constrained service access it needs.
+
+Workshop remembers that folder after a successful connection. Pulse owns its
+dashboard, reminder timing, history, and runner-health screens. For
+private-runner deployment, Android setup, backup guidance, and the exact public
+`pulse.config.json` example, use the [Pulse repository](https://github.com/LindsayB610/pulse).
+
+## Keep Workshop up to date
+
+The packaged app checks for signed updates every time it opens, then once every
+24 hours while it remains open. Choose **Workshop → Check for Updates…** or
+open **Workshop → Preferences… → Updates** when you want to check immediately.
+If Workshop shows **Update available**, choose it to install the signed update
+and restart the app. You can continue using the current version if no update is
+available or you are offline.
+
+## Privacy and recovery
 
 - Keep private folders outside the Workshop repository so they cannot be
   committed accidentally.
@@ -94,21 +115,9 @@ points to an existing Markdown file.
   contents into the repository or upload them.
 - Slate can read only the files explicitly declared in `slate.config.json`.
   It does not search nearby folders or fall back to unrelated data.
-
-## 6. Install Pulse
-
-1. Open **Add New Tools** and install **Pulse**.
-2. Open Pulse from the shelf.
-3. If asked, select the private folder that contains `pulse.config.json`—for
-   example, `~/Documents/workshop-private/pulse`.
-
-Workshop remembers that folder after a successful connection. Pulse owns its
-dashboard, reminder timing, history, and runner health screens. Workshop
-returns only safe service metadata to Pulse and keeps the configured credential
-in the operating-system keychain; Pulse never receives the credential itself.
-
-For private-runner deployment, Android setup, and backup guidance, use the
-[Pulse repository](https://github.com/LindsayB610/pulse).
+- Folder actions in **Workshop → Preferences…** can review, change, reconnect,
+  or forget remembered locations. They never modify, move, or delete private
+  files.
 
 Redline and Megaphone remain registered as future tools. See
 [private-workspaces.md](private-workspaces.md) for the broader private-data

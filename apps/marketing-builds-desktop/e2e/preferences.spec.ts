@@ -32,6 +32,28 @@ test.describe("Workshop Preferences", () => {
     await expect(page.getByText("Install an app first; its private-folder settings will appear here.")).toBeVisible();
   });
 
+  test("repairs only the affected version-four shelf while keeping the catalog closed", async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.clear();
+      window.localStorage.setItem(
+        "workshop.toolInstallState.v2",
+        JSON.stringify({ schemaVersion: 4, enabledToolIds: [] }),
+      );
+    });
+    await page.goto("/");
+
+    await expect(page.getByRole("button", { name: /^Slate/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Pulse/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Add New Tools" })).toHaveAttribute("aria-expanded", "false");
+    await expect(page.getByLabel("Add New Tools catalog")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Install" })).toHaveCount(0);
+    await expect
+      .poll(() =>
+        page.evaluate(() => JSON.parse(window.localStorage.getItem("workshop.toolInstallState.v2") ?? "{}")),
+      )
+      .toEqual({ schemaVersion: 5, enabledToolIds: ["slate", "pulse"] });
+  });
+
   test("offers a manual update check without installing anything automatically", async ({ page }) => {
     await page.addInitScript(() => window.localStorage.clear());
     await page.goto("/");

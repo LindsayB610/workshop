@@ -1,5 +1,5 @@
 /* @vitest-environment jsdom */
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -8,6 +8,7 @@ vi.mock("@tauri-apps/api/event", () => ({
 }));
 
 import { App } from "./App";
+import { toolInstallStorageKey } from "./tool-registry/installState";
 
 afterEach(() => {
   cleanup();
@@ -31,5 +32,26 @@ describe("Workshop host workflow", () => {
     expect(await screen.findByRole("dialog", { name: "Preferences" })).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Close Preferences" }));
     expect(screen.queryByRole("dialog", { name: "Preferences" })).toBeNull();
+  });
+
+  it("recovers the affected version-four shelf without changing the fresh-install catalog behavior", async () => {
+    window.localStorage.setItem(
+      toolInstallStorageKey,
+      JSON.stringify({ schemaVersion: 4, enabledToolIds: [] }),
+    );
+    render(<App />);
+
+    expect(screen.getByRole("button", { name: /^Slate/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Pulse/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Add New Tools" }).getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByLabelText("Add New Tools catalog")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Install" })).toBeNull();
+
+    await waitFor(() => {
+      expect(JSON.parse(window.localStorage.getItem(toolInstallStorageKey) ?? "{}")).toEqual({
+        schemaVersion: 5,
+        enabledToolIds: ["slate", "pulse"],
+      });
+    });
   });
 });

@@ -86,6 +86,10 @@ describe("Workshop release workflow", () => {
     expect(workflow.indexOf("Remove DMG volume-icon implementation file")).toBeLessThan(
       workflow.indexOf("Notarize and staple public DMG"),
     );
+    expect(workflow).toContain('codesign --force --sign "$APPLE_SIGNING_IDENTITY" --timestamp "$DMG_PATH"');
+    expect(workflow.indexOf('codesign --force --sign "$APPLE_SIGNING_IDENTITY" --timestamp "$DMG_PATH"')).toBeLessThan(
+      workflow.indexOf("Notarize and staple public DMG"),
+    );
     expect(cleanupScript).toContain("rm -f \"$MOUNT_DIR/.VolumeIcon.icns\"");
     expect(cleanupScript).toContain("hdiutil convert \"$DMG_PATH\" -format UDRW");
     expect(cleanupScript).toContain("-format UDZO");

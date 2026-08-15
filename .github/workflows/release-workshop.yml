@@ -139,7 +139,10 @@ jobs:
         run: |
           set -euo pipefail
           chmod +x apps/marketing-builds-desktop/scripts/remove-dmg-volume-icon.sh
-          apps/marketing-builds-desktop/scripts/remove-dmg-volume-icon.sh "apps/marketing-builds-desktop/src-tauri/target/release/bundle/dmg/Workshop_${{ steps.release_version.outputs.version }}_aarch64.dmg"
+          DMG_PATH="apps/marketing-builds-desktop/src-tauri/target/release/bundle/dmg/Workshop_${{ steps.release_version.outputs.version }}_aarch64.dmg"
+          apps/marketing-builds-desktop/scripts/remove-dmg-volume-icon.sh "$DMG_PATH"
+          codesign --force --sign "$APPLE_SIGNING_IDENTITY" --timestamp "$DMG_PATH"
+          codesign --verify --verbose=2 "$DMG_PATH"
 
       - name: Notarize and staple public DMG
         if: steps.distribution_mode.outputs.public_installer == 'true'

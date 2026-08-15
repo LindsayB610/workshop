@@ -51,17 +51,26 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Require public-distribution credentials
+      - name: Determine public installer mode
+        id: distribution_mode
         shell: bash
         run: |
+          missing=()
           for secret in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY WORKSHOP_NOTARY_ISSUER WORKSHOP_NOTARY_KEY_ID WORKSHOP_NOTARY_PRIVATE_KEY; do
             if [ -z "${!secret}" ]; then
-              echo "Missing required public-distribution secret: $secret" >&2
-              exit 1
+              missing+=("$secret")
             fi
           done
+          if [ "${#missing[@]}" -eq 0 ]; then
+            echo "public_installer=true" >> "$GITHUB_OUTPUT"
+            echo "Developer ID credentials found. This release will publish a notarized public installer."
+          else
+            echo "public_installer=false" >> "$GITHUB_OUTPUT"
+            echo "Apple public-installer credentials are incomplete (${missing[*]}). Publishing a signed updater release only."
+          fi
 
       - name: Install Developer ID signing certificate
+        if: steps.distribution_mode.outputs.public_installer == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -104,13 +113,14 @@ jobs:
           npm run typecheck
           npm run public:check
 
-      - name: Build signed Workshop app
+      - name: Build Workshop app
         shell: bash
         run: |
           set -o pipefail
           npm run tauri --workspace @marketing-builds/desktop -- build 2>&1 | tee "$RUNNER_TEMP/workshop-tauri-build.log"
 
       - name: Verify Developer ID signature
+        if: steps.distribution_mode.outputs.public_installer == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -119,6 +129,7 @@ jobs:
           codesign -dv --verbose=4 "$APP_PATH" 2>&1 | tee "$RUNNER_TEMP/workshop-codesign.log"
 
       - name: Notarize and staple public DMG
+        if: steps.distribution_mode.outputs.public_installer == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -168,6 +179,7 @@ jobs:
           cp "src-tauri/target/release/bundle/dmg/Workshop_${{ steps.release_version.outputs.version }}_aarch64.dmg" "dist/workshop-update-site/Workshop_${{ steps.release_version.outputs.version }}_aarch64.dmg"
 
       - name: Prepare public installer assets
+        if: steps.distribution_mode.outputs.public_installer == 'true'
         working-directory: apps/marketing-builds-desktop
         run: |
           node scripts/prepare-public-release.mjs \
@@ -180,6 +192,7 @@ jobs:
         run: npx netlify-cli deploy --prod --no-build --dir "${{ github.workspace }}/apps/marketing-builds-desktop/dist/workshop-update-site" --site "$WORKSHOP_NETLIFY_SITE_ID" --auth "${{ secrets.NETLIFY_AUTH_TOKEN }}"
 
       - name: Publish public GitHub Release
+        if: steps.distribution_mode.outputs.public_installer == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -190,7 +203,7 @@ jobs:
             "apps/marketing-builds-desktop/dist/public-release/Workshop-aarch64.dmg#Workshop-aarch64.dmg" \
             "apps/marketing-builds-desktop/dist/public-release/Workshop-aarch64.dmg.sha256#Workshop-aarch64.dmg.sha256"
 
-      - name: Upload release artifacts
+      - name: Upload signed updater artifacts
         uses: actions/upload-artifact@v5
         with:
           name: workshop-${{ steps.release_version.outputs.version }}-signed-update
@@ -199,6 +212,13 @@ jobs:
             apps/marketing-builds-desktop/dist/workshop-update-site/Workshop.app.tar.gz
             apps/marketing-builds-desktop/dist/workshop-update-site/Workshop.app.tar.gz.sig
             apps/marketing-builds-desktop/dist/workshop-update-site/Workshop_${{ steps.release_version.outputs.version }}_aarch64.dmg
+
+      - name: Upload public installer artifacts
+        if: steps.distribution_mode.outputs.public_installer == 'true'
+        uses: actions/upload-artifact@v5
+        with:
+          name: workshop-${{ steps.release_version.outputs.version }}-public-installer
+          path: |
             apps/marketing-builds-desktop/dist/public-release/Workshop-aarch64.dmg
             apps/marketing-builds-desktop/dist/public-release/Workshop-aarch64.dmg.sha256
 

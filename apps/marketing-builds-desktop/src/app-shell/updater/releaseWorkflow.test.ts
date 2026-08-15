@@ -44,7 +44,7 @@ describe("Workshop release workflow", () => {
     expect(workflow).toContain("workshop-dmg-build-diagnostics");
   });
 
-  it("publishes a notarized public installer only after the updater payload is live", () => {
+  it("falls back to a signed updater release until public-installer credentials are complete", () => {
     const workflow = readFileSync(
       path.join(repoRoot, ".github/workflows/release-workshop.yml"),
       "utf8",
@@ -54,6 +54,10 @@ describe("Workshop release workflow", () => {
     expect(workflow).toContain("WORKSHOP_APPLE_DEVELOPER_ID_CERTIFICATE");
     expect(workflow).toContain("APPLE_SIGNING_IDENTITY");
     expect(workflow).toContain("WORKSHOP_NOTARY_PRIVATE_KEY");
+    expect(workflow).toContain("Determine public installer mode");
+    expect(workflow).toContain('public_installer=false');
+    expect(workflow).toContain("Publishing a signed updater release only.");
+    expect(workflow).toContain("if: steps.distribution_mode.outputs.public_installer == 'true'");
     expect(workflow).toContain("xcrun notarytool submit");
     expect(workflow).toContain("xcrun stapler staple");
     expect(workflow).toContain("codesign --verify --deep --strict");

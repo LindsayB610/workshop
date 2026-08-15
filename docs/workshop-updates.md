@@ -52,6 +52,11 @@ key in `tauri.conf.json` must match the private key stored in
 ## Publish From GitHub Actions
 
 Use the `Release Workshop` workflow when publishing a signed Workshop update.
+It always publishes the Tauri-signed updater payload when the updater and
+Netlify secrets are present. If the Apple public-installer credentials are also
+complete, the same run additionally signs, notarizes, and publishes the public
+DMG. Missing Apple credentials do not block a normal in-app update and never
+produce an unsigned public installer.
 It is intentionally manual-dispatch so a desktop update is always an explicit
 release action.
 
@@ -75,10 +80,11 @@ The workflow:
 9. Uploads signed update artifacts and diagnostics to the workflow run.
 
 The public Workshop repo does not publish desktop updates automatically on every
-push to `main`. Configure the required secrets first, then use manual workflow
-dispatch for intentional releases. A release fails before GitHub Release
-creation if signing, notarization, stapling, validation, or updater deployment
-fails.
+push to `main`. Use manual workflow dispatch for intentional releases. Before
+Apple credentials are configured, the workflow publishes only the signed
+updater payload. With those credentials, it also creates the public GitHub
+Release. A public-installer release fails before GitHub Release creation if
+signing, notarization, stapling, validation, or updater deployment fails.
 
 ## Build A Signed Release
 

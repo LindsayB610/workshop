@@ -105,6 +105,34 @@ a host fallback to unrelated data. A future authenticated-service capability
 must use a plugin-declared, host-validated allowlist; Workshop must never become
 an unrestricted bearer-token proxy.
 
+### Browsing for a private workspace
+
+An external plugin may accept this optional neutral view prop when it wants to
+offer a host-owned folder chooser:
+
+```ts
+type WorkspaceRootBrowseResult =
+  | { ok: true; root: string }
+  | { ok: false; canceled?: boolean; message?: string };
+
+browseWorkspaceRoot?: () =>
+  | WorkspaceRootBrowseResult
+  | void
+  | Promise<WorkspaceRootBrowseResult | void>;
+```
+
+Workshop owns the native directory picker and OS permission. It asks for one
+directory only and returns its absolute path, a cancellation result, or a
+generic failure. It does not list directory contents, discover files, validate
+tool configuration, persist the path, or activate a connection.
+
+The plugin owns the browse button, path field, cancellation treatment, and
+connection UI. After a successful browse, it may put the returned path in its
+own draft field. Only a later explicit user action, such as **Connect**, may
+call the existing `requestWorkspaceRoot(root)` callback. That callback remains
+the sole path to Workspace validation and remembered-folder persistence. A
+canceled browse leaves the currently remembered folder unchanged.
+
 ### External URLs
 
 Plugins invoke `open_external_url` when a user explicitly follows an external

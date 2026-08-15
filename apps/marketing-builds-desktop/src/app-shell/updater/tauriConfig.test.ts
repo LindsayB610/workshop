@@ -10,12 +10,14 @@ const packageJsonPath = resolve(testDir, "../../../package.json");
 const cargoTomlPath = resolve(testDir, "../../../src-tauri/Cargo.toml");
 const capabilitiesPath = resolve(testDir, "../../../src-tauri/capabilities/default.json");
 const tauriConfigPath = resolve(testDir, "../../../src-tauri/tauri.conf.json");
+const nativeHostPath = resolve(testDir, "../../../src-tauri/src/lib.rs");
 
 describe("Workshop updater Tauri config", () => {
   const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
   const capabilities = JSON.parse(readFileSync(capabilitiesPath, "utf8"));
   const cargoToml = readFileSync(cargoTomlPath, "utf8");
   const tauriConfig = JSON.parse(readFileSync(tauriConfigPath, "utf8"));
+  const nativeHost = readFileSync(nativeHostPath, "utf8");
 
   it("keeps package, Tauri, and UI versions synchronized", () => {
     expect(tauriConfig.version).toBe(packageJson.version);
@@ -54,5 +56,13 @@ describe("Workshop updater Tauri config", () => {
     expect(cargoToml).toContain("tauri-plugin-opener");
     expect(capabilities.permissions).toContain("process:allow-restart");
     expect(capabilities.permissions).toContain("opener:default");
+  });
+
+  it("keeps the native directory picker in Workshop with only open-dialog permission", () => {
+    expect(packageJson.dependencies["@tauri-apps/plugin-dialog"]).toBeDefined();
+    expect(cargoToml).toContain("tauri-plugin-dialog");
+    expect(nativeHost).toContain("tauri_plugin_dialog::init()");
+    expect(capabilities.permissions).toContain("dialog:allow-open");
+    expect(capabilities.permissions).not.toContain("dialog:allow-save");
   });
 });

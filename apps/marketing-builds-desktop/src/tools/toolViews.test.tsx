@@ -1,10 +1,16 @@
 /* @vitest-environment jsdom */
 import { renderToStaticMarkup } from "react-dom/server";
-import { isValidElement, type ReactElement, type ReactNode } from "react";
+import { isValidElement, type ComponentType, type ReactElement, type ReactNode } from "react";
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { getToolById } from "../tool-registry/tools";
-import { getToolViewById, ToolView } from "./toolViews";
+import {
+  getToolViewById,
+  lazyExternalToolView,
+  ToolView,
+  type ExternalWorkshopToolViewProps,
+} from "./toolViews";
 
 afterEach(() => cleanup());
 
@@ -86,6 +92,50 @@ describe("tool views", () => {
     expect((await screen.findAllByRole("button", { name: "Manage documents" })).length).toBeGreaterThan(0);
   });
 
+  it("passes the optional generic folder browser to an external plugin without persisting a browse result", async () => {
+    const slate = getToolById("slate");
+    if (!slate) {
+      throw new Error("Slate tool is not registered.");
+    }
+
+    const browseWorkspaceRoot = vi.fn().mockResolvedValue({
+      ok: true,
+      root: "/Users/example/workshop-private/slate",
+    });
+    const onSetWorkspaceRequest = vi.fn().mockReturnValue({ ok: true });
+    const Adapter = lazyExternalToolView(async () => ({
+      WorkshopToolView: BrowseAwarePlugin,
+    }));
+    const user = userEvent.setup();
+
+    render(
+      <Adapter
+        tool={slate}
+        browseWorkspaceRoot={browseWorkspaceRoot}
+        onSetWorkspaceRequest={onSetWorkspaceRequest}
+      />,
+    );
+
+    await user.click(await screen.findByRole("button", { name: "Browse private folder" }));
+    expect(browseWorkspaceRoot).toHaveBeenCalledOnce();
+    expect(onSetWorkspaceRequest).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Connect private folder" }));
+    expect(onSetWorkspaceRequest).toHaveBeenCalledWith("slate", "/Users/example/workshop-private/slate");
+  });
+
+  it("continues rendering external plugins that do not use the optional folder browser", async () => {
+    const slate = getToolById("slate");
+    if (!slate) {
+      throw new Error("Slate tool is not registered.");
+    }
+
+    const Adapter = lazyExternalToolView(async () => ({ WorkshopToolView: NoBrowsePlugin }));
+    render(<Adapter tool={slate} />);
+
+    expect(await screen.findByText("Plugin without folder browsing")).toBeTruthy();
+  });
+
   it("exposes the fallback view for every registered tool id", () => {
     expect(getToolViewById("redline")).toBeDefined();
     expect(getToolViewById("megaphone")).toBeDefined();
@@ -94,6 +144,20 @@ describe("tool views", () => {
     expect(getToolViewById("missing-tool")).toBeUndefined();
   });
 });
+
+const BrowseAwarePlugin: ComponentType<ExternalWorkshopToolViewProps> = ({
+  browseWorkspaceRoot,
+  requestWorkspaceRoot,
+}) => (
+  <>
+    <button type="button" onClick={() => { void browseWorkspaceRoot?.(); }}>Browse private folder</button>
+    <button type="button" onClick={() => requestWorkspaceRoot("/Users/example/workshop-private/slate")}>Connect private folder</button>
+  </>
+);
+
+const NoBrowsePlugin: ComponentType<ExternalWorkshopToolViewProps> = () => (
+  <p>Plugin without folder browsing</p>
+);
 
 type ElementProps = {
   children?: ReactNode;

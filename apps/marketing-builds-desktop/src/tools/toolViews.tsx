@@ -6,15 +6,17 @@ import { MegaphoneTool } from "./megaphone/MegaphoneTool";
 import { RedlineTool } from "./redline/RedlineTool";
 import { ToolPlaceholder } from "./ToolPlaceholder";
 import type { ToolViewProps } from "./types";
+import type { WorkspaceRootBrowseResult } from "./workspaceRootBrowse";
 
-type ExternalWorkshopToolViewProps = {
+export type ExternalWorkshopToolViewProps = {
   activeRouteId?: string;
   workspaceRoot?: string;
   requestWorkspaceRoot: (root?: string) => { ok: true } | { ok: false; message: string } | void;
   clearWorkspaceRoot?: () => void;
+  browseWorkspaceRoot?: () => WorkspaceRootBrowseResult | void | Promise<WorkspaceRootBrowseResult | void>;
 };
 
-function lazyExternalToolView(
+export function lazyExternalToolView(
   load: () => Promise<{ WorkshopToolView: ComponentType<ExternalWorkshopToolViewProps> }>,
 ): ComponentType<ToolViewProps> {
   const ExternalToolView = lazy(async () => ({ default: (await load()).WorkshopToolView }));
@@ -28,6 +30,7 @@ function lazyExternalToolView(
           workspaceRoot={props.workspaceRoot}
           requestWorkspaceRoot={(root) => props.onSetWorkspaceRequest?.(props.tool.id, root)}
           clearWorkspaceRoot={clearWorkspaceRoot ? () => clearWorkspaceRoot(props.tool.id) : undefined}
+          browseWorkspaceRoot={props.browseWorkspaceRoot}
         />
       </Suspense>
     );
@@ -43,12 +46,14 @@ const toolViewById: Record<string, ComponentType<ToolViewProps>> = {
 
 export function ToolView({
   activeRouteId,
+  browseWorkspaceRoot,
   onClearWorkspaceRequest,
   onSetWorkspaceRequest,
   tool,
   workspaceRoot,
 }: {
   activeRouteId?: string;
+  browseWorkspaceRoot?: () => WorkspaceRootBrowseResult | void | Promise<WorkspaceRootBrowseResult | void>;
   onSetWorkspaceRequest?: (toolId: string, root?: string) => WorkspaceValidationResult | undefined;
   onClearWorkspaceRequest?: (toolId: string) => void;
   tool: ToolDefinition;
@@ -58,6 +63,7 @@ export function ToolView({
   return (
     <View
       activeRouteId={activeRouteId}
+      browseWorkspaceRoot={browseWorkspaceRoot}
       onClearWorkspaceRequest={onClearWorkspaceRequest}
       onSetWorkspaceRequest={onSetWorkspaceRequest}
       tool={tool}

@@ -40,7 +40,15 @@ describe("Workshop Preferences", () => {
     expect(workshop.textContent).toContain("canvas #000000");
     expect(workshop.textContent).toContain("primary #ff1b8d");
     expect(workshop.textContent).toContain("warm #ffdd00");
-    expect(workshop.querySelector(".preset-swatch")?.textContent).toBe("LB");
+    expect(workshop.querySelector(".preset-swatch .workshop-mark")).not.toBeNull();
+    expect(workshop.querySelector(".preset-swatch")?.textContent).toBe("");
+  });
+
+  it("uses the fixed Workshop mark and retires the editable personal-initials control", () => {
+    renderDialog();
+    expect(screen.getAllByLabelText("Workshop mark")).toHaveLength(1);
+    expect(screen.queryByLabelText("Initials")).toBeNull();
+    expect(screen.queryByText("Personal mark")).toBeNull();
   });
 
   it("uses one selected-card border instead of stacking an inset ring and focus outline", () => {

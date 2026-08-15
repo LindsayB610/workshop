@@ -71,6 +71,27 @@ describe("Workshop release workflow", () => {
     );
   });
 
+  it("removes Tauri's implementation-only volume icon before notarizing a public DMG", () => {
+    const workflow = readFileSync(
+      path.join(repoRoot, ".github/workflows/release-workshop.yml"),
+      "utf8",
+    );
+    const cleanupScript = readFileSync(
+      path.join(repoRoot, "apps/marketing-builds-desktop/scripts/remove-dmg-volume-icon.sh"),
+      "utf8",
+    );
+
+    expect(workflow).toContain("Remove DMG volume-icon implementation file");
+    expect(workflow).toContain("scripts/remove-dmg-volume-icon.sh");
+    expect(workflow.indexOf("Remove DMG volume-icon implementation file")).toBeLessThan(
+      workflow.indexOf("Notarize and staple public DMG"),
+    );
+    expect(cleanupScript).toContain("rm -f \"$MOUNT_DIR/.VolumeIcon.icns\"");
+    expect(cleanupScript).toContain("hdiutil convert \"$DMG_PATH\" -format UDRW");
+    expect(cleanupScript).toContain("-format UDZO");
+    expect(cleanupScript).toContain("$3 ~ /^\\/Volumes\\//");
+  });
+
   it("uses the permanent public Workshop identifier", () => {
     const tauriConfig = readFileSync(
       path.join(repoRoot, "apps/marketing-builds-desktop/src-tauri/tauri.conf.json"),

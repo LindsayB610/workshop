@@ -34,7 +34,8 @@ describe("Workshop desktop app", () => {
   it("does not render Slate before the user opens Add New Tools", () => {
     const markup = renderToStaticMarkup(<App />);
 
-    expect(markup).toContain("aria-label=\"LB personal brand mark\"");
+    expect(markup).toContain("aria-label=\"Workshop mark\"");
+    expect(markup).not.toContain("personal brand mark");
     expect(markup).not.toContain("tool-logo-slate");
     expect(markup).not.toContain("Slate tool actions");
   });

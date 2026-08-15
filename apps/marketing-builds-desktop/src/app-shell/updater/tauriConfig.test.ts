@@ -11,6 +11,8 @@ const cargoTomlPath = resolve(testDir, "../../../src-tauri/Cargo.toml");
 const capabilitiesPath = resolve(testDir, "../../../src-tauri/capabilities/default.json");
 const tauriConfigPath = resolve(testDir, "../../../src-tauri/tauri.conf.json");
 const nativeHostPath = resolve(testDir, "../../../src-tauri/src/lib.rs");
+const iconSourcePath = resolve(testDir, "../../../src-tauri/icons/workshop-mark.svg");
+const iconPath = resolve(testDir, "../../../src-tauri/icons/icon.png");
 
 describe("Workshop updater Tauri config", () => {
   const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
@@ -18,6 +20,8 @@ describe("Workshop updater Tauri config", () => {
   const cargoToml = readFileSync(cargoTomlPath, "utf8");
   const tauriConfig = JSON.parse(readFileSync(tauriConfigPath, "utf8"));
   const nativeHost = readFileSync(nativeHostPath, "utf8");
+  const iconSource = readFileSync(iconSourcePath, "utf8");
+  const icon = readFileSync(iconPath);
 
   it("keeps package, Tauri, and UI versions synchronized", () => {
     expect(tauriConfig.version).toBe(packageJson.version);
@@ -26,6 +30,30 @@ describe("Workshop updater Tauri config", () => {
 
   it("generates signed updater artifacts during desktop builds", () => {
     expect(tauriConfig.bundle.createUpdaterArtifacts).toBe(true);
+  });
+
+  it("ships a clean, composed drag-to-Applications DMG installer", () => {
+    const dmg = tauriConfig.bundle.macOS.dmg;
+
+    expect(dmg).toEqual({
+      windowSize: { width: 640, height: 400 },
+      appPosition: { x: 220, y: 200 },
+      applicationFolderPosition: { x: 420, y: 200 },
+    });
+    expect(dmg).not.toHaveProperty("background");
+  });
+
+  it("ships the fixed borderless Workshop mark as a transparent macOS app icon", () => {
+    expect(tauriConfig.bundle.icon).toContain("icons/icon.png");
+    expect(iconSource).toContain('aria-label="Workshop mark"');
+    expect(iconSource).toContain('stroke="#FF1B8D"');
+    expect(iconSource).toContain('stroke="#FFD900"');
+    expect(iconSource).not.toContain("<rect");
+    expect(iconSource).not.toMatch(/>LB</);
+    expect(icon.subarray(1, 4).toString("ascii")).toBe("PNG");
+    expect(icon.readUInt32BE(16)).toBe(512);
+    expect(icon.readUInt32BE(20)).toBe(512);
+    expect(icon[25]).toBe(6); // RGBA: transparent canvas, no icon container.
   });
 
   it("bundles only safe demo and template client artifacts", () => {

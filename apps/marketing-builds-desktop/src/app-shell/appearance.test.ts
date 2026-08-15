@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { contrast, defaultAppearance, normalizeInitials, paletteAccessibilityIssue, parseCustomPalette, resolveAppearance, themeGradient, themePresets, tokenVariables, tokensForAppearance } from "./appearance";
+import { contrast, defaultAppearance, paletteAccessibilityIssue, parseCustomPalette, resolveAppearance, themeGradient, themePresets, tokenVariables, tokensForAppearance } from "./appearance";
 
 describe("Workshop appearance model", () => {
   it("ships exactly ten complete, accessible dark presets", () => {
@@ -10,12 +10,9 @@ describe("Workshop appearance model", () => {
       expect(paletteAccessibilityIssue(preset.tokens)).toBeNull();
     }
   });
-  it("normalizes exactly two visible initials without accepting noise", () => {
-    expect(normalizeInitials(" l.b ")).toBe("LB");
-    expect(normalizeInitials("éa")).toBe("ÉA");
-    expect(normalizeInitials("Lindsay")).toBeNull();
-    expect(normalizeInitials("😀B")).toBeNull();
-    expect(normalizeInitials(" ")).toBeNull();
+  it("migrates version-one personalized appearances without losing the chosen palette", () => {
+    expect(resolveAppearance({ version: 1, initials: "LB", theme: { kind: "preset", presetId: "lagoon" } })).toEqual({ version: 2, theme: { kind: "preset", presetId: "lagoon" } });
+    expect(resolveAppearance({ version: 1, initials: "QZ", theme: { kind: "custom", palette: { canvas: "#071116", surface: "#0D1D24", accent: "#2BB7E8", accentWarm: "#62E6BD" } } })).toMatchObject({ version: 2, theme: { kind: "custom" } });
   });
   it("parses valid custom palettes and rejects malformed, duplicate, and unreadable values", () => {
     expect(parseCustomPalette("#070707, #171717, #FF1B8D, #FFDD00")).toMatchObject({ ok: true });
@@ -25,7 +22,7 @@ describe("Workshop appearance model", () => {
   });
   it("recovers safely from corrupt, future, or invalid persisted state", () => {
     expect(resolveAppearance(undefined)).toEqual(defaultAppearance);
-    expect(resolveAppearance({ version: 99, initials: "LB", theme: { kind: "preset", presetId: "workshop" } })).toEqual(defaultAppearance);
+    expect(resolveAppearance({ version: 99, theme: { kind: "preset", presetId: "workshop" } })).toEqual(defaultAppearance);
     expect(resolveAppearance({ version: 1, initials: "LB", theme: { kind: "preset", presetId: "nope" } })).toEqual(defaultAppearance);
   });
   it("derives stable host variables for plugins without exposing preference storage", () => {

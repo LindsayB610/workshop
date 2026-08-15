@@ -3,6 +3,7 @@ import { useState } from "react";
 import { SettingsPanel } from "./SettingsPanel";
 import type { WorkshopUpdaterController } from "./SettingsPanel";
 import { ToolLogo } from "./ToolLogo";
+import { WorkshopMark } from "./WorkshopMark";
 import { Button } from "../components/ui/button";
 import type { ToolDefinition } from "../tool-registry/types";
 import { tools } from "../tool-registry/tools";
@@ -26,7 +27,7 @@ export function ToolShelf({
     label: "Bundled demo workspace",
     updatedAt: "1970-01-01T00:00:00.000Z",
   }),
-  initials = "LB",
+  tokens,
   updater,
 }: {
   installedTools?: ToolDefinition[];
@@ -40,7 +41,7 @@ export function ToolShelf({
   onResetToolState?: (toolId: string) => void;
   onSetWorkspace?: (toolId: string, root: string) => WorkspaceValidationResult;
   getWorkspaceSelection?: (toolId: string) => ToolWorkspaceSelection;
-  initials?: string;
+  tokens?: { accent: string; accentWarm: string; text: string };
   updater?: WorkshopUpdaterController;
 }) {
   const [catalogOpen, setCatalogOpen] = useState(catalogInitiallyOpen);
@@ -50,9 +51,7 @@ export function ToolShelf({
   return (
     <main className="tool-shelf-screen">
       <header className="tool-shelf-header">
-        <div className="brand-mark" aria-label={`${initials} personal brand mark`}>
-          {initials}
-        </div>
+        <WorkshopMark tokens={tokens} />
         <div>
           <p className="eyebrow">Personal app platform</p>
           <h1>Workshop</h1>

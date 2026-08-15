@@ -7,6 +7,27 @@ async function openPreferencesFromHostMenu(page: import("@playwright/test").Page
 }
 
 test.describe("Workshop Preferences", () => {
+  test("migrates a personalized v1 appearance into the fixed, theme-aware Workshop mark", async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.clear();
+      window.localStorage.setItem(
+        "workshop.appearance.v1",
+        JSON.stringify({ version: 1, initials: "LB", theme: { kind: "preset", presetId: "lagoon" } }),
+      );
+    });
+    await page.goto("/");
+
+    const shelfMark = page.getByLabel("Workshop mark");
+    await expect(shelfMark).toHaveAttribute("style", /--workshop-mark-w: #2bb7e8/);
+    await expect(shelfMark).toHaveAttribute("style", /--workshop-mark-inlay: #62e6bd/);
+    await expect(page.getByText("LB", { exact: true })).toHaveCount(0);
+    await expect.poll(() => page.evaluate(() => JSON.parse(window.localStorage.getItem("workshop.appearance.v1") ?? "{}"))).toEqual({ version: 2, theme: { kind: "preset", presetId: "lagoon" } });
+
+    await openPreferencesFromHostMenu(page);
+    await expect(page.getByLabel("Initials")).toHaveCount(0);
+    await expect(page.getByText("Personal mark", { exact: true })).toHaveCount(0);
+  });
+
   test("keeps the shelf intact while applying an accessible preset and validating custom input", async ({ page }) => {
     await page.addInitScript(() => window.localStorage.clear());
     await page.goto("/");

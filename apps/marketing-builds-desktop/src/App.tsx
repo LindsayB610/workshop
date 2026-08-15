@@ -94,7 +94,7 @@ export function App() {
           onSelectTool={setActiveToolId}
           onSetWorkspace={(toolId, root) => setSelection(toolId, root)}
           getWorkspaceSelection={getSelection}
-          initials={appearance.initials}
+          tokens={tokens}
           updater={updater}
         />
       )}

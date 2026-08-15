@@ -133,6 +133,14 @@ jobs:
           codesign --verify --deep --strict --verbose=2 "$APP_PATH"
           codesign -dv --verbose=4 "$APP_PATH" 2>&1 | tee "$RUNNER_TEMP/workshop-codesign.log"
 
+      - name: Remove DMG volume-icon implementation file
+        if: steps.distribution_mode.outputs.public_installer == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x apps/marketing-builds-desktop/scripts/remove-dmg-volume-icon.sh
+          apps/marketing-builds-desktop/scripts/remove-dmg-volume-icon.sh "apps/marketing-builds-desktop/src-tauri/target/release/bundle/dmg/Workshop_${{ steps.release_version.outputs.version }}_aarch64.dmg"
+
       - name: Notarize and staple public DMG
         if: steps.distribution_mode.outputs.public_installer == 'true'
         shell: bash

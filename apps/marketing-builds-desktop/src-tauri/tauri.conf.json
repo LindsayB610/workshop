@@ -39,7 +39,21 @@
     ],
     "macOS": {
       "hardenedRuntime": true,
-      "minimumSystemVersion": "11.0"
+      "minimumSystemVersion": "11.0",
+      "dmg": {
+        "windowSize": {
+          "width": 640,
+          "height": 400
+        },
+        "appPosition": {
+          "x": 220,
+          "y": 200
+        },
+        "applicationFolderPosition": {
+          "x": 420,
+          "y": 200
+        }
+      }
     }
   },
   "plugins": {

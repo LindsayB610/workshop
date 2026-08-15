@@ -17,8 +17,9 @@ Add a Workshop-owned Preferences experience on macOS. It should let a person:
 
 1. choose one of ten curated Workshop color palettes;
 2. create and save a custom palette from their own hex colors;
-3. customize the two initials used by Workshop's personal brand mark;
-4. have that mark automatically use the selected theme's gradient; and
+3. see Workshop's fixed product mark use the selected theme's semantic colors;
+4. distinguish Workshop from its installed apps in the Dock, Finder, installer,
+   and runtime shell; and
 5. view and change private tool-folder selections from Settings as an
    alternative to doing so inside each tool.
 
@@ -106,23 +107,19 @@ Slack's official behavior reference:
 - Custom themes are local UI preferences. Do not store them in a tool's private
   workspace, Slate configuration, or a public repository.
 
-### Personal initials and generated brand mark
+### Workshop product mark
 
-- Replace the hard-coded `LB` personal mark with a user-configurable value.
-- Accept exactly two visible initials after trimming and normalization. Define
-  and test behavior for lowercase input, whitespace, punctuation, emoji,
-  pasted strings longer than two characters, empty input, and non-Latin text.
-- Render the chosen initials anywhere Workshop currently uses the personal
-  brand mark.
-- Generate the mark's background from the active theme gradient, whether the
-  theme is a bundled preset or a valid custom palette.
-- Include a live mark preview in Appearance.
-- Persist initials locally alongside other Workshop appearance preferences.
-- Provide a reset to the shipped default initials and theme.
-- This feature changes Workshop's in-app generated mark. Replacing signed macOS
-  bundle icons, Dock icons, installer artwork, or repository image assets is
-  not automatically in scope; investigate those surfaces and state precisely
-  which ones can update at runtime.
+- Use a fixed, borderless product mark: a tabletop line above a W-shaped base
+  with a centered warm-color inlay.
+- The mark replaces the hard-coded `LB` runtime identity. It is Workshop's
+  product identity, not a user-configurable personal monogram.
+- In the runtime shell and Appearance previews, derive its W, tabletop, and
+  inlay from the active semantic theme tokens. The signed macOS icon keeps the
+  shipped Workshop colors because it cannot change at runtime.
+- Migrate version-one local appearance state without losing the saved preset or
+  valid custom palette. The retired initials value must not block migration.
+- Include the fixed mark in Appearance previews and every host-owned runtime
+  location that previously rendered the initials mark.
 
 ### Folder management in Preferences
 
@@ -157,7 +154,7 @@ Slack's official behavior reference:
 ## Ownership and persistence
 
 - Workshop owns the Preferences UI, preset definitions, custom-palette schema,
-  initials, validation, persistence, semantic CSS tokens, and generated mark.
+  validation, persistence, semantic CSS tokens, and product mark.
 - Store a versioned local appearance preference in Workshop's local application
   UI storage. Invalid or future-version state must fall back safely.
 - Tool-folder selections continue to use Workshop's existing versioned local
@@ -192,22 +189,22 @@ Slack's official behavior reference:
 | Open Preferences | Opens above the current Workshop context without resetting it | Unsupported/native-event failure leaves the app usable and does not add a redundant in-app entry point |
 | Choose preset | Preview and active Workshop tokens update coherently | Invalid stored selection falls back to Workshop default |
 | Enter custom colors | Valid palette previews and persists according to the chosen save model | Malformed or low-contrast input remains editable, is not applied, and explains the correction |
-| Change initials | Exactly two accepted characters update every runtime brand mark | Invalid input is preserved locally with specific guidance; saved initials remain unchanged |
-| Reset appearance | Default palette and initials are restored deliberately | Cancellation leaves current settings untouched |
+| Migrate prior initials state | A saved v1 preset or custom palette restores as v2 while Workshop renders the fixed mark | Corrupt, future, or invalid state falls back to the default appearance |
+| Reset appearance | Default palette is restored deliberately | No tool or workspace state is changed |
 | Change tool folder | Valid folder is remembered and tool reconnects through the generic lifecycle | Cancel, unavailable folder, invalid config, and revoked permission preserve the prior remembered selection where safe |
 | Forget tool folder | Workshop forgets only the local selection after confirmation | The private folder and all files remain untouched |
-| Restart Workshop | Saved valid appearance, initials, and folder paths restore | Corrupt storage falls back safely without breaking startup |
+| Restart Workshop | Saved valid appearance and folder paths restore | Corrupt storage falls back safely without breaking startup |
 
 ## Test and verification requirements
 
 Use TDD where behavior is stateful or safety-sensitive. Required coverage:
 
 - pure model tests for every preset, semantic token completeness, custom hex
-  parsing, token derivation, contrast validation, initials normalization, and
-  versioned preference migration/fallback;
+  parsing, token derivation, contrast validation, fixed-mark color derivation,
+  and versioned preference migration/fallback;
 - persistence tests for preset, custom, reset, corrupt state, and restart;
 - mounted UI tests for keyboard radio selection, custom editing, inline errors,
-  initials preview, save/reset/cancel behavior, and focus restoration;
+  product-mark previews, save/reset/cancel behavior, and focus restoration;
 - integration tests proving theme changes reach the Workshop shell and a
   generic plugin fixture without changing plugin-owned state;
 - folder-settings integration tests using the existing workspace lifecycle,
@@ -216,7 +213,7 @@ Use TDD where behavior is stateful or safety-sensitive. Required coverage:
 - native macOS menu/event tests for opening Preferences;
 - automated accessibility checks plus manual keyboard/focus review;
 - rendered visual review for all ten presets, valid custom colors, the generated
-  initials mark, validation errors, folder states, and the primary/narrow
+  product mark, validation errors, folder states, and the primary/narrow
   desktop sizes;
 - regression coverage for update UI, tool shelf, active workbench routes,
   installed-tool state, Slate, and Pulse;
@@ -226,9 +223,9 @@ Use TDD where behavior is stateful or safety-sensitive. Required coverage:
 ## Acceptance criteria
 
 The feature is ready only when a user can open Workshop Preferences from macOS,
-select any of ten readable palettes or safely create a custom palette, set their
-own two-letter runtime mark, see that mark use the chosen gradient throughout
-Workshop, manage remembered private tool folders without touching their data,
+select any of ten readable palettes or safely create a custom palette, see the
+fixed Workshop mark use the chosen semantic colors throughout Workshop, manage
+remembered private tool folders without touching their data,
 restart the app without losing valid choices, and recover cleanly from invalid
 input or unavailable local resources.
 

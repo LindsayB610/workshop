@@ -1,5 +1,5 @@
 export const appearanceStorageKey = "workshop.appearance.v1";
-export const appearanceVersion = 1;
+export const appearanceVersion = 2;
 
 export type ThemeTokens = {
   canvas: string;
@@ -23,9 +23,8 @@ export type ThemeTokens = {
 export type ThemePreset = { id: string; name: string; description: string; tokens: ThemeTokens };
 export type CustomPalette = Pick<ThemeTokens, "canvas" | "surface" | "accent" | "accentWarm">;
 export type AppearancePreference = {
-  version: 1;
+  version: 2;
   theme: { kind: "preset"; presetId: string } | { kind: "custom"; palette: CustomPalette };
-  initials: string;
 };
 
 const darkTokens = (colors: CustomPalette): ThemeTokens => ({
@@ -57,13 +56,7 @@ export const themePresets: ThemePreset[] = [
   { id: "kiln", name: "Kiln", description: "Sooted clay, iron heat, and fired sandstone.", tokens: darkTokens({ canvas: "#120b08", surface: "#241510", accent: "#d69a70", accentWarm: "#e6c56d" }) },
 ];
 
-export const defaultAppearance: AppearancePreference = { version: 1, theme: { kind: "preset", presetId: "workshop" }, initials: "LB" };
-
-export function normalizeInitials(value: string): string | null {
-  const normalized = value.trim().toLocaleUpperCase().replace(/[^\p{L}\p{N}]/gu, "");
-  const characters = Array.from(normalized);
-  return characters.length === 2 ? characters.join("") : null;
-}
+export const defaultAppearance: AppearancePreference = { version: 2, theme: { kind: "preset", presetId: "workshop" } };
 
 export function parseCustomPalette(value: string): { ok: true; palette: CustomPalette } | { ok: false; message: string } {
   const colors = value.trim().split(/[\s,]+/).filter(Boolean).map((color) => color.toUpperCase());
@@ -94,12 +87,14 @@ export function paletteAccessibilityIssue(tokens: ThemeTokens): string | null {
 
 export function resolveAppearance(stored: unknown): AppearancePreference {
   if (!stored || typeof stored !== "object") return defaultAppearance;
-  const candidate = stored as Partial<AppearancePreference>;
-  const initials = typeof candidate.initials === "string" ? normalizeInitials(candidate.initials) : null;
-  if (candidate.version !== appearanceVersion || !initials || !candidate.theme) return defaultAppearance;
+  const candidate = stored as { version?: unknown; theme?: unknown };
+  // Version 1 also stored user initials. Preserve its theme while deliberately
+  // retiring that runtime-only personal mark in favor of the Workshop logo.
+  if (candidate.version !== 1 && candidate.version !== appearanceVersion) return defaultAppearance;
+  if (!candidate.theme) return defaultAppearance;
   const theme = candidate.theme as AppearancePreference["theme"];
-  if (theme.kind === "preset" && themePresets.some((preset) => preset.id === theme.presetId)) return { version: 1, initials, theme: { kind: "preset", presetId: theme.presetId } };
-  if (theme.kind === "custom" && validatePalette(theme.palette).ok) return { version: 1, initials, theme: { kind: "custom", palette: theme.palette } };
+  if (theme.kind === "preset" && themePresets.some((preset) => preset.id === theme.presetId)) return { version: 2, theme: { kind: "preset", presetId: theme.presetId } };
+  if (theme.kind === "custom" && validatePalette(theme.palette).ok) return { version: 2, theme: { kind: "custom", palette: theme.palette } };
   return defaultAppearance;
 }
 

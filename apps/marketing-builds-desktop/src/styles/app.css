@@ -133,27 +133,30 @@ h4 {
   font-size: 0.98rem;
 }
 
-.brand-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 3rem;
-  height: 3rem;
+.workshop-mark {
+  --workshop-mark-table: var(--workshop-text);
+  --workshop-mark-w: var(--workshop-accent);
+  --workshop-mark-inlay: var(--workshop-accent-warm);
+  display: block;
+  width: 3.75rem;
+  height: 3.75rem;
   flex: 0 0 auto;
-  border-radius: 0.5rem;
-  background: var(--gradient-main);
-  color: white;
-  font-family: "Inter", system-ui, sans-serif;
-  font-weight: 650;
-  box-shadow: 0 0 28px rgba(255, 27, 141, 0.32);
+  overflow: visible;
 }
 
-.brand-mark.small {
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 0.45rem;
-  font-size: 0.82rem;
+.workshop-mark-table,
+.workshop-mark-w,
+.workshop-mark-inlay {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
+
+.workshop-mark-table { stroke: var(--workshop-mark-table); stroke-width: 20; }
+.workshop-mark-w { stroke: var(--workshop-mark-w); stroke-width: 34; }
+.workshop-mark-inlay { stroke: var(--workshop-mark-inlay); stroke-width: 20; }
+
+.tool-shelf-header .workshop-mark { width: 4.75rem; height: 4.75rem; }
 
 .redline-layout,
 .megaphone-layout,
@@ -2389,7 +2392,6 @@ h4 {
 .preferences-heading,
 .folder-row,
 .custom-preview,
-.initials-editor,
 .preferences-footer {
   display: flex;
   align-items: center;
@@ -2423,9 +2425,8 @@ h4 {
 .preferences-heading h3 { margin: 0 0 .35rem; font-size: 1.2rem; }
 .preferences-heading p,
 .custom-editor p,
-.initials-editor p,
 .folder-row p { margin: 0; color: var(--workshop-text-muted); font-size: .88rem; line-height: 1.45; }
-.preferences-mark { width: 3.4rem; height: 3.4rem; font-size: 1rem; box-shadow: none; }
+.preferences-mark { width: 3.4rem; height: 3.4rem; }
 .preferences-tabs { display: flex; gap: 1rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--workshop-border); }
 .preferences-tabs button { padding: .5rem .1rem .65rem; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--workshop-text-muted); font-weight: 700; cursor: pointer; }
 .preferences-tabs button[aria-selected="true"] { border-color: var(--workshop-accent); color: var(--workshop-text); }
@@ -2441,7 +2442,8 @@ h4 {
 .preset-card strong { display: block; color: #fff; font-size: 1.45rem; letter-spacing: -.035em; }
 .preset-card small { display: block; margin-top: .3rem; color: rgb(255 255 255 / .76); font-size: .92rem; line-height: 1.35; }
 .preset-card em { align-self: start; color: rgb(255 255 255 / .68); font-size: .75rem; font-style: normal; font-weight: 750; }
-.preset-swatch { display: inline-grid; place-items: center; width: 5.25rem; height: 5.25rem; border: 1px solid rgb(255 255 255 / .27); border-radius: 1.4rem; color: #090909; font-size: 1.05rem; font-weight: 800; box-shadow: inset 0 1px 0 rgb(255 255 255 / .22); }
+.preset-swatch { display: inline-grid; place-items: center; width: 5.25rem; height: 5.25rem; }
+.preset-swatch .workshop-mark { width: 100%; height: 100%; }
 .preset-token-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem 1rem; padding: 1rem 1.35rem 1.15rem; background: var(--preset-surface); color: rgb(255 255 255 / .72); font: .78rem/1.1 "SF Mono", "Monaco", monospace; }
 .preset-token-list > span { display: flex; align-items: center; gap: .45rem; min-width: 0; white-space: nowrap; }
 .preset-token-list b { color: #fff; font-weight: 500; }
@@ -2451,15 +2453,10 @@ h4 {
 .preset-token-warm { background: var(--preset-warm); }
 .custom-editor { display: grid; gap: .8rem; }
 .custom-editor textarea { width: 100%; min-height: 8.2rem; padding: .75rem; border: 1px solid var(--workshop-border); border-radius: .55rem; background: var(--workshop-surface); color: var(--workshop-text); font: .83rem/1.45 "SF Mono", monospace; resize: vertical; }
-.custom-editor textarea:focus-visible,
-.initials-editor input:focus-visible { outline: 3px solid var(--workshop-focus-ring); outline-offset: 2px; }
+.custom-editor textarea:focus-visible { outline: 3px solid var(--workshop-focus-ring); outline-offset: 2px; }
 .custom-preview { padding: .8rem; border: 1px solid var(--workshop-border); border-radius: .6rem; background: var(--workshop-surface); }
 .custom-preview span { margin-right: auto; color: var(--workshop-text-muted); font-size: .78rem; }
 .field-error { margin: 0; color: var(--workshop-danger); font-size: .8rem; font-weight: 650; }
-.initials-editor { align-items: flex-end; margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--workshop-border); }
-.initials-editor > div:nth-child(2) { display: grid; gap: .35rem; min-width: 11rem; }
-.initials-editor label { color: var(--workshop-text); font-size: .78rem; font-weight: 700; }
-.initials-editor input { min-height: 2.45rem; padding: .4rem .55rem; border: 1px solid var(--workshop-border); border-radius: .45rem; background: var(--workshop-surface); color: var(--workshop-text); }
 .preferences-footer { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--workshop-border); }
 .preferences-footer p { margin: 0; color: var(--workshop-success); font-size: .8rem; font-weight: 650; }
 .folder-list { display: grid; gap: .7rem; }
@@ -2474,6 +2471,6 @@ h4 {
   .preferences-layout { grid-template-columns: 1fr; }
   .preferences-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); border-right: 0; border-bottom: 1px solid var(--workshop-border); }
   .preset-grid { grid-template-columns: 1fr; }
-  .folder-row, .initials-editor { display: grid; }
+  .folder-row { display: grid; }
   .folder-actions { justify-content: flex-start; }
 }

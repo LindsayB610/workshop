@@ -13,7 +13,8 @@ const WORKSHOP_PREFERENCES_MENU_ID: &str = "workshop:preferences";
 const WORKSHOP_OPEN_PREFERENCES_EVENT: &str = "workshop:open-preferences";
 const WORKSHOP_CHECK_FOR_UPDATES_MENU_ID: &str = "workshop:check-for-updates";
 const WORKSHOP_CHECK_FOR_UPDATES_EVENT: &str = "workshop:check-for-updates";
-
+#[cfg(test)]
+const STANDARD_EDIT_MENU_ACTIONS: [&str; 6] = ["Undo", "Redo", "Cut", "Copy", "Paste", "Select All"];
 fn is_preferences_menu_id(id: &str) -> bool {
     id == WORKSHOP_PREFERENCES_MENU_ID
 }
@@ -43,6 +44,26 @@ fn emit_workshop_menu_event<R: tauri::Runtime>(app: &tauri::AppHandle<R>, menu_i
 }
 
 #[cfg(desktop)]
+fn standard_edit_menu<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<Submenu<R>> {
+    let undo = PredefinedMenuItem::undo(app, None)?;
+    let redo = PredefinedMenuItem::redo(app, None)?;
+    let cut = PredefinedMenuItem::cut(app, None)?;
+    let copy = PredefinedMenuItem::copy(app, None)?;
+    let paste = PredefinedMenuItem::paste(app, None)?;
+    let select_all = PredefinedMenuItem::select_all(app, None)?;
+    Submenu::with_items(app, "Edit", true, &[
+        &undo,
+        &redo,
+        &PredefinedMenuItem::separator(app)?,
+        &cut,
+        &copy,
+        &paste,
+        &PredefinedMenuItem::separator(app)?,
+        &select_all,
+    ])
+}
+
+#[cfg(desktop)]
 fn workshop_menu<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<Menu<R>> {
     let preferences = MenuItem::with_id(app, WORKSHOP_PREFERENCES_MENU_ID, "Preferences…", true, Some("CmdOrCtrl+,"))?;
     let check_for_updates = MenuItem::with_id(app, WORKSHOP_CHECK_FOR_UPDATES_MENU_ID, "Check for Updates…", true, None::<&str>)?;
@@ -56,7 +77,8 @@ fn workshop_menu<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<
         &PredefinedMenuItem::hide_others(app, None)?,
         &PredefinedMenuItem::quit(app, None)?,
     ])?;
-    Menu::with_items(app, &[&app_menu])
+    let edit_menu = standard_edit_menu(app)?;
+    Menu::with_items(app, &[&app_menu, &edit_menu])
 }
 
 const REDLINE_CURL_FINAL_URL_MARKER: &str = "\n__WORKSHOP_FINAL_URL__=";
@@ -2151,6 +2173,23 @@ mod tests {
         assert!(!is_preferences_menu_id("slate:preferences"));
         assert_eq!(WORKSHOP_OPEN_PREFERENCES_EVENT, "workshop:open-preferences");
         assert_eq!(workshop_menu_event_name(WORKSHOP_PREFERENCES_MENU_ID), Some(WORKSHOP_OPEN_PREFERENCES_EVENT));
+    }
+
+    #[test]
+    fn standard_edit_menu_keeps_macos_text_editing_actions_available() {
+        assert_eq!(STANDARD_EDIT_MENU_ACTIONS, ["Undo", "Redo", "Cut", "Copy", "Paste", "Select All"]);
+        let menu_source = include_str!("lib.rs");
+        for predefined_action in [
+            "PredefinedMenuItem::undo(app, None)",
+            "PredefinedMenuItem::redo(app, None)",
+            "PredefinedMenuItem::cut(app, None)",
+            "PredefinedMenuItem::copy(app, None)",
+            "PredefinedMenuItem::paste(app, None)",
+            "PredefinedMenuItem::select_all(app, None)",
+            "let edit_menu = standard_edit_menu(app)?;",
+        ] {
+            assert!(menu_source.contains(predefined_action), "missing {predefined_action}");
+        }
     }
 
     #[test]

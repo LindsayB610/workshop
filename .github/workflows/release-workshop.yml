@@ -63,11 +63,26 @@ jobs:
       - name: Run release checks
         run: |
           npm test
+          npm run test:coverage
           npm run typecheck
           npm run public:check
 
       - name: Build signed Workshop app
-        run: npm run tauri --workspace @marketing-builds/desktop -- build
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run tauri --workspace @marketing-builds/desktop -- build 2>&1 | tee "$RUNNER_TEMP/workshop-tauri-build.log"
+
+      - name: Upload DMG diagnostics after a failed build
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: workshop-dmg-build-diagnostics
+          if-no-files-found: ignore
+          path: |
+            ${{ runner.temp }}/workshop-tauri-build.log
+            apps/marketing-builds-desktop/src-tauri/target/release/bundle/dmg/bundle_dmg.sh
+            apps/marketing-builds-desktop/src-tauri/target/release/bundle/dmg/*.log
 
       - name: Generate updater manifest
         run: |

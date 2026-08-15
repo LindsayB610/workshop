@@ -1,4 +1,5 @@
-import { defineConfig, loadEnv, type Plugin } from "vite";
+import { defineConfig } from "vitest/config";
+import { loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "node:path";
@@ -54,5 +55,29 @@ export default defineConfig(({ mode }) => {
       },
     },
     envPrefix: ["VITE_", "TAURI_"],
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes("node_modules/slate-core/")) return "plugin-slate";
+            if (id.includes("node_modules/@marketing-builds/pulse/")) return "plugin-pulse";
+          },
+        },
+      },
+    },
+    test: {
+      coverage: {
+        provider: "v8",
+        reporter: ["text", "json-summary"],
+        include: ["src/app-shell/**", "src/tool-registry/**", "src/tools/toolViews.tsx", "src/App.tsx"],
+        exclude: ["**/*.test.{ts,tsx}", "src/tools/redline/**", "src/tools/megaphone/**"],
+        thresholds: {
+          statements: 68,
+          branches: 70,
+          functions: 63,
+          lines: 70,
+        },
+      },
+    },
   };
 });

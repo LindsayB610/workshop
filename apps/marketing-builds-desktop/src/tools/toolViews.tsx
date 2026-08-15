@@ -1,6 +1,4 @@
-import type { ComponentType } from "react";
-import { WorkshopToolView as PulseWorkshopToolView } from "@marketing-builds/pulse/workshop-plugin";
-import { WorkshopToolView as SlateWorkshopToolView } from "slate-core";
+import { lazy, Suspense, type ComponentType } from "react";
 import { getToolById } from "../tool-registry/tools";
 import type { ToolDefinition } from "../tool-registry/types";
 import type { WorkspaceValidationResult } from "../tool-registry/workspaceState";
@@ -16,32 +14,31 @@ type ExternalWorkshopToolViewProps = {
   clearWorkspaceRoot?: () => void;
 };
 
-function adaptExternalToolView(
-  ExternalToolView: ComponentType<ExternalWorkshopToolViewProps>,
+function lazyExternalToolView(
+  load: () => Promise<{ WorkshopToolView: ComponentType<ExternalWorkshopToolViewProps> }>,
 ): ComponentType<ToolViewProps> {
-  return function ExternalToolViewAdapter({
-    activeRouteId,
-    onClearWorkspaceRequest,
-    onSetWorkspaceRequest,
-    tool,
-    workspaceRoot,
-  }) {
+  const ExternalToolView = lazy(async () => ({ default: (await load()).WorkshopToolView }));
+
+  return function LazyExternalToolViewAdapter(props) {
+    const clearWorkspaceRoot = props.onClearWorkspaceRequest;
     return (
-      <ExternalToolView
-        activeRouteId={activeRouteId}
-        workspaceRoot={workspaceRoot}
-        requestWorkspaceRoot={(root) => onSetWorkspaceRequest?.(tool.id, root)}
-        clearWorkspaceRoot={onClearWorkspaceRequest ? () => onClearWorkspaceRequest(tool.id) : undefined}
-      />
+      <Suspense fallback={<section aria-label={`${props.tool.displayName} is loading`}>Loading {props.tool.displayName}…</section>}>
+        <ExternalToolView
+          activeRouteId={props.activeRouteId}
+          workspaceRoot={props.workspaceRoot}
+          requestWorkspaceRoot={(root) => props.onSetWorkspaceRequest?.(props.tool.id, root)}
+          clearWorkspaceRoot={clearWorkspaceRoot ? () => clearWorkspaceRoot(props.tool.id) : undefined}
+        />
+      </Suspense>
     );
   };
 }
 
 const toolViewById: Record<string, ComponentType<ToolViewProps>> = {
   megaphone: MegaphoneTool,
-  pulse: adaptExternalToolView(PulseWorkshopToolView),
+  pulse: lazyExternalToolView(() => import("@marketing-builds/pulse/workshop-plugin")),
   redline: RedlineTool,
-  slate: adaptExternalToolView(SlateWorkshopToolView),
+  slate: lazyExternalToolView(() => import("slate-core")),
 };
 
 export function ToolView({

@@ -18,6 +18,7 @@ describe("Workshop release workflow", () => {
     expect(workflow).toContain("WORKSHOP_RELEASE_NOTES");
     expect(workflow).toContain("WORKSHOP_RELEASE_NOTES: ${{ inputs.notes }}");
     expect(workflow).toContain('--notes "$WORKSHOP_RELEASE_NOTES"');
+    expect(workflow).toContain("npm run test:coverage");
   });
 
   it("keeps required release secrets documented and wired into the workflow", () => {
@@ -38,6 +39,9 @@ describe("Workshop release workflow", () => {
 
     expect(workflow).toContain("netlify-cli deploy --prod");
     expect(workflow).toContain("actions/upload-artifact");
+    expect(workflow).toContain("set -o pipefail");
+    expect(workflow).toContain("workshop-tauri-build.log");
+    expect(workflow).toContain("workshop-dmg-build-diagnostics");
   });
 
   it("derives release versions from the live updater manifest by default", () => {

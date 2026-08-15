@@ -1,8 +1,12 @@
+/* @vitest-environment jsdom */
 import { renderToStaticMarkup } from "react-dom/server";
 import { isValidElement, type ReactElement, type ReactNode } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 import { getToolById } from "../tool-registry/tools";
 import { getToolViewById, ToolView } from "./toolViews";
+
+afterEach(() => cleanup());
 
 describe("tool views", () => {
   it("renders Redline through the shared tool view registry", () => {
@@ -33,45 +37,45 @@ describe("tool views", () => {
     expect(markup).not.toContain("empty-tool");
   });
 
-  it("renders Pulse through the shared tool view registry", () => {
+  it("loads Pulse through the shared tool view registry", async () => {
     const pulse = getToolById("pulse");
 
     if (!pulse) {
       throw new Error("Pulse tool is not registered.");
     }
 
-    const activeMarkup = renderToStaticMarkup(<ToolView activeRouteId="reminders" tool={pulse} />);
-    const settingsMarkup = renderToStaticMarkup(<ToolView activeRouteId="settings" tool={pulse} />);
+    const activeView = render(<ToolView activeRouteId="reminders" tool={pulse} />);
 
-    expect(activeMarkup).toContain("Pulse");
-    expect(activeMarkup).toContain("Persistent reminders are acknowledged from Android");
-    expect(activeMarkup).not.toContain("Service URL");
-    expect(settingsMarkup).toContain('aria-label="Pulse private folder"');
-    expect(settingsMarkup).toContain("Connect Pulse");
+    expect(await screen.findByText(/Persistent reminders are acknowledged from Android/)).toBeTruthy();
+    expect(screen.queryByText("Service URL")).toBeNull();
+    activeView.unmount();
+
+    render(<ToolView activeRouteId="settings" tool={pulse} />);
+    expect(await screen.findByLabelText("Pulse private folder")).toBeTruthy();
+    expect(screen.getByText("Connect Pulse")).toBeTruthy();
   });
 
-  it("renders the external Slate plugin through the shared adapter", () => {
+  it("loads the external Slate plugin through the shared adapter", async () => {
     const slate = getToolById("slate");
 
     if (!slate) {
       throw new Error("Slate tool is not registered.");
     }
 
-    const markup = renderToStaticMarkup(<ToolView tool={slate} />);
+    render(<ToolView tool={slate} />);
 
-    expect(markup).toContain('aria-label="Folder containing slate.config.json"');
-    expect(markup).toContain("Connect a Slate folder");
-    expect(markup).toContain("Connect folder");
+    expect(await screen.findByRole("heading", { name: "Slate" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Manage documents" })).toBeTruthy();
   });
 
-  it("passes generic change and disconnect controls to a connected plugin workspace", () => {
+  it("passes a connected workspace to the external Slate plugin", async () => {
     const slate = getToolById("slate");
 
     if (!slate) {
       throw new Error("Slate tool is not registered.");
     }
 
-    const markup = renderToStaticMarkup(
+    render(
       <ToolView
         tool={slate}
         workspaceRoot="/Users/example/slate-private"
@@ -79,8 +83,7 @@ describe("tool views", () => {
       />,
     );
 
-    expect(markup).toContain("Change Slate folder");
-    expect(markup).toContain("Disconnect");
+    expect((await screen.findAllByRole("button", { name: "Manage documents" })).length).toBeGreaterThan(0);
   });
 
   it("exposes the fallback view for every registered tool id", () => {

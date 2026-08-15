@@ -32,6 +32,7 @@ Run:
 
 ```sh
 npm test
+npm run test:coverage
 npm run test:public
 npm run typecheck
 npm run build
@@ -68,6 +69,22 @@ The `Release Workshop` GitHub Actions workflow must keep:
 - release artifact upload.
 
 Do not bypass `npm run public:check` for a public updater release.
+
+## Native macOS acceptance
+
+Before calling a signed release complete, test the installed app—not the Vite
+preview—on macOS:
+
+1. Open **Workshop → Preferences…** and choose **Custom palette**.
+2. Focus the palette text field, type four valid hex values, then press
+   **Command-A** followed by **Command-C**.
+3. Paste into a separate native app, such as TextEdit, and confirm the exact
+   four values arrive.
+4. In Workshop’s **Edit** menu, confirm Undo, Redo, Cut, Copy, Paste, and
+   Select All are present and Copy is enabled while the field is selected.
+
+This is deliberately a release acceptance check: macOS owns the final native
+menu and keyboard dispatch path, which browser tests cannot faithfully invoke.
 
 ## Adding New Tools
 

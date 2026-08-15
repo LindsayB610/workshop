@@ -18,6 +18,7 @@
     "desktop:tauri": "npm run tauri --workspace @marketing-builds/desktop",
     "typecheck": "npm run typecheck --workspace @redline/core && npm run typecheck --workspace @marketing-builds/desktop",
     "test": "npm run test --workspace @redline/core && npm run test --workspace @marketing-builds/desktop",
+    "test:coverage": "npm run test:coverage --workspace @marketing-builds/desktop",
     "test:public": "npm run test:public --workspace @redline/core && npm run test --workspace @marketing-builds/desktop",
     "privacy:scan": "node apps/marketing-builds-desktop/scripts/public-boundary-scan.mjs",
     "public:clean-clone": "node apps/marketing-builds-desktop/scripts/public-clean-clone-smoke.mjs",

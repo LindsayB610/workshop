@@ -81,15 +81,18 @@ describe("Workshop release workflow", () => {
       "utf8",
     );
 
-    expect(workflow).toContain("Remove DMG volume-icon implementation file");
+    const cleanupStep = workflow.indexOf("Remove DMG volume-icon implementation file");
+    const resignDmg = workflow.indexOf('codesign --force --sign "$APPLE_SIGNING_IDENTITY" --timestamp "$DMG_PATH"');
+    const verifyDmg = workflow.indexOf('codesign --verify --verbose=2 "$DMG_PATH"');
+    const notarizeDmg = workflow.indexOf("xcrun notarytool submit");
+    const assessDmg = workflow.indexOf("spctl -a -vvv -t install");
+
+    expect(cleanupStep).toBeGreaterThanOrEqual(0);
     expect(workflow).toContain("scripts/remove-dmg-volume-icon.sh");
-    expect(workflow.indexOf("Remove DMG volume-icon implementation file")).toBeLessThan(
-      workflow.indexOf("Notarize and staple public DMG"),
-    );
-    expect(workflow).toContain('codesign --force --sign "$APPLE_SIGNING_IDENTITY" --timestamp "$DMG_PATH"');
-    expect(workflow.indexOf('codesign --force --sign "$APPLE_SIGNING_IDENTITY" --timestamp "$DMG_PATH"')).toBeLessThan(
-      workflow.indexOf("Notarize and staple public DMG"),
-    );
+    expect(resignDmg).toBeGreaterThan(cleanupStep);
+    expect(verifyDmg).toBeGreaterThan(resignDmg);
+    expect(notarizeDmg).toBeGreaterThan(verifyDmg);
+    expect(assessDmg).toBeGreaterThan(notarizeDmg);
     expect(cleanupScript).toContain("rm -f \"$MOUNT_DIR/.VolumeIcon.icns\"");
     expect(cleanupScript).toContain("hdiutil convert \"$DMG_PATH\" -format UDRW");
     expect(cleanupScript).toContain("-format UDZO");

@@ -44,6 +44,40 @@ describe("Workshop release workflow", () => {
     expect(workflow).toContain("workshop-dmg-build-diagnostics");
   });
 
+  it("publishes a notarized public installer only after the updater payload is live", () => {
+    const workflow = readFileSync(
+      path.join(repoRoot, ".github/workflows/release-workshop.yml"),
+      "utf8",
+    );
+
+    expect(workflow).toContain("contents: write");
+    expect(workflow).toContain("WORKSHOP_APPLE_DEVELOPER_ID_CERTIFICATE");
+    expect(workflow).toContain("APPLE_SIGNING_IDENTITY");
+    expect(workflow).toContain("WORKSHOP_NOTARY_PRIVATE_KEY");
+    expect(workflow).toContain("xcrun notarytool submit");
+    expect(workflow).toContain("xcrun stapler staple");
+    expect(workflow).toContain("codesign --verify --deep --strict");
+    expect(workflow).toContain("spctl -a -vvv -t install");
+    expect(workflow).toContain("prepare-public-release.mjs");
+    expect(workflow).toContain("gh release create");
+    expect(workflow).toContain("Workshop-aarch64.dmg");
+    expect(workflow.indexOf("Deploy updater payload to Netlify")).toBeLessThan(
+      workflow.indexOf("Publish public GitHub Release"),
+    );
+  });
+
+  it("uses the permanent public Workshop identifier", () => {
+    const tauriConfig = readFileSync(
+      path.join(repoRoot, "apps/marketing-builds-desktop/src-tauri/tauri.conf.json"),
+      "utf8",
+    );
+
+    expect(tauriConfig).toContain('"identifier": "com.lindsaybrunner.workshop"');
+    expect(tauriConfig).toContain('"hardenedRuntime": true');
+    expect(tauriConfig).toContain('"minimumSystemVersion": "11.0"');
+    expect(tauriConfig).not.toContain("com.lindsaybrunner.marketingbuilds");
+  });
+
   it("derives release versions from the live updater manifest by default", () => {
     const workflow = readFileSync(
       path.join(repoRoot, ".github/workflows/release-workshop.yml"),

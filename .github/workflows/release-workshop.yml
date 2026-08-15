@@ -21,7 +21,7 @@ jobs:
     name: Build, sign, and publish Workshop
     runs-on: macos-14
     permissions:
-      contents: read
+      contents: write
     env:
       WORKSHOP_UPDATE_BASE_URL: https://workshop-updates-lindsaybrunner.netlify.app
       WORKSHOP_NETLIFY_SITE_ID: c752e385-30f2-4878-b489-03811f8ce106
@@ -29,6 +29,12 @@ jobs:
       WORKSHOP_VERSION_OVERRIDE: ${{ inputs.version || '' }}
       TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.WORKSHOP_TAURI_SIGNING_PRIVATE_KEY }}
       TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.WORKSHOP_TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      APPLE_CERTIFICATE: ${{ secrets.WORKSHOP_APPLE_DEVELOPER_ID_CERTIFICATE }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.WORKSHOP_APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD }}
+      APPLE_SIGNING_IDENTITY: ${{ secrets.WORKSHOP_APPLE_DEVELOPER_ID_SIGNING_IDENTITY }}
+      WORKSHOP_NOTARY_ISSUER: ${{ secrets.WORKSHOP_APPLE_NOTARY_ISSUER_ID }}
+      WORKSHOP_NOTARY_KEY_ID: ${{ secrets.WORKSHOP_APPLE_NOTARY_KEY_ID }}
+      WORKSHOP_NOTARY_PRIVATE_KEY: ${{ secrets.WORKSHOP_APPLE_NOTARY_PRIVATE_KEY }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v5
@@ -44,6 +50,37 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Require public-distribution credentials
+        shell: bash
+        run: |
+          for secret in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY WORKSHOP_NOTARY_ISSUER WORKSHOP_NOTARY_KEY_ID WORKSHOP_NOTARY_PRIVATE_KEY; do
+            if [ -z "${!secret}" ]; then
+              echo "Missing required public-distribution secret: $secret" >&2
+              exit 1
+            fi
+          done
+
+      - name: Install Developer ID signing certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+          CERTIFICATE_PATH="$RUNNER_TEMP/workshop-developer-id.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/workshop-signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
+          echo "$APPLE_CERTIFICATE" | base64 -D > "$CERTIFICATE_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" -k "$KEYCHAIN_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH" login.keychain-db
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+          rm -f "$CERTIFICATE_PATH"
+          {
+            echo "WORKSHOP_SIGNING_KEYCHAIN=$KEYCHAIN_PATH"
+            echo "WORKSHOP_SIGNING_KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD"
+          } >> "$GITHUB_ENV"
 
       - name: Resolve Workshop release version
         id: release_version
@@ -73,6 +110,28 @@ jobs:
           set -o pipefail
           npm run tauri --workspace @marketing-builds/desktop -- build 2>&1 | tee "$RUNNER_TEMP/workshop-tauri-build.log"
 
+      - name: Verify Developer ID signature
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_PATH="apps/marketing-builds-desktop/src-tauri/target/release/bundle/macos/Workshop.app"
+          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+          codesign -dv --verbose=4 "$APP_PATH" 2>&1 | tee "$RUNNER_TEMP/workshop-codesign.log"
+
+      - name: Notarize and staple public DMG
+        shell: bash
+        run: |
+          set -euo pipefail
+          DMG_PATH="apps/marketing-builds-desktop/src-tauri/target/release/bundle/dmg/Workshop_${{ steps.release_version.outputs.version }}_aarch64.dmg"
+          NOTARY_KEY_PATH="$RUNNER_TEMP/AuthKey_${WORKSHOP_NOTARY_KEY_ID}.p8"
+          printf '%s' "$WORKSHOP_NOTARY_PRIVATE_KEY" > "$NOTARY_KEY_PATH"
+          chmod 600 "$NOTARY_KEY_PATH"
+          xcrun notarytool submit "$DMG_PATH" --key "$NOTARY_KEY_PATH" --key-id "$WORKSHOP_NOTARY_KEY_ID" --issuer "$WORKSHOP_NOTARY_ISSUER" --wait --timeout 1h 2>&1 | tee "$RUNNER_TEMP/workshop-notary.log"
+          xcrun stapler staple "$DMG_PATH"
+          xcrun stapler validate "$DMG_PATH"
+          spctl -a -vvv -t install "$DMG_PATH"
+          rm -f "$NOTARY_KEY_PATH"
+
       - name: Upload DMG diagnostics after a failed build
         if: failure()
         uses: actions/upload-artifact@v5
@@ -81,6 +140,8 @@ jobs:
           if-no-files-found: ignore
           path: |
             ${{ runner.temp }}/workshop-tauri-build.log
+            ${{ runner.temp }}/workshop-codesign.log
+            ${{ runner.temp }}/workshop-notary.log
             apps/marketing-builds-desktop/src-tauri/target/release/bundle/dmg/bundle_dmg.sh
             apps/marketing-builds-desktop/src-tauri/target/release/bundle/dmg/*.log
 
@@ -106,9 +167,28 @@ jobs:
           cp src-tauri/target/release/bundle/macos/Workshop.app.tar.gz.sig dist/workshop-update-site/Workshop.app.tar.gz.sig
           cp "src-tauri/target/release/bundle/dmg/Workshop_${{ steps.release_version.outputs.version }}_aarch64.dmg" "dist/workshop-update-site/Workshop_${{ steps.release_version.outputs.version }}_aarch64.dmg"
 
+      - name: Prepare public installer assets
+        working-directory: apps/marketing-builds-desktop
+        run: |
+          node scripts/prepare-public-release.mjs \
+            --version "${{ steps.release_version.outputs.version }}" \
+            --dmg "src-tauri/target/release/bundle/dmg/Workshop_${{ steps.release_version.outputs.version }}_aarch64.dmg" \
+            --output-dir dist/public-release
+
       - name: Deploy updater payload to Netlify
         working-directory: apps/marketing-builds-desktop
         run: npx netlify-cli deploy --prod --no-build --dir "${{ github.workspace }}/apps/marketing-builds-desktop/dist/workshop-update-site" --site "$WORKSHOP_NETLIFY_SITE_ID" --auth "${{ secrets.NETLIFY_AUTH_TOKEN }}"
+
+      - name: Publish public GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v${{ steps.release_version.outputs.version }}" \
+            --target "$GITHUB_SHA" \
+            --title "Workshop v${{ steps.release_version.outputs.version }}" \
+            --notes "$WORKSHOP_RELEASE_NOTES" \
+            "apps/marketing-builds-desktop/dist/public-release/Workshop-aarch64.dmg#Workshop-aarch64.dmg" \
+            "apps/marketing-builds-desktop/dist/public-release/Workshop-aarch64.dmg.sha256#Workshop-aarch64.dmg.sha256"
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@v5
@@ -119,3 +199,13 @@ jobs:
             apps/marketing-builds-desktop/dist/workshop-update-site/Workshop.app.tar.gz
             apps/marketing-builds-desktop/dist/workshop-update-site/Workshop.app.tar.gz.sig
             apps/marketing-builds-desktop/dist/workshop-update-site/Workshop_${{ steps.release_version.outputs.version }}_aarch64.dmg
+            apps/marketing-builds-desktop/dist/public-release/Workshop-aarch64.dmg
+            apps/marketing-builds-desktop/dist/public-release/Workshop-aarch64.dmg.sha256
+
+      - name: Remove temporary signing keychain
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          if [ -n "${WORKSHOP_SIGNING_KEYCHAIN:-}" ] && [ -f "$WORKSHOP_SIGNING_KEYCHAIN" ]; then
+            security delete-keychain "$WORKSHOP_SIGNING_KEYCHAIN"
+          fi

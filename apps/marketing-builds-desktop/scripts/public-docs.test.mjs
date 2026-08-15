@@ -96,6 +96,22 @@ describe("public corpus-building docs", () => {
     expect(design).toContain("signed app bundle icon");
   });
 
+  it("keeps the dormant public-distribution design honest until an installer exists", () => {
+    const distribution = readRepoFile("docs/public-distribution.md");
+    const readme = readRepoFile("README.md");
+
+    expect(distribution).toContain("Workshop-aarch64.dmg");
+    expect(distribution).toContain("Workshop-aarch64.dmg.sha256");
+    expect(distribution).toContain("Developer ID-signed");
+    expect(distribution).toContain("notarized");
+    expect(distribution).toContain("com.lindsaybrunner.workshop");
+    expect(distribution).toContain("do not modify your private folders");
+    expect(distribution).toContain("WORKSHOP_APPLE_DEVELOPER_ID_CERTIFICATE");
+    expect(distribution).toMatch(/first public\s+installer is not published/);
+    expect(readme).toContain("does not yet\npublish a downloadable installer through GitHub Releases");
+    expect(readme).not.toContain("releases/latest/download/Workshop-aarch64.dmg");
+  });
+
   it("gives installed-app users a complete Slate setup path", () => {
     const guide = readRepoFile("docs/using-workshop.md");
     const slateDocs = readRepoFile("apps/marketing-builds-desktop/public/docs/tools/slate.md");

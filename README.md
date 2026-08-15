@@ -60,7 +60,7 @@ empty shelf and an **Add New Tools** button.
 
 ## Install a provided app
 
-If you receive a signed Workshop `.dmg` from its maintainer:
+If you installed Workshop from the public GitHub Release:
 
 1. Open the `.dmg` and drag **Workshop** to **Applications**.
 2. Open **Workshop** from Applications.

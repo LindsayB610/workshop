@@ -1,7 +1,7 @@
 # Public Release Checklist
 
-Use this before publishing the dedicated public Workshop repo/source tree or
-cutting a public updater release.
+Use this before publishing a public Workshop installer or cutting a public
+updater release.
 
 The staged-boundary check, full clean-clone rehearsal, legacy-reference
 sanitization, and Phase 4 handoff are complete. Use this checklist again for
@@ -63,12 +63,31 @@ The `Release Workshop` GitHub Actions workflow must keep:
 - typecheck;
 - public clean-clone proof;
 - signed Tauri build;
+- Developer ID signature verification with Hardened Runtime;
+- Apple notarization, ticket stapling, and Gatekeeper assessment;
 - updater manifest generation;
 - updater payload staging;
 - Netlify deployment;
-- release artifact upload.
+- GitHub tag and public GitHub Release;
+- stable `Workshop-aarch64.dmg` and SHA-256 checksum upload;
+- diagnostic artifact upload when the DMG/signing/notary path fails.
 
 Do not bypass `npm run public:check` for a public updater release.
+
+## Public installer acceptance
+
+Before publishing broadly, use a clean macOS user account without developer
+tools or prior Workshop state:
+
+1. Download `Workshop-aarch64.dmg` from the GitHub Release stable URL.
+2. Verify its SHA-256 against `Workshop-aarch64.dmg.sha256`.
+3. Open the DMG, copy Workshop to Applications, and launch it normally.
+4. Confirm Gatekeeper identifies Workshop's Developer ID. Do not accept any
+   installation path that needs a security override or Terminal workaround.
+5. Confirm a fresh launch shows the empty shelf, then install Slate or Pulse
+   and connect a private folder.
+6. Keep the prior public release installed long enough to prove detection and
+   installation of a newer signed, notarized release.
 
 ## Native macOS acceptance
 

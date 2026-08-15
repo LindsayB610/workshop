@@ -69,7 +69,13 @@ export default defineConfig(({ mode }) => {
       coverage: {
         provider: "v8",
         reporter: ["text", "json-summary"],
-        include: ["src/app-shell/**", "src/tool-registry/**", "src/tools/toolViews.tsx", "src/App.tsx"],
+        include: [
+          "src/app-shell/**",
+          "src/tool-registry/**",
+          "src/tools/toolViews.tsx",
+          "src/App.tsx",
+          "scripts/prepare-public-release.mjs",
+        ],
         exclude: ["**/*.test.{ts,tsx}", "src/tools/redline/**", "src/tools/megaphone/**"],
         thresholds: {
           statements: 75,

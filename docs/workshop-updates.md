@@ -16,7 +16,9 @@ The rest of this document is for maintainers who publish signed releases.
 
 Workshop uses Tauri's signed updater. The public key is committed in
 `apps/marketing-builds-desktop/src-tauri/tauri.conf.json`; the private key must
-stay out of git and should live in the release environment only.
+stay out of git and should live in the release environment only. Public first
+installs use the notarized DMG in [GitHub Releases](public-distribution.md),
+not the updater archive.
 
 ## Current Update Host
 
@@ -35,6 +37,12 @@ The durable updater signing key should be stored in GitHub Actions secrets for
 The automated release workflow also needs:
 
 - `NETLIFY_AUTH_TOKEN`
+
+Public installer releases additionally require the Developer ID certificate and
+App Store Connect notarization secrets documented in
+[Public Workshop Distribution](public-distribution.md#maintainer-release-contract).
+The permanent public app identifier is `com.lindsaybrunner.workshop`; do not
+change it after a public installer is in circulation.
 
 As of 2026-06-24, all three secrets have been rotated and configured in the
 public `LindsayB610/workshop` GitHub repository. The committed updater public
@@ -57,14 +65,20 @@ The workflow:
 1. Installs dependencies on macOS.
 2. Bumps the Workshop package, Tauri, Cargo, and UI version metadata.
 3. Runs tests and typecheck.
-4. Builds the signed Tauri bundle.
-5. Generates `latest.json`.
-6. Deploys the update payload to Netlify.
-7. Uploads the signed update artifacts to the workflow run.
+4. Builds the Developer ID-signed Tauri bundle with Hardened Runtime.
+5. Notarizes and staples the Apple Silicon DMG, then verifies it with macOS
+   tooling.
+6. Generates `latest.json`.
+7. Deploys the update payload to Netlify.
+8. Creates a GitHub `vX.Y.Z` release with the notarized
+   `Workshop-aarch64.dmg` and checksum.
+9. Uploads signed update artifacts and diagnostics to the workflow run.
 
 The public Workshop repo does not publish desktop updates automatically on every
 push to `main`. Configure the required secrets first, then use manual workflow
-dispatch for intentional releases.
+dispatch for intentional releases. A release fails before GitHub Release
+creation if signing, notarization, stapling, validation, or updater deployment
+fails.
 
 ## Build A Signed Release
 
@@ -80,8 +94,10 @@ npm run updater:bump-version --workspace @marketing-builds/desktop -- 0.2.0
 This updates the desktop package, Tauri config, Cargo metadata, and Workshop UI
 version constant together.
 
-2. Build with the signing key available. The string form is the verified path for
-   the current Tauri CLI:
+2. Build with both the Tauri updater key and Apple public-distribution
+   credentials available. The manual path is for emergency reproduction only;
+   public releases must still be notarized and published through the GitHub
+   workflow.
 
 ```sh
 TAURI_SIGNING_PRIVATE_KEY="$(cat /path/to/workshop-updater.key)" \
@@ -104,7 +120,7 @@ npm run updater:manifest --workspace @marketing-builds/desktop -- \
   --notes "Release notes for Workshop 0.2.0"
 ```
 
-4. Publish these files to `https://workshop-updates-lindsaybrunner.netlify.app/`:
+4. Publish these updater files to `https://workshop-updates-lindsaybrunner.netlify.app/`:
    - `latest.json`
    - `Workshop.app.tar.gz`
    - `Workshop.app.tar.gz.sig`
@@ -118,7 +134,10 @@ npx netlify deploy --prod \
   --site c752e385-30f2-4878-b489-03811f8ce106
 ```
 
-5. Launch the previous Workshop build and confirm it automatically detects the
+5. Upload the notarized DMG and matching SHA-256 checksum to a GitHub Release;
+   see [Public Workshop Distribution](public-distribution.md).
+
+6. Launch the previous Workshop build and confirm it automatically detects the
    signed update, shows the blue `Update available` button, and installs only
    after that button is clicked.
 

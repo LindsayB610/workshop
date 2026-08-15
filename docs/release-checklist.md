@@ -8,12 +8,17 @@ Workshop releases update the desktop app and updater manifest.
 4. Run `npm run public:check`.
 5. Confirm every app installs from Add New Tools and no app installs by
    default.
-6. Confirm release secrets are configured:
+6. Treat persistence identifiers as compatibility contracts. Do not change the
+   Tauri bundle identifier (`com.lindsaybrunner.workshop`), local-storage keys,
+   persisted-state schemas, or plugin preference namespaces unless Lindsay has
+   explicitly approved the breaking change and its migration plan. Prove the
+   migration against an installed prior version before release.
+7. Confirm release secrets are configured:
    `WORKSHOP_TAURI_SIGNING_PRIVATE_KEY`,
    `WORKSHOP_TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, and Netlify credentials.
-7. Trigger the manual Release Workshop workflow.
-8. Confirm the workflow publishes the new updater manifest.
-9. Launch the installed app and confirm it sees the update.
+8. Trigger the manual Release Workshop workflow.
+9. Confirm the workflow publishes the new updater manifest.
+10. Launch the installed app and confirm it sees the update.
 
 Do not release if the payload contains private client data, local absolute
 paths, credentials, or generated client deliverables.

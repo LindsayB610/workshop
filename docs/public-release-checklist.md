@@ -26,6 +26,20 @@ each owner-approved release; see `docs/release-readiness-handoff-2026-07-21.md`.
 - External workspaces are selected at runtime and stored only in local UI state.
 - Tool uninstall/reset actions never delete workspace files.
 
+## Compatibility Boundary
+
+- `com.lindsaybrunner.workshop` is the permanent Workshop bundle identifier.
+  It determines macOS/WebKit's local profile and therefore preserves remembered
+  folders, appearance, installed-tool state, and plugin preferences.
+- Do not change the bundle identifier, persisted local-storage keys, state
+  schemas, or plugin preference namespaces as routine refactoring.
+- Any exception requires Lindsay's explicit approval first, a written migration
+  and rollback plan, automated migration coverage, and an installed-app
+  acceptance test proving existing local state survives the update.
+- Never silently reset, discard, or reinterpret user-local state. If a
+  migration cannot be made safely, retain the prior state and explain the
+  decision before shipping.
+
 ## Verification
 
 Run:

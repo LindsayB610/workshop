@@ -76,11 +76,24 @@ describe("Workshop release workflow", () => {
       path.join(repoRoot, "apps/marketing-builds-desktop/src-tauri/tauri.conf.json"),
       "utf8",
     );
+    const releaseChecklist = readFileSync(
+      path.join(repoRoot, "docs/release-checklist.md"),
+      "utf8",
+    );
+    const publicReleaseChecklist = readFileSync(
+      path.join(repoRoot, "docs/public-release-checklist.md"),
+      "utf8",
+    );
 
     expect(tauriConfig).toContain('"identifier": "com.lindsaybrunner.workshop"');
     expect(tauriConfig).toContain('"hardenedRuntime": true');
     expect(tauriConfig).toContain('"minimumSystemVersion": "11.0"');
     expect(tauriConfig).not.toContain("com.lindsaybrunner.marketingbuilds");
+    expect(releaseChecklist).toContain("unless Lindsay has");
+    expect(releaseChecklist).toContain("explicitly approved");
+    expect(publicReleaseChecklist).toContain("Compatibility Boundary");
+    expect(publicReleaseChecklist).toContain("written migration");
+    expect(publicReleaseChecklist).toContain("rollback plan");
   });
 
   it("derives release versions from the live updater manifest by default", () => {

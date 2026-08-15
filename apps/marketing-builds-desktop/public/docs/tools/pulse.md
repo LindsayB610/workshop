@@ -1,8 +1,8 @@
 # Pulse
 
-Pulse is an independently versioned recurring-reminder app. It is already on
-the Workshop shelf; choose a private Pulse folder containing `pulse.config.json`
-when you open it.
+Pulse is an independently versioned recurring-reminder app. Install it from
+**Add New Tools**, then choose a private Pulse folder containing
+`pulse.config.json`.
 
 Pulse owns its reminder UI, private runner, Android Done/Snooze actions, and
 all service-specific behavior. Workshop provides only the desktop frame and a

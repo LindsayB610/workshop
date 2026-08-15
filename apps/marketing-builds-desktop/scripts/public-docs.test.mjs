@@ -39,7 +39,7 @@ describe("public corpus-building docs", () => {
     expect(readme).toContain("npm run desktop:tauri -- dev");
     expect(readme).toContain("npm run public:check");
     expect(readme).toContain("npm run desktop:tauri -- build");
-    expect(readme).toContain("Slate and Pulse are part of the shipped Workshop experience");
+    expect(readme).toContain("A fresh installation opens to an empty shelf");
     expect(readme).toContain("GitHub Releases");
   });
 
@@ -116,7 +116,7 @@ describe("public corpus-building docs", () => {
     const guide = readRepoFile("docs/using-workshop.md");
     const slateDocs = readRepoFile("apps/marketing-builds-desktop/public/docs/tools/slate.md");
 
-    expect(guide).toContain("Open Slate from the Workshop shelf");
+    expect(guide).toContain("Add New Tools");
     expect(guide).toContain("Slate");
     expect(guide).toContain("slate.config.json");
     expect(guide).toContain("Update available");
@@ -124,7 +124,7 @@ describe("public corpus-building docs", () => {
     expect(guide).toContain('"path"');
     expect(guide).toContain("outside the Workshop repository");
     expect(slateDocs).toContain("slate.config.json");
-    expect(slateDocs).toContain("Slate is already on the Workshop shelf");
+    expect(slateDocs).toContain("Add New Tools");
     expect(slateDocs).toContain("private Slate folder");
   });
 

@@ -18,9 +18,9 @@ npm run typecheck
 npm run desktop:tauri -- dev
 ```
 
-Tauri starts Vite and opens Workshop. Slate and Pulse are already present on a
-fresh installation. Open either app from the shelf when you are ready to
-connect its private folder.
+Tauri starts Vite and opens Workshop. An empty shelf is normal for a fresh
+installation. Select **Add New Tools**, install **Slate** or **Pulse**, and
+open it from the shelf.
 
 ## 3. Try Slate With Local-Only Data
 

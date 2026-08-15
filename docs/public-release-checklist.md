@@ -84,8 +84,8 @@ tools or prior Workshop state:
 3. Open the DMG, copy Workshop to Applications, and launch it normally.
 4. Confirm Gatekeeper identifies Workshop's Developer ID. Do not accept any
    installation path that needs a security override or Terminal workaround.
-5. Confirm a fresh launch shows Slate and Pulse on the shelf, then connect a
-   private folder in either app.
+5. Confirm a fresh launch shows the empty shelf, then install Slate or Pulse
+   and connect a private folder.
 6. Keep the prior public release installed long enough to prove detection and
    installation of a newer signed, notarized release.
 

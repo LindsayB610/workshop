@@ -8,7 +8,7 @@ export const tools: ToolDefinition[] = [
     icon: ListTodo,
     logoVariant: "slate",
     installMode: "bundled",
-    defaultInstalled: true,
+    defaultInstalled: false,
   },
   {
     ...getRequiredToolManifest("redline"),
@@ -29,7 +29,7 @@ export const tools: ToolDefinition[] = [
     icon: BellRing,
     logoVariant: "pulse",
     installMode: "external",
-    defaultInstalled: true,
+    defaultInstalled: false,
   },
 ];
 

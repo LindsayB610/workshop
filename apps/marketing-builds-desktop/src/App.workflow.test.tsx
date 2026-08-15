@@ -15,9 +15,13 @@ afterEach(() => {
 });
 
 describe("Workshop host workflow", () => {
-  it("opens a promoted app and opens host Preferences from the native event contract", async () => {
+  it("installs an app, opens it, and opens host Preferences from the native event contract", async () => {
     const user = userEvent.setup();
     render(<App />);
+
+    expect(screen.getByText("Choose apps from Add New Tools.")).toBeTruthy();
+    await user.click(screen.getAllByRole("button", { name: "Install" })[0]);
+    expect(await screen.findByText(/is installed\. Local workspaces were not changed/)).toBeTruthy();
 
     await user.click(screen.getByRole("button", { name: /Slate/ }));
     expect(await screen.findByRole("heading", { name: "Slate" })).toBeTruthy();

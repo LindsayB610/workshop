@@ -8,9 +8,8 @@ The shell is public source. Your real Markdown files, reminder data, service
 credentials, and private configuration stay on your machine. Workshop does not
 upload, discover, edit, move, or delete those files.
 
-**Slate and Pulse are part of the shipped Workshop experience.** They appear
-on the shelf after a fresh install and after a shell update; connecting either
-one to private data remains an explicit, local action.
+**A fresh installation opens to an empty shelf.** That is intentional: you add
+only the apps you want to use.
 
 ## Start here
 
@@ -56,8 +55,8 @@ npm run desktop:tauri -- dev
 ```
 
 The last command starts Vite and opens the native Workshop window. You do not
-need to open the local Vite address yourself. The first window shows Slate and
-Pulse, ready for you to connect to local private folders.
+need to open the local Vite address yourself. The first window will show an
+empty shelf and an **Add New Tools** button.
 
 ## Install a provided app
 
@@ -65,7 +64,8 @@ If you installed Workshop from the public GitHub Release:
 
 1. Open the `.dmg` and drag **Workshop** to **Applications**.
 2. Open **Workshop** from Applications.
-3. Open Slate or Pulse from the shelf and connect its private folder.
+3. Choose **Add New Tools**, then install Slate or Pulse.
+4. Open the installed tool from the shelf and connect its private folder.
 
 Workshop checks for signed updates when it opens and daily while it remains
 open. To check immediately, choose **Workshop → Check for Updates…**. An
@@ -75,10 +75,11 @@ update never changes your private tool folders.
 
 ### Slate: local Markdown views
 
-1. Create a private folder outside both the Workshop and Slate repositories.
-2. Put `slate.config.json` in that folder and list only the Markdown files you
+1. In Workshop, choose **Add New Tools** → **Slate** → **Install**.
+2. Create a private folder outside both the Workshop and Slate repositories.
+3. Put `slate.config.json` in that folder and list only the Markdown files you
    want Slate to read.
-3. Open Slate, select that folder, and choose **Connect**.
+4. Open Slate, select that folder, and choose **Connect**.
 
 Minimal example:
 
@@ -101,9 +102,10 @@ Slate views, recovery steps, and the privacy boundary.
 
 ### Pulse: recurring reminders
 
-1. Create a private Pulse folder containing `pulse.config.json`.
-2. Open Pulse and select that folder when prompted.
-3. Use Pulse’s **Connect Pulse** flow to store its credential in your macOS
+1. In Workshop, choose **Add New Tools** → **Pulse** → **Install**.
+2. Create a private Pulse folder containing `pulse.config.json`.
+3. Open Pulse and select that folder when prompted.
+4. Use Pulse’s **Connect Pulse** flow to store its credential in your macOS
    Keychain and load the dashboard.
 
 Workshop remembers the selected folder after a successful connection. It gives

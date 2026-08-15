@@ -5,6 +5,7 @@ export const toolInstallStorageKey = "workshop.toolInstallState.v2";
 export const toolLocalStatePrefix = "workshop.toolLocalState.";
 export const toolInstallStateSchemaVersion = 5;
 const legacyBundledToolIds = ["redline", "megaphone"];
+const versionFourUpgradeRecoveryToolIds = ["slate", "pulse"];
 
 export type ToolInstallState = {
   schemaVersion: number;
@@ -39,7 +40,9 @@ export function normalizeToolInstallState(
   const migratedEnabledToolIds =
     storedState.schemaVersion === toolInstallStateSchemaVersion
       ? storedState.enabledToolIds
-      : storedState.schemaVersion === 4 || storedState.schemaVersion === 3
+      : storedState.schemaVersion === 4
+        ? [...versionFourUpgradeRecoveryToolIds, ...storedState.enabledToolIds]
+        : storedState.schemaVersion === 3
         ? [...defaultInstalledToolIds, ...storedState.enabledToolIds]
         : [...defaultInstalledToolIds, ...legacyBundledToolIds, ...storedState.enabledToolIds];
   const enabledToolIds = migratedEnabledToolIds.filter((toolId, index, toolIds) => {

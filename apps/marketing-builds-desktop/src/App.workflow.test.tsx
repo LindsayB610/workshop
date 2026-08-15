@@ -20,6 +20,7 @@ describe("Workshop host workflow", () => {
     render(<App />);
 
     expect(screen.getByText("Choose apps from Add New Tools.")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Add New Tools" }));
     await user.click(screen.getAllByRole("button", { name: "Install" })[0]);
     expect(await screen.findByText(/is installed\. Local workspaces were not changed/)).toBeTruthy();
 

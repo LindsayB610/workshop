@@ -10,22 +10,16 @@ const testDir = path.dirname(fileURLToPath(import.meta.url));
 const styles = readFileSync(path.join(testDir, "../styles/app.css"), "utf8");
 
 describe("ToolShelf", () => {
-  it("renders Workshop as an empty shell with all apps available from the catalog", () => {
+  it("renders Workshop as an empty shell and leaves the catalog closed until requested", () => {
     const markup = renderToStaticMarkup(<ToolShelf onSelectTool={() => undefined} />);
 
     expect(markup).toContain("aria-label=\"Workshop tools\"");
-    expect(markup).toContain("aria-label=\"Add New Tools catalog\"");
+    expect(markup).toContain('aria-expanded="false"');
+    expect(markup).not.toContain("aria-label=\"Add New Tools catalog\"");
     expect(markup).toContain("Choose apps from Add New Tools.");
-    expect(markup).toContain("Redline");
-    expect(markup).toContain("Megaphone");
-    expect(markup).toContain("Pulse");
-    expect(markup).toContain("Bundled tool");
-    expect(markup).toContain("External app");
-    expect(markup).toContain("Install");
-    expect(markup).toContain("target=\"_blank\"");
-    expect(markup).toContain("href=\"/docs/tools/redline.md\"");
-    expect(markup).toContain("href=\"/docs/tools/megaphone.md\"");
-    expect(markup).toContain("href=\"/docs/tools/pulse.md\"");
+    expect(markup).not.toContain("Bundled tool");
+    expect(markup).not.toContain("External app");
+    expect(markup).not.toContain(">Install<");
     expect(markup).toContain("Add New Tools");
     expect(markup).not.toContain("tool-chiclet");
     expect(markup).not.toContain("Redline tool actions");

@@ -43,9 +43,7 @@ export function ToolShelf({
   initials?: string;
   updater?: WorkshopUpdaterController;
 }) {
-  const [catalogOpen, setCatalogOpen] = useState(
-    catalogInitiallyOpen || installedTools.length === 0,
-  );
+  const [catalogOpen, setCatalogOpen] = useState(catalogInitiallyOpen);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const hasAvailableTools = availableTools.length > 0;
 

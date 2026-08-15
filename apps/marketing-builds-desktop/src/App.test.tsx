@@ -13,16 +13,17 @@ const toolShelfSource = readFileSync(path.join(testDir, "app-shell/ToolShelf.tsx
 const nativeShellSource = readFileSync(path.join(testDir, "../src-tauri/src/lib.rs"), "utf8");
 
 describe("Workshop desktop app", () => {
-  it("opens to an empty shelf with ready external tools available to install", () => {
+  it("opens to an empty shelf and defers all tools to Add New Tools", () => {
     const markup = renderToStaticMarkup(<App />);
 
     expect(markup).toContain("Personal app platform");
     expect(markup).toContain("Workshop");
     expect(markup).toContain("Add New Tools");
     expect(markup).toContain("Choose apps from Add New Tools.");
-    expect(markup).toContain("Slate");
-    expect(markup).toContain("Pulse");
-    expect(markup).toContain("Install");
+    expect(markup).toContain('aria-expanded="false"');
+    expect(markup).not.toContain("Slate");
+    expect(markup).not.toContain("Pulse");
+    expect(markup).not.toContain(">Install<");
     expect(markup).not.toContain("Redline");
     expect(markup).not.toContain("Megaphone");
     expect(markup).not.toContain(["clients", ["para", "sail"].join("")].join("/"));
@@ -30,11 +31,11 @@ describe("Workshop desktop app", () => {
     expect(markup).not.toContain("Updates check on launch.");
   });
 
-  it("keeps ready Slate in the catalog until it is installed", () => {
+  it("does not render Slate before the user opens Add New Tools", () => {
     const markup = renderToStaticMarkup(<App />);
 
     expect(markup).toContain("aria-label=\"LB personal brand mark\"");
-    expect(markup).toContain("tool-logo-slate");
+    expect(markup).not.toContain("tool-logo-slate");
     expect(markup).not.toContain("Slate tool actions");
   });
 

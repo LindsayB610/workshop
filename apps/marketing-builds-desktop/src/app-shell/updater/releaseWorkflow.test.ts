@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -71,32 +72,64 @@ describe("Workshop release workflow", () => {
     );
   });
 
-  it("removes Tauri's implementation-only volume icon before notarizing a public DMG", () => {
+  it("injects and verifies the reviewed Finder layout before notarizing a public DMG", () => {
     const workflow = readFileSync(
       path.join(repoRoot, ".github/workflows/release-workshop.yml"),
       "utf8",
     );
-    const cleanupScript = readFileSync(
-      path.join(repoRoot, "apps/marketing-builds-desktop/scripts/remove-dmg-volume-icon.sh"),
+    const prepareScript = readFileSync(
+      path.join(repoRoot, "apps/marketing-builds-desktop/scripts/prepare-dmg-installer.sh"),
       "utf8",
     );
+    const verifyScript = readFileSync(
+      path.join(repoRoot, "apps/marketing-builds-desktop/scripts/verify-dmg-installer.sh"),
+      "utf8",
+    );
+    const finderLayout = readFileSync(
+      path.join(repoRoot, "apps/marketing-builds-desktop/src-tauri/dmg/Workshop.DS_Store"),
+    );
+    const finderBackground = readFileSync(
+      path.join(repoRoot, "apps/marketing-builds-desktop/src-tauri/dmg/installer-background-repositioned.png"),
+    );
+    const installerArrow = readFileSync(
+      path.join(repoRoot, "apps/marketing-builds-desktop/src-tauri/dmg/installer-arrow.png"),
+    );
 
-    const cleanupStep = workflow.indexOf("Remove DMG volume-icon implementation file");
+    const prepareStep = workflow.indexOf("Apply deterministic Finder layout to the DMG");
+    const verifyStep = workflow.indexOf("Verify DMG installer contents");
     const resignDmg = workflow.indexOf('codesign --force --sign "$APPLE_SIGNING_IDENTITY" --timestamp "$DMG_PATH"');
     const verifyDmg = workflow.indexOf('codesign --verify --verbose=2 "$DMG_PATH"');
     const notarizeDmg = workflow.indexOf("xcrun notarytool submit");
     const assessDmg = workflow.indexOf("spctl -a -vvv -t install");
 
-    expect(cleanupStep).toBeGreaterThanOrEqual(0);
-    expect(workflow).toContain("scripts/remove-dmg-volume-icon.sh");
-    expect(resignDmg).toBeGreaterThan(cleanupStep);
+    expect(prepareStep).toBeGreaterThanOrEqual(0);
+    expect(verifyStep).toBeGreaterThan(prepareStep);
+    expect(workflow).toContain("scripts/prepare-dmg-installer.sh");
+    expect(workflow).toContain("scripts/verify-dmg-installer.sh");
+    expect(workflow).toContain("src-tauri/dmg/Workshop.DS_Store");
+    expect(workflow).toContain("src-tauri/dmg/installer-background-repositioned.png");
+    expect(resignDmg).toBeGreaterThan(verifyStep);
     expect(verifyDmg).toBeGreaterThan(resignDmg);
     expect(notarizeDmg).toBeGreaterThan(verifyDmg);
     expect(assessDmg).toBeGreaterThan(notarizeDmg);
-    expect(cleanupScript).toContain("rm -f \"$MOUNT_DIR/.VolumeIcon.icns\"");
-    expect(cleanupScript).toContain("hdiutil convert \"$DMG_PATH\" -format UDRW");
-    expect(cleanupScript).toContain("-format UDZO");
-    expect(cleanupScript).toContain("$3 ~ /^\\/Volumes\\//");
+    expect(prepareScript).toContain("rm -f \"$MOUNT_DIR/.VolumeIcon.icns\"");
+    expect(prepareScript).toContain("cp \"$LAYOUT_PATH\" \"$MOUNT_DIR/.DS_Store\"");
+    expect(prepareScript).toContain("BACKGROUND_NAME=\"$(basename \"$BACKGROUND_PATH\")\"");
+    expect(prepareScript).toContain("cp \"$BACKGROUND_PATH\" \"$MOUNT_DIR/.background/$BACKGROUND_NAME\"");
+    expect(prepareScript).toContain("hdiutil convert \"$DMG_PATH\" -format UDRW");
+    expect(prepareScript).toContain("-format UDZO");
+    expect(prepareScript).toContain("$3 ~ /^\\/Volumes\\//");
+    expect(verifyScript).toContain("cmp -s \"$LAYOUT_PATH\" \"$MOUNT_DIR/.DS_Store\"");
+    expect(verifyScript).toContain("cmp -s \"$BACKGROUND_PATH\" \"$MOUNT_DIR/.background/$BACKGROUND_NAME\"");
+    expect(verifyScript).toContain("[ ! -d \"$MOUNT_DIR/Workshop.app\" ]");
+    expect(verifyScript).toContain("[ -e \"$MOUNT_DIR/.VolumeIcon.icns\" ]");
+    expect(finderLayout.subarray(4, 8).toString("ascii")).toBe("Bud1");
+    expect(finderLayout.includes(Buffer.from("installer-background-repositioned.png"))).toBe(true);
+    expect(finderBackground.subarray(1, 4).toString("ascii")).toBe("PNG");
+    expect(installerArrow.subarray(1, 4).toString("ascii")).toBe("PNG");
+    expect(createHash("sha256").update(installerArrow).digest("hex")).toBe(
+      "17c516d76a95424218dfbe571e2c528e050ed941bc2b0094026dedabe84f621d",
+    );
   });
 
   it("uses the permanent public Workshop identifier", () => {

@@ -1,18 +1,29 @@
 #!/usr/bin/env bash
 
-# Tauri's DMG builder adds .VolumeIcon.icns by default. It is normally hidden,
-# but Finder can reveal it, turning a two-item installer into a cluttered window.
-# Rebuild the image without that implementation file before it is notarized.
+# A headless CI runner cannot ask Finder to save DMG presentation state. Copy a
+# reviewed, public `.DS_Store` layout into the writable image and remove
+# Tauri's implementation-only volume icon before the final DMG is signed.
 set -euo pipefail
 
-if [ "$#" -ne 1 ]; then
-  echo "Usage: $0 path/to/Workshop.dmg" >&2
+if [ "$#" -ne 3 ]; then
+  echo "Usage: $0 path/to/Workshop.dmg path/to/Workshop.DS_Store path/to/installer-background.png" >&2
   exit 64
 fi
 
 DMG_PATH="$1"
+LAYOUT_PATH="$2"
+BACKGROUND_PATH="$3"
+BACKGROUND_NAME="$(basename "$BACKGROUND_PATH")"
 if [ ! -f "$DMG_PATH" ]; then
   echo "DMG not found: $DMG_PATH" >&2
+  exit 66
+fi
+if [ ! -f "$LAYOUT_PATH" ]; then
+  echo "Finder layout not found: $LAYOUT_PATH" >&2
+  exit 66
+fi
+if [ ! -f "$BACKGROUND_PATH" ]; then
+  echo "Finder background not found: $BACKGROUND_PATH" >&2
   exit 66
 fi
 
@@ -40,6 +51,9 @@ if [ -z "$DEVICE" ] || [ -z "$MOUNT_DIR" ]; then
 fi
 
 rm -f "$MOUNT_DIR/.VolumeIcon.icns"
+mkdir -p "$MOUNT_DIR/.background"
+cp "$LAYOUT_PATH" "$MOUNT_DIR/.DS_Store"
+cp "$BACKGROUND_PATH" "$MOUNT_DIR/.background/$BACKGROUND_NAME"
 hdiutil detach "$DEVICE" -quiet
 DEVICE=""
 

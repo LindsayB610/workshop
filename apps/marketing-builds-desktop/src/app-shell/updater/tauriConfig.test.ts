@@ -37,8 +37,8 @@ describe("Workshop updater Tauri config", () => {
 
     expect(dmg).toEqual({
       windowSize: { width: 640, height: 400 },
-      appPosition: { x: 220, y: 200 },
-      applicationFolderPosition: { x: 420, y: 200 },
+      appPosition: { x: 170, y: 160 },
+      applicationFolderPosition: { x: 470, y: 160 },
     });
     expect(dmg).not.toHaveProperty("background");
   });

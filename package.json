@@ -29,6 +29,6 @@
   },
   "dependencies": {
     "@marketing-builds/pulse": "github:LindsayB610/pulse#ab3cc232727857c1cf7c4e37eba850ad7b0617a7",
-    "slate-core": "github:LindsayB610/slate#e445d0e5cc2558897766129780336bf06d0ef74d"
+    "slate-core": "github:LindsayB610/slate#7d1fdc850779091c26e5a48212eefb5933b3e965"
   }
 }

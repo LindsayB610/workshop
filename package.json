@@ -28,7 +28,7 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@marketing-builds/pulse": "github:LindsayB610/pulse#075bc83c86e8a66a91de6130c768743edde3b7ed",
+    "@marketing-builds/pulse": "github:LindsayB610/pulse#e674d5e40e43f9d2911b234d398f454f01bbf1ba",
     "slate-core": "github:LindsayB610/slate#7d1fdc850779091c26e5a48212eefb5933b3e965"
   }
 }

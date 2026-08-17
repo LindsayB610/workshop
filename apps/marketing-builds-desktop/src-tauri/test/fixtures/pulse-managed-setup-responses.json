@@ -1,0 +1,38 @@
+{
+  "manifest": {
+    "service": "pulse-runner",
+    "apiVersion": "pulse.service.v1",
+    "setupVersion": "pulse.setup.v1",
+    "canonicalOrigin": "https://pulse-sparrow-demo.example",
+    "setupState": "awaiting-pairing",
+    "deployedPublicKeyFingerprint": "FINGERPRINT_FROM_WORKSHOP",
+    "capabilities": [
+      "pairing",
+      "per-client-credentials",
+      "notification-secret-capture",
+      "test-notification",
+      "health",
+      "export",
+      "delete"
+    ]
+  },
+  "challenge": {
+    "id": "challenge_fixture",
+    "installationId": "INSTALLATION_FROM_WORKSHOP",
+    "nonce": "nonce_fixture",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "expiresAt": "2026-08-16T12:02:00.000Z",
+    "consumedAt": null,
+    "failedAttempts": 0
+  },
+  "pair": {
+    "client": {
+      "id": "client_fixture",
+      "installationId": "INSTALLATION_FROM_WORKSHOP",
+      "createdAt": "2026-08-16T12:00:01.000Z",
+      "lastUsedAt": "2026-08-16T12:00:01.000Z",
+      "revokedAt": null
+    },
+    "credential": "fixture-durable-credential"
+  }
+}

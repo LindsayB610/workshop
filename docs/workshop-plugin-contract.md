@@ -291,6 +291,10 @@ directory, generates an Ed25519 installation key, verifies the deployed
 service identity and fingerprint, stores the returned credential in the
 operating-system keychain, and writes only non-secret endpoint metadata to
 disk. Pending setup files use owner-only permissions and expire after 24 hours.
+Versioned setup responses must include every field Workshop uses for identity,
+signature, and credential handling, but may add public metadata fields without
+breaking an otherwise compatible setup version. Workshop ignores those
+additive fields and never persists the response body.
 
 Pairing, invitation, disconnect, request, and browser-handoff operations remain
 origin-bound. They reject redirects, traversal, query strings, arbitrary

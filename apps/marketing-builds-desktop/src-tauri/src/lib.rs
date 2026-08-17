@@ -295,7 +295,7 @@ struct ManagedSecureServicePairingContract {
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[serde(rename_all = "camelCase")]
 struct ManagedSecureServiceManifest {
     service: String,
     api_version: String,
@@ -305,7 +305,7 @@ struct ManagedSecureServiceManifest {
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[serde(rename_all = "camelCase")]
 struct ManagedSecureServiceChallenge {
     id: String,
     nonce: String,
@@ -319,7 +319,7 @@ struct ManagedSecureServicePairResponse {
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[serde(rename_all = "camelCase")]
 struct ManagedSecureServicePairClient {
     id: String,
 }
@@ -3920,43 +3920,82 @@ mod tests {
         let record =
             read_managed_pending_record(&root, "fixture-service").expect("record should load");
         let contract = ManagedSecureServicePairingContract {
-            service_identity: "fixture-runner".into(),
-            api_version: "fixture.service.v1".into(),
-            setup_version: "fixture.setup.v1".into(),
+            service_identity: "pulse-runner".into(),
+            api_version: "pulse.service.v1".into(),
+            setup_version: "pulse.setup.v1".into(),
             manifest_path: "/api/setup/manifest".into(),
             challenge_path: "/api/setup/challenge".into(),
             pair_path: "/api/setup/pair".into(),
             additional_pair_path: Some("/api/setup/additional-pair".into()),
         };
+        let mut pulse_responses: serde_json::Value = serde_json::from_str(include_str!(
+            "../test/fixtures/pulse-managed-setup-responses.json"
+        ))
+        .expect("Pulse managed setup response fixture should parse");
+        pulse_responses["manifest"]["deployedPublicKeyFingerprint"] =
+            serde_json::Value::String(view.fingerprint.clone());
+        pulse_responses["challenge"]["installationId"] =
+            serde_json::Value::String(record.installation_id.clone());
+        pulse_responses["pair"]["client"]["installationId"] =
+            serde_json::Value::String(record.installation_id.clone());
         let stored = RefCell::new(Vec::<String>::new());
         let written = RefCell::new(Vec::<String>::new());
         let metadata = complete_managed_secure_service_transaction(
-            "fixture-service", &record, "https://runner.example", &contract,
+            "fixture-service",
+            &record,
+            "https://pulse-sparrow-demo.example",
+            &contract,
             |method, path, body, _bearer| match (method, path) {
-                ("GET", "/api/setup/manifest") => Ok((200, serde_json::json!({
-                    "service": "fixture-runner", "apiVersion": "fixture.service.v1", "setupVersion": "fixture.setup.v1",
-                    "canonicalOrigin": "https://runner.example", "deployedPublicKeyFingerprint": view.fingerprint,
-                }))),
-                ("POST", "/api/setup/challenge") => Ok((201, serde_json::json!({ "id": "challenge_fixture", "nonce": "nonce_fixture" }))),
+                ("GET", "/api/setup/manifest") => Ok((200, pulse_responses["manifest"].clone())),
+                ("POST", "/api/setup/challenge") => Ok((201, pulse_responses["challenge"].clone())),
                 ("POST", "/api/setup/pair") => {
                     let body = body.expect("pair body");
-                    let signature_bytes = URL_SAFE_NO_PAD.decode(body["signature"].as_str().expect("signature")).expect("signature encoding");
-                    let signature = Signature::from_slice(&signature_bytes).expect("signature bytes");
-                    let public_bytes: [u8; 32] = URL_SAFE_NO_PAD.decode(&record.public_key).expect("public key")[12..]
-                        .try_into().expect("raw public key");
+                    let signature_bytes = URL_SAFE_NO_PAD
+                        .decode(body["signature"].as_str().expect("signature"))
+                        .expect("signature encoding");
+                    let signature =
+                        Signature::from_slice(&signature_bytes).expect("signature bytes");
+                    let public_bytes: [u8; 32] = URL_SAFE_NO_PAD
+                        .decode(&record.public_key)
+                        .expect("public key")[12..]
+                        .try_into()
+                        .expect("raw public key");
                     let key = VerifyingKey::from_bytes(&public_bytes).expect("verifying key");
-                    let challenge = ManagedSecureServiceChallenge { id: "challenge_fixture".into(), nonce: "nonce_fixture".into() };
-                    key.verify(managed_pairing_transcript(&contract, "https://runner.example", &challenge, &record).as_bytes(), &signature)
-                        .expect("origin-bound transcript should verify");
-                    Ok((201, serde_json::json!({ "client": { "id": "client_fixture" }, "credential": "fixture-durable-credential" })))
+                    let challenge = ManagedSecureServiceChallenge {
+                        id: "challenge_fixture".into(),
+                        nonce: "nonce_fixture".into(),
+                    };
+                    key.verify(
+                        managed_pairing_transcript(
+                            &contract,
+                            "https://pulse-sparrow-demo.example",
+                            &challenge,
+                            &record,
+                        )
+                        .as_bytes(),
+                        &signature,
+                    )
+                    .expect("origin-bound transcript should verify");
+                    Ok((201, pulse_responses["pair"].clone()))
                 }
                 _ => Err("unexpected request".into()),
             },
-            |reference, credential| { stored.borrow_mut().push(format!("{reference}:{credential}")); Ok(()) },
+            |reference, credential| {
+                stored
+                    .borrow_mut()
+                    .push(format!("{reference}:{credential}"));
+                Ok(())
+            },
             |_| {},
-            |config| { written.borrow_mut().push(serde_json::to_string(config).expect("config")); Ok(()) },
-        ).expect("transaction should complete");
-        assert_eq!(metadata.endpoint, "https://runner.example");
+            |config| {
+                written
+                    .borrow_mut()
+                    .push(serde_json::to_string(config).expect("config"));
+                Ok(())
+            },
+        )
+        .expect("transaction should complete");
+        assert_eq!(metadata.endpoint, "https://pulse-sparrow-demo.example");
         assert_eq!(stored.borrow().len(), 1);
         assert!(written.borrow()[0].contains("credentialRef"));
         assert!(!written.borrow()[0].contains("fixture-durable-credential"));

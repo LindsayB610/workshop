@@ -32,10 +32,11 @@ supported views, and privacy rules.
 Workshop does not ship a Slate data set. This keeps the public repository free
 of personal inventories and makes Slate useful with your own reference files.
 
-Pulse follows the same private-folder pattern: select a folder containing its
-public-safe `pulse.config.json`, then complete Pulse's own setup. Its endpoint
-metadata is shared with Pulse, but the matching credential stays in the
-operating-system keychain.
+Pulse's normal guided setup does not require a private folder. For an existing
+manual or self-hosted installation, select a folder containing its public-safe
+`pulse.config.json`, then complete Pulse's own setup. Its endpoint metadata is
+shared with Pulse, but the matching credential stays in the operating-system
+keychain.
 
 ## 4. Understand The Included Demo Material
 

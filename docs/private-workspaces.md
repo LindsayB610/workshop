@@ -78,18 +78,20 @@ Megaphone private root:
       post-packages/
 ```
 
-Pulse private folder:
+Pulse optional manual private folder:
 
 ```text
 <private-root>/pulse/
   pulse.config.json
 ```
 
-Select the folder containing `pulse.config.json` for Pulse. The file declares
-the service endpoint and credential reference; the credential itself is stored
-in the operating-system keychain. Pulse owns its definitions, runner, and
-state. Workshop exposes only generic service metadata and constrained requests,
-and never copies those data into shared client folders.
+Pulse's normal guided setup does not require a private folder. For an existing
+manual or self-hosted installation, select the folder containing
+`pulse.config.json`. The file declares the service endpoint and credential
+reference; the credential itself is stored in the operating-system keychain.
+Pulse owns its definitions, runner, and state. Workshop exposes only generic
+service metadata and constrained requests, and never copies those data into
+shared client folders.
 
 ## Workspace Index
 

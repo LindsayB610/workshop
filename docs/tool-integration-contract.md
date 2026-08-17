@@ -13,7 +13,7 @@ callback.
 | --- | --- | --- | --- |
 | Redline | `bundled-core` | `@redline/core` | `workspace.yaml`, then a selected client `client.yaml` |
 | Megaphone | `bridge-cli` | `@megaphone/core/bridgeCli` | `workspace.yaml`, then a selected client `client.yaml` |
-| Pulse | `generic-secure-service` | `@marketing-builds/pulse/workshop-plugin` | A private `pulse.config.json`; Workshop returns safe metadata and performs constrained credentialed requests. |
+| Pulse | `generic-secure-service` | `@marketing-builds/pulse/workshop-plugin` | Guided setup uses Workshop's managed secure-service capability. An existing manual install may optionally select a folder containing `pulse.config.json`. |
 
 The shell owns navigation, presentation, install state, and the constrained
 native adapter. A tool owns its domain behavior, data contracts, and generated
@@ -27,9 +27,11 @@ local artifacts. The shell must not import or persist private client data.
 - `bridge-cli` invokes the standalone Megaphone bridge through Workshop's
   constrained native layer; it does not copy Megaphone corpora into Workshop.
 - `generic-secure-service` gives an external plugin safe service metadata and
-  constrained requests without returning the credential. Pulse owns its
-  management UI, schedules, Android push delivery, runner, and state; Workshop
-  must not copy runner state into its repository or persist the credential.
+  constrained requests without returning the credential. Pulse's standard path
+  is guided, managed access; its private-folder configuration is an optional
+  advanced/manual path. Pulse owns its management UI, schedules, Android push
+  delivery, runner, and state; Workshop must not copy runner state into its
+  repository or persist the credential.
 - Slate is consumed from its own package and uses Workshop's generic configured
   Markdown capabilities. Its private `slate.config.json` may declare any number
   of local Markdown sources; Workshop returns source metadata without exposing

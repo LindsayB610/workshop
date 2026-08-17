@@ -68,7 +68,7 @@ describe("ToolShelf", () => {
     expect(markup).toContain("Megaphone tool actions");
   });
 
-  it("treats Pulse as a plugin-configured tool, not a shared workspace", () => {
+  it("keeps Pulse's optional advanced private-folder path available without requiring one", () => {
     const pulse = tools.find((tool) => tool.id === "pulse");
     if (!pulse) {
       throw new Error("Expected Pulse tool.");
@@ -78,10 +78,11 @@ describe("ToolShelf", () => {
       <ToolShelf installedTools={[pulse]} onSelectTool={() => undefined} />,
     );
 
-    expect(markup).toContain("Private configuration is selected and managed inside this tool.");
-    expect(markup).not.toContain("Open workspace");
-    expect(markup).not.toContain("Set private workspace");
-    expect(markup).not.toContain("Use demo workspace");
+    expect(markup).toContain("Demo root:");
+    expect(markup).toContain("Open workspace");
+    expect(markup).toContain("Set private workspace");
+    expect(markup).toContain("Use demo workspace");
+    expect(markup).not.toContain("Private configuration is selected and managed inside this tool.");
   });
 
   it("positions tool picker hover tooltips above each chiclet like the original shelf", () => {

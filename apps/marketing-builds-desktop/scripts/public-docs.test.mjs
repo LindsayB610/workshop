@@ -57,6 +57,15 @@ describe("public corpus-building docs", () => {
     expect(megaphoneDocs).toContain("docs/troubleshooting-public-workspaces.md");
   });
 
+  it("describes Pulse guided setup without making its advanced config mandatory", () => {
+    const pulseDocs = readRepoFile("apps/marketing-builds-desktop/public/docs/tools/pulse.md");
+
+    expect(pulseDocs).toMatch(/guided setup/i);
+    expect(pulseDocs).toMatch(/private folder is not required/i);
+    expect(pulseDocs).toContain("pulse.config.json");
+    expect(pulseDocs).toMatch(/manual or\s+self-hosted installation/i);
+  });
+
   it("keeps public docs free of private-client examples", () => {
     const privateClient = ["Para", "sail"].join("");
     const blocked = new RegExp(

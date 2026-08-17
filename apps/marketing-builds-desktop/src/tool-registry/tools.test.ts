@@ -35,7 +35,7 @@ describe("tool registry", () => {
       status: "ready",
       navigationMode: "plugin",
       runtime: { kind: "generic-secure-service", entryPoint: "request_configured_secure_service" },
-      privateWorkspace: { kind: "plugin-config", requiredFields: ["pulse.config.json"] },
+      privateWorkspace: { kind: "optional-plugin-config", requiredFields: ["pulse.config.json"] },
     });
   });
 
@@ -142,7 +142,8 @@ describe("tool registry", () => {
     expect(tool?.defaultInstalled).toBe(false);
     expect(tool?.docsPath).toBe("/docs/tools/pulse.md");
     expect(tool?.description).toContain("recurring reminders");
-    expect(tool?.workspaceRequirement).toContain("pulse.config.json");
+    expect(tool?.workspaceRequirement).toContain("No private folder is required for guided setup");
+    expect(tool?.workspaceRequirement).toContain("Advanced manual installations may choose one");
     expect(tool?.routes.map((route) => route.id)).toEqual([
       "reminders",
       "history",
@@ -153,11 +154,7 @@ describe("tool registry", () => {
       "/pulse/history",
       "/pulse/settings",
     ]);
-    expect(tool?.requiredLocalCapabilities).toEqual([
-      "local-workspace",
-      "read_secure_service_metadata",
-      "request_configured_secure_service",
-    ]);
+    expect(tool?.requiredLocalCapabilities).toEqual(["managed-secure-service-v1"]);
     expect(tool?.dataRoots).toEqual([]);
     expect(tool?.importActions).toEqual([]);
     expect(tool?.exportActions).toEqual([]);

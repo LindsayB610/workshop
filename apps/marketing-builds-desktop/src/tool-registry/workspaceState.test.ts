@@ -19,7 +19,7 @@ const workspaceExamplePath = fileURLToPath(
 );
 
 describe("tool workspace state", () => {
-  it("defaults registered tools to their declared public-safe demo roots or tool-owned configuration", () => {
+  it("defaults registered tools to public-safe demo roots, including optional plugin configuration", () => {
     const state = defaultToolWorkspaceState(tools);
 
     expect(getWorkspaceSelection(tools, state, "redline")).toMatchObject({
@@ -31,9 +31,9 @@ describe("tool workspace state", () => {
       root: "clients/demo-megaphone",
     });
     expect(getWorkspaceSelection(tools, state, "pulse")).toMatchObject({
-      mode: "connection",
+      mode: "demo",
       root: "",
-      label: "Configured in the tool",
+      label: "Bundled demo workspace",
     });
     expect(JSON.stringify(state).toLowerCase()).not.toContain(privateClientId);
   });
@@ -82,7 +82,7 @@ describe("tool workspace state", () => {
     });
   });
 
-  it("discards a legacy Pulse workspace path in favor of its plugin-owned configuration", () => {
+  it("preserves a legacy Pulse workspace path for its optional advanced manual connection", () => {
     const state = normalizeToolWorkspaceState(tools, {
       selections: [{
         toolId: "pulse",
@@ -94,9 +94,9 @@ describe("tool workspace state", () => {
     });
 
     expect(getWorkspaceSelection(tools, state, "pulse")).toMatchObject({
-      mode: "connection",
-      root: "",
-      label: "Configured in the tool",
+      mode: "demo",
+      root: "tools/pulse/demo",
+      label: "Old Pulse workspace",
     });
   });
 

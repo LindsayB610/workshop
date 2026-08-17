@@ -19,6 +19,7 @@ const capabilityLabels: Record<ToolCapability, string> = {
   "open_external_url": "External links",
   "read_secure_service_metadata": "Secure service metadata",
   "request_configured_secure_service": "Secure service requests",
+  "managed-secure-service-v1": "Managed secure service",
 };
 
 const readyCapabilities = new Set<ToolCapability>(["local-workspace", "run-history", "open_external_url"]);

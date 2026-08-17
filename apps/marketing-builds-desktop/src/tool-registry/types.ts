@@ -8,7 +8,8 @@ export type ToolCapability =
   | "report-export"
   | "open_external_url"
   | "read_secure_service_metadata"
-  | "request_configured_secure_service";
+  | "request_configured_secure_service"
+  | "managed-secure-service-v1";
 
 export type ToolRoute = {
   id: string;
@@ -30,7 +31,7 @@ export type ToolRuntime = {
 };
 
 export type ToolPrivateWorkspace = {
-  kind: "client-index" | "runner-root" | "connection" | "plugin-config";
+  kind: "client-index" | "runner-root" | "connection" | "plugin-config" | "optional-plugin-config";
   requiredFields: string[];
 };
 

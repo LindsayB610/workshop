@@ -52,13 +52,15 @@ describe("tool views", () => {
 
     const activeView = render(<ToolView activeRouteId="reminders" tool={pulse} />);
 
-    expect(await screen.findByText(/Persistent reminders are acknowledged from Android/)).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Advanced private-folder connection" })).toBeTruthy();
+    expect(screen.getByText(/normal guided setup does not require a folder path/i)).toBeTruthy();
     expect(screen.queryByText("Service URL")).toBeNull();
     activeView.unmount();
 
     render(<ToolView activeRouteId="settings" tool={pulse} />);
     expect(await screen.findByLabelText("Pulse private folder")).toBeTruthy();
     expect(screen.getByText("Connect Pulse")).toBeTruthy();
+    expect(screen.getByText(/supports the Advanced private-folder connection only/i)).toBeTruthy();
   });
 
   it("loads the external Slate plugin through the shared adapter", async () => {

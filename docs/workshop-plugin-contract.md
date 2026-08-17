@@ -73,6 +73,8 @@ export function WorkshopToolView(props: {
   workspaceRoot?: string;
   requestWorkspaceRoot: (root?: string) => { ok: true } | { ok: false; message: string } | void;
   clearWorkspaceRoot?: () => void;
+  browseWorkspaceRoot?: () => WorkspaceRootBrowseResult | void | Promise<WorkspaceRootBrowseResult | void>;
+  browseMarkdownFile?: BrowseMarkdownFile;
 }): React.ReactElement;
 ```
 
@@ -132,6 +134,38 @@ own draft field. Only a later explicit user action, such as **Connect**, may
 call the existing `requestWorkspaceRoot(root)` callback. That callback remains
 the sole path to Workspace validation and remembered-folder persistence. A
 canceled browse leaves the currently remembered folder unchanged.
+
+### Browsing for one Markdown file
+
+An external plugin may accept this optional neutral view prop when it needs a
+user to intentionally select a single Markdown file:
+
+```ts
+type MarkdownFileBrowseResult =
+  | { ok: true; path: string }
+  | { ok: false; canceled?: boolean; message?: string };
+
+type BrowseMarkdownFile = (
+  currentPath?: string
+) =>
+  | MarkdownFileBrowseResult
+  | void
+  | Promise<MarkdownFileBrowseResult | void>;
+
+browseMarkdownFile?: BrowseMarkdownFile;
+```
+
+Workshop's `browse_markdown_file` capability owns the native file picker and
+its OS permission. It permits exactly one `.md` or `.markdown` file and returns
+only its absolute path. A syntactically valid current Markdown path may seed
+the dialog near that file. Cancellation is returned as
+`{ ok: false, canceled: true }`; a native failure returns a generic message.
+
+Browsing is not a read, validation, persistence, activation, watch, or edit
+operation. Workshop does not inspect the selected file or its directory, log
+its path, or learn plugin configuration. The plugin owns its browse UI, draft
+state, validation, confirmation, and configuration writes. Plugins that omit
+this optional prop remain compatible with the host.
 
 ### External URLs
 

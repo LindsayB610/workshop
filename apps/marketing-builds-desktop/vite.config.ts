@@ -74,6 +74,7 @@ export default defineConfig(({ mode }) => {
           "src/tool-registry/**",
           "src/tools/toolViews.tsx",
           "src/tools/workspaceRootBrowse.ts",
+          "src/tools/markdownFileBrowse.ts",
           "src/App.tsx",
           "scripts/prepare-public-release.mjs",
         ],

@@ -10,6 +10,7 @@ import { getToolById, tools } from "./tool-registry/tools";
 import { useToolWorkspaceState } from "./tool-registry/workspaceState";
 import { ToolView } from "./tools/toolViews";
 import { browseWorkspaceRoot } from "./tools/workspaceRootBrowse";
+import { browseMarkdownFile } from "./tools/markdownFileBrowse";
 
 export function App() {
   const [activeToolId, setActiveToolId] = useState<string | null>(null);
@@ -70,6 +71,7 @@ export function App() {
             <ToolView
               activeRouteId={activeRouteId}
               browseWorkspaceRoot={browseWorkspaceRoot}
+              browseMarkdownFile={browseMarkdownFile}
               onClearWorkspaceRequest={(toolId) => resetSelection(toolId)}
               onSetWorkspaceRequest={promptForWorkspaceRoot}
               tool={activeTool}

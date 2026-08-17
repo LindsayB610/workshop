@@ -7,6 +7,7 @@ import { RedlineTool } from "./redline/RedlineTool";
 import { ToolPlaceholder } from "./ToolPlaceholder";
 import type { ToolViewProps } from "./types";
 import type { WorkspaceRootBrowseResult } from "./workspaceRootBrowse";
+import type { BrowseMarkdownFile } from "./markdownFileBrowse";
 
 export type ExternalWorkshopToolViewProps = {
   activeRouteId?: string;
@@ -14,6 +15,7 @@ export type ExternalWorkshopToolViewProps = {
   requestWorkspaceRoot: (root?: string) => { ok: true } | { ok: false; message: string } | void;
   clearWorkspaceRoot?: () => void;
   browseWorkspaceRoot?: () => WorkspaceRootBrowseResult | void | Promise<WorkspaceRootBrowseResult | void>;
+  browseMarkdownFile?: BrowseMarkdownFile;
 };
 
 export function lazyExternalToolView(
@@ -31,6 +33,7 @@ export function lazyExternalToolView(
           requestWorkspaceRoot={(root) => props.onSetWorkspaceRequest?.(props.tool.id, root)}
           clearWorkspaceRoot={clearWorkspaceRoot ? () => clearWorkspaceRoot(props.tool.id) : undefined}
           browseWorkspaceRoot={props.browseWorkspaceRoot}
+          browseMarkdownFile={props.browseMarkdownFile}
         />
       </Suspense>
     );
@@ -47,6 +50,7 @@ const toolViewById: Record<string, ComponentType<ToolViewProps>> = {
 export function ToolView({
   activeRouteId,
   browseWorkspaceRoot,
+  browseMarkdownFile,
   onClearWorkspaceRequest,
   onSetWorkspaceRequest,
   tool,
@@ -54,6 +58,7 @@ export function ToolView({
 }: {
   activeRouteId?: string;
   browseWorkspaceRoot?: () => WorkspaceRootBrowseResult | void | Promise<WorkspaceRootBrowseResult | void>;
+  browseMarkdownFile?: BrowseMarkdownFile;
   onSetWorkspaceRequest?: (toolId: string, root?: string) => WorkspaceValidationResult | undefined;
   onClearWorkspaceRequest?: (toolId: string) => void;
   tool: ToolDefinition;
@@ -64,6 +69,7 @@ export function ToolView({
     <View
       activeRouteId={activeRouteId}
       browseWorkspaceRoot={browseWorkspaceRoot}
+      browseMarkdownFile={browseMarkdownFile}
       onClearWorkspaceRequest={onClearWorkspaceRequest}
       onSetWorkspaceRequest={onSetWorkspaceRequest}
       tool={tool}

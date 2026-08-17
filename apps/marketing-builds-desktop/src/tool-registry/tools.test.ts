@@ -77,6 +77,11 @@ describe("tool registry", () => {
     expect(nativeAdapter).not.toMatch(/\bfn slate_/);
     expect(nativeAdapter).not.toMatch(/\bfn pulse_/);
     expect(nativeAdapter).not.toContain("workshop-private/pulse");
+
+    const markdownFileBrowser = readFileSync(path.join(appRoot, "src", "tools", "markdownFileBrowse.ts"), "utf8");
+    expect(markdownFileBrowser).toContain('"browse_markdown_file"');
+    expect(markdownFileBrowser).toContain("extensions: MARKDOWN_EXTENSIONS");
+    expect(markdownFileBrowser).not.toMatch(/slate|slate\.config|sourceId/i);
   });
 
   it("registers Redline as a ready sub-tool", () => {

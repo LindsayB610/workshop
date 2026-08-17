@@ -136,6 +136,38 @@ describe("tool views", () => {
     expect(await screen.findByText("Plugin without folder browsing")).toBeTruthy();
   });
 
+  it("passes the optional Markdown-file browser to Slate's package adapter without persisting a browse result", async () => {
+    const slate = getToolById("slate");
+    if (!slate) {
+      throw new Error("Slate tool is not registered.");
+    }
+
+    const browseMarkdownFile = vi.fn().mockResolvedValue({
+      ok: true,
+      path: "/Users/example/workshop-private/slate/notes.md",
+    });
+    const onSetWorkspaceRequest = vi.fn().mockReturnValue({ ok: true });
+    const Adapter = lazyExternalToolView(async () => ({
+      WorkshopToolView: MarkdownBrowseAwarePlugin,
+    }));
+    const user = userEvent.setup();
+
+    render(
+      <Adapter
+        tool={slate}
+        browseMarkdownFile={browseMarkdownFile}
+        onSetWorkspaceRequest={onSetWorkspaceRequest}
+      />,
+    );
+
+    await user.click(await screen.findByRole("button", { name: "Browse Markdown file" }));
+    expect(browseMarkdownFile).toHaveBeenCalledWith("/Users/example/workshop-private/slate/current.md");
+    expect(onSetWorkspaceRequest).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Connect private folder" }));
+    expect(onSetWorkspaceRequest).toHaveBeenCalledWith("slate", "/Users/example/workshop-private/slate");
+  });
+
   it("exposes the fallback view for every registered tool id", () => {
     expect(getToolViewById("redline")).toBeDefined();
     expect(getToolViewById("megaphone")).toBeDefined();
@@ -157,6 +189,16 @@ const BrowseAwarePlugin: ComponentType<ExternalWorkshopToolViewProps> = ({
 
 const NoBrowsePlugin: ComponentType<ExternalWorkshopToolViewProps> = () => (
   <p>Plugin without folder browsing</p>
+);
+
+const MarkdownBrowseAwarePlugin: ComponentType<ExternalWorkshopToolViewProps> = ({
+  browseMarkdownFile,
+  requestWorkspaceRoot,
+}) => (
+  <>
+    <button type="button" onClick={() => { void browseMarkdownFile?.("/Users/example/workshop-private/slate/current.md"); }}>Browse Markdown file</button>
+    <button type="button" onClick={() => requestWorkspaceRoot("/Users/example/workshop-private/slate")}>Connect private folder</button>
+  </>
 );
 
 type ElementProps = {

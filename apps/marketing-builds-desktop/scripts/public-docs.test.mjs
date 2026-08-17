@@ -84,6 +84,8 @@ describe("public corpus-building docs", () => {
     expect(contract).toContain("WorkshopToolView");
     expect(contract).toContain("browseMarkdownFile");
     expect(contract).toContain("browse_markdown_file");
+    expect(contract).toContain("managed-secure-service-v1");
+    expect(contract).toContain("managed_secure_service_capability");
     expect(contract).toContain("must not import Workshop source files");
     expect(contract).toContain("must not hard-code a plugin id");
     expect(contract).toMatch(/must never become\s+an unrestricted bearer-token proxy/);

@@ -265,6 +265,41 @@ JSON request and response bodies to 64 KiB, and time out after 15 seconds.
 Plugins cannot supply authorization headers or an arbitrary destination. Host
 errors and responses redact the credential value.
 
+### Managed secure-service setup
+
+Plugins may declare the versioned `managed-secure-service-v1` capability when
+Workshop should own first-run pairing and local connection storage. The native
+host exposes this neutral command family:
+
+```text
+managed_secure_service_capability
+begin_managed_secure_service_setup
+read_managed_secure_service_setup
+update_managed_secure_service_setup
+cancel_managed_secure_service_setup
+complete_managed_secure_service_setup
+complete_managed_secure_service_invitation
+read_managed_secure_service_metadata
+request_managed_secure_service
+disconnect_managed_secure_service
+open_managed_secure_service_handoff
+```
+
+The plugin supplies a validated service id, config filename, versioned pairing
+contract, and constrained API paths. Workshop creates a private app-data
+directory, generates an Ed25519 installation key, verifies the deployed
+service identity and fingerprint, stores the returned credential in the
+operating-system keychain, and writes only non-secret endpoint metadata to
+disk. Pending setup files use owner-only permissions and expire after 24 hours.
+
+Pairing, invitation, disconnect, request, and browser-handoff operations remain
+origin-bound. They reject redirects, traversal, query strings, arbitrary
+methods, unbounded bodies, and handoff URLs outside the configured origin and
+allowed path prefix. A failed local commit compensates by revoking the remote
+client and removing any newly stored credential. The capability is generic:
+Workshop does not contain plugin ids, provider-specific setup logic, reminder
+data, or runner state.
+
 ## Promotion
 
 All plugins are hidden until their declaration has `status: "ready"`.

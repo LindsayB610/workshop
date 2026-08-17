@@ -63,6 +63,10 @@ describe("tool registry", () => {
       readFileSync(path.join(appRoot, "package.json"), "utf8"),
     ) as { dependencies?: Record<string, string> };
     const nativeAdapter = readFileSync(path.join(appRoot, "src-tauri", "src", "lib.rs"), "utf8");
+    const pulseHostAdapter = readFileSync(
+      path.resolve(appRoot, "../../node_modules/@marketing-builds/pulse/plugin/dist/workshop-host.js"),
+      "utf8",
+    );
 
     const redline = getToolManifest("redline");
     const megaphone = getToolManifest("megaphone");
@@ -74,6 +78,23 @@ describe("tool registry", () => {
     expect(pulse?.runtime.entryPoint).toBe("request_configured_secure_service");
     expect(nativeAdapter).toContain("fn request_configured_secure_service");
     expect(nativeAdapter).toContain("fn open_external_url");
+    const managedPulseCommands = [
+      "managed_secure_service_capability",
+      "begin_managed_secure_service_setup",
+      "read_managed_secure_service_setup",
+      "update_managed_secure_service_setup",
+      "cancel_managed_secure_service_setup",
+      "complete_managed_secure_service_setup",
+      "complete_managed_secure_service_invitation",
+      "read_managed_secure_service_metadata",
+      "request_managed_secure_service",
+      "disconnect_managed_secure_service",
+      "open_managed_secure_service_handoff",
+    ];
+    for (const command of managedPulseCommands) {
+      expect(pulseHostAdapter, command).toContain(`"${command}"`);
+      expect(nativeAdapter, command).toContain(`fn ${command}`);
+    }
     expect(nativeAdapter).not.toMatch(/\bfn slate_/);
     expect(nativeAdapter).not.toMatch(/\bfn pulse_/);
     expect(nativeAdapter).not.toContain("workshop-private/pulse");

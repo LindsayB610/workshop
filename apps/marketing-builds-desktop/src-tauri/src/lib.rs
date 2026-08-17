@@ -1,12 +1,17 @@
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
+use ed25519_dalek::{Signer, SigningKey};
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
+use rand::{rngs::OsRng, RngCore};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::Write;
+use std::net::{IpAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::Mutex;
-use std::time::UNIX_EPOCH;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
     Emitter, Manager,
@@ -213,8 +218,10 @@ struct ConfiguredMarkdownSourceChange {
 const SECURE_SERVICE_KEYCHAIN_SERVICE: &str = "Workshop secure service";
 const SECURE_SERVICE_CURL_STATUS_MARKER: &str = "\n__WORKSHOP_SECURE_SERVICE_STATUS__=";
 const SECURE_SERVICE_MAX_BODY_BYTES: usize = 64 * 1024;
+const MANAGED_SECURE_SERVICE_VERSION: u8 = 1;
+const MANAGED_SETUP_MAX_AGE_SECONDS: u64 = 24 * 60 * 60;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct SecureServiceConfig {
     version: u8,
@@ -243,6 +250,98 @@ struct SecureServiceRequest {
 struct SecureServiceResponse {
     status: u16,
     body: serde_json::Value,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ManagedSecureServicePendingRecord {
+    version: u8,
+    setup_id: String,
+    service_id: String,
+    config_file: String,
+    installation_id: String,
+    created_at_epoch_seconds: u64,
+    signing_key: String,
+    public_key: String,
+    fingerprint: String,
+    suggested_topic: String,
+    state: String,
+}
+
+#[derive(Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+struct ManagedSecureServicePendingView {
+    version: u8,
+    setup_id: String,
+    service_id: String,
+    config_file: String,
+    installation_id: String,
+    public_key: String,
+    fingerprint: String,
+    suggested_topic: String,
+    state: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ManagedSecureServicePairingContract {
+    service_identity: String,
+    api_version: String,
+    setup_version: String,
+    manifest_path: String,
+    challenge_path: String,
+    pair_path: String,
+    additional_pair_path: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ManagedSecureServiceManifest {
+    service: String,
+    api_version: String,
+    setup_version: String,
+    canonical_origin: String,
+    deployed_public_key_fingerprint: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ManagedSecureServiceChallenge {
+    id: String,
+    nonce: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ManagedSecureServicePairResponse {
+    client: ManagedSecureServicePairClient,
+    credential: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ManagedSecureServicePairClient {
+    id: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ManagedSecureServiceCapability {
+    version: u8,
+    available: bool,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ManagedSecureServiceHandoffResult {
+    opened: bool,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ManagedSecureServiceDisconnectResult {
+    disconnected: bool,
+    remote_service_preserved: bool,
 }
 
 struct ConfiguredMarkdownWatchState {
@@ -403,7 +502,96 @@ fn parse_secure_service_endpoint(endpoint: &str) -> Result<String, String> {
     {
         return Err("Secure service endpoint must be an HTTPS origin without a path.".into());
     }
-    Ok(format!("{scheme}://{authority}"))
+    let origin = format!("{scheme}://{authority}");
+    let parsed = url::Url::parse(&origin).map_err(|_| {
+        "Secure service endpoint must be an HTTPS origin without a path.".to_string()
+    })?;
+    let hostname = parsed
+        .host_str()
+        .ok_or("Secure service endpoint must include a host.".to_string())?;
+    validate_secure_service_hostname(hostname)?;
+    Ok(origin)
+}
+
+fn validate_secure_service_hostname(hostname: &str) -> Result<(), String> {
+    let normalized = hostname
+        .trim_matches(['[', ']'])
+        .trim_end_matches('.')
+        .to_ascii_lowercase();
+    if normalized == "localhost"
+        || normalized.ends_with(".localhost")
+        || normalized.ends_with(".local")
+        || normalized.ends_with(".internal")
+        || normalized.ends_with(".home")
+        || normalized.ends_with(".lan")
+        || normalized == "localtest.me"
+        || normalized.ends_with(".localtest.me")
+    {
+        return Err("Secure service endpoint must use a public host.".into());
+    }
+    if let Ok(address) = normalized.parse::<IpAddr>() {
+        validate_public_service_ip(address)?;
+    }
+    Ok(())
+}
+
+fn validate_public_service_ip(address: IpAddr) -> Result<(), String> {
+    let blocked = match address {
+        IpAddr::V4(address) => {
+            let octets = address.octets();
+            address.is_private()
+                || address.is_loopback()
+                || address.is_link_local()
+                || address.is_broadcast()
+                || address.is_documentation()
+                || address.is_unspecified()
+                || address.is_multicast()
+                || (octets[0] == 100 && (64..=127).contains(&octets[1]))
+                || octets[0] == 0
+        }
+        IpAddr::V6(address) => {
+            address.is_loopback()
+                || address.is_unspecified()
+                || address.is_multicast()
+                || address.is_unique_local()
+                || address.is_unicast_link_local()
+                || address
+                    .to_ipv4_mapped()
+                    .map(|mapped| validate_public_service_ip(IpAddr::V4(mapped)).is_err())
+                    .unwrap_or(false)
+        }
+    };
+    if blocked {
+        return Err("Secure service endpoint resolved to a private or unsafe address.".into());
+    }
+    Ok(())
+}
+
+fn pinned_secure_service_resolution(endpoint: &str) -> Result<String, String> {
+    let parsed =
+        url::Url::parse(endpoint).map_err(|_| "Secure service endpoint is invalid.".to_string())?;
+    let hostname = parsed
+        .host_str()
+        .ok_or("Secure service endpoint must include a host.".to_string())?;
+    let port = parsed
+        .port_or_known_default()
+        .ok_or("Secure service endpoint port is invalid.".to_string())?;
+    let addresses = (hostname, port)
+        .to_socket_addrs()
+        .map_err(|_| "Secure service host could not be resolved.".to_string())?
+        .collect::<Vec<_>>();
+    if addresses.is_empty() {
+        return Err("Secure service host could not be resolved.".into());
+    }
+    for address in &addresses {
+        validate_public_service_ip(address.ip())?;
+    }
+    let address = addresses[0].ip();
+    let rendered = match address {
+        IpAddr::V4(address) => address.to_string(),
+        IpAddr::V6(address) => format!("[{address}]"),
+    };
+    Ok(format!("{hostname}:{port}:{rendered}"))
 }
 
 fn parse_local_secure_service_endpoint(host: &str, suffix: &str) -> Result<String, String> {
@@ -600,19 +788,35 @@ fn request_configured_secure_service_from_root(
     let credential = secure_service_keychain_secret(&config.credential_ref)?;
     let (path, body) = validate_secure_service_request(&request)?;
     let mut command = Command::new("curl");
+    command.args([
+        "--config",
+        "-",
+        "--silent",
+        "--show-error",
+        "--connect-timeout",
+        "5",
+        "--max-time",
+        "15",
+        "--max-redirs",
+        "0",
+        "--request",
+        &request.method,
+        "--write-out",
+        &format!("{SECURE_SERVICE_CURL_STATUS_MARKER}%{{http_code}}"),
+    ]);
+    if endpoint.starts_with("https://") {
+        let pinned_resolution = pinned_secure_service_resolution(&endpoint)?;
+        command.args([
+            "--proto",
+            "=https",
+            "--tlsv1.2",
+            "--noproxy",
+            "*",
+            "--resolve",
+            &pinned_resolution,
+        ]);
+    }
     command
-        .args([
-            "--config",
-            "-",
-            "--silent",
-            "--show-error",
-            "--max-time",
-            "15",
-            "--request",
-            &request.method,
-            "--write-out",
-            &format!("{SECURE_SERVICE_CURL_STATUS_MARKER}%{{http_code}}"),
-        ])
         .arg(format!("{endpoint}{path}"))
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -640,7 +844,746 @@ fn request_configured_secure_service_from_root(
     if !output.status.success() {
         return Err("Secure service request failed.".into());
     }
-    parse_secure_service_response(&output.stdout, &credential)
+    let response = parse_secure_service_response(&output.stdout, &credential)?;
+    if (300..400).contains(&response.status) {
+        return Err("Secure service redirects are not allowed.".into());
+    }
+    Ok(response)
+}
+
+fn validate_managed_service_id(value: &str) -> Result<&str, String> {
+    if value.len() < 2
+        || value.len() > 64
+        || !value.chars().all(|character| {
+            character.is_ascii_lowercase() || character.is_ascii_digit() || character == '-'
+        })
+    {
+        return Err("Managed secure service id is invalid.".into());
+    }
+    Ok(value)
+}
+
+fn managed_secure_service_root(app_data_dir: &Path, service_id: &str) -> Result<PathBuf, String> {
+    validate_managed_service_id(service_id)?;
+    Ok(app_data_dir.join("secure-services").join(service_id))
+}
+
+fn prepare_managed_secure_service_root(
+    app_data_dir: &Path,
+    service_id: &str,
+) -> Result<PathBuf, String> {
+    let root = managed_secure_service_root(app_data_dir, service_id)?;
+    let base = root
+        .parent()
+        .ok_or("Managed secure service path is invalid.".to_string())?;
+    fs::create_dir_all(&root)
+        .map_err(|_| "Could not create managed secure service storage.".to_string())?;
+    for directory in [base, root.as_path()] {
+        let metadata = fs::symlink_metadata(directory)
+            .map_err(|_| "Managed secure service storage is unavailable.".to_string())?;
+        if metadata.file_type().is_symlink() || !metadata.is_dir() {
+            return Err("Managed secure service storage must be a regular directory.".into());
+        }
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(directory, fs::Permissions::from_mode(0o700))
+                .map_err(|_| "Could not protect managed secure service storage.".to_string())?;
+        }
+    }
+    Ok(root)
+}
+
+fn random_managed_value(prefix: &str, bytes: usize) -> String {
+    let mut value = vec![0_u8; bytes];
+    OsRng.fill_bytes(&mut value);
+    format!("{prefix}_{}", URL_SAFE_NO_PAD.encode(value))
+}
+
+fn now_epoch_seconds() -> Result<u64, String> {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_secs())
+        .map_err(|_| "System clock is unavailable.".into())
+}
+
+fn secure_write_json<T: Serialize>(path: &Path, value: &T) -> Result<(), String> {
+    let parent = path
+        .parent()
+        .ok_or("Managed secure service path is invalid.".to_string())?;
+    fs::create_dir_all(parent)
+        .map_err(|_| "Could not create managed secure service storage.".to_string())?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(parent, fs::Permissions::from_mode(0o700))
+            .map_err(|_| "Could not protect managed secure service storage.".to_string())?;
+    }
+    let temporary = parent.join(format!(
+        ".{}.{}.tmp",
+        path.file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("record"),
+        random_managed_value("write", 8)
+    ));
+    let bytes = serde_json::to_vec_pretty(value)
+        .map_err(|_| "Could not serialize managed secure service state.".to_string())?;
+    fs::write(&temporary, bytes)
+        .map_err(|_| "Could not write managed secure service state.".to_string())?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&temporary, fs::Permissions::from_mode(0o600))
+            .map_err(|_| "Could not protect managed secure service state.".to_string())?;
+    }
+    fs::rename(&temporary, path).map_err(|_| {
+        let _ = fs::remove_file(&temporary);
+        "Could not commit managed secure service state.".to_string()
+    })
+}
+
+fn pending_record_view(
+    record: &ManagedSecureServicePendingRecord,
+) -> ManagedSecureServicePendingView {
+    ManagedSecureServicePendingView {
+        version: record.version,
+        setup_id: record.setup_id.clone(),
+        service_id: record.service_id.clone(),
+        config_file: record.config_file.clone(),
+        installation_id: record.installation_id.clone(),
+        public_key: record.public_key.clone(),
+        fingerprint: record.fingerprint.clone(),
+        suggested_topic: record.suggested_topic.clone(),
+        state: record.state.clone(),
+    }
+}
+
+fn read_managed_pending_record(
+    app_data_dir: &Path,
+    service_id: &str,
+) -> Result<ManagedSecureServicePendingRecord, String> {
+    let root = managed_secure_service_root(app_data_dir, service_id)?;
+    let root_metadata = fs::symlink_metadata(&root)
+        .map_err(|_| "Managed secure service setup is unavailable.".to_string())?;
+    if root_metadata.file_type().is_symlink() || !root_metadata.is_dir() {
+        return Err("Managed secure service storage must be a regular directory.".into());
+    }
+    let path = root.join("pending.json");
+    let metadata = fs::symlink_metadata(&path)
+        .map_err(|_| "Managed secure service setup is unavailable.".to_string())?;
+    if metadata.file_type().is_symlink() || !metadata.is_file() {
+        return Err("Managed secure service setup record is unsafe.".into());
+    }
+    let record: ManagedSecureServicePendingRecord = serde_json::from_slice(
+        &fs::read(path).map_err(|_| "Could not read managed secure service setup.".to_string())?,
+    )
+    .map_err(|_| "Managed secure service setup is invalid.".to_string())?;
+    if record.version != MANAGED_SECURE_SERVICE_VERSION || record.service_id != service_id {
+        return Err("Managed secure service setup version or identity is invalid.".into());
+    }
+    Ok(record)
+}
+
+fn begin_managed_secure_service_setup_at(
+    app_data_dir: &Path,
+    service_id: &str,
+    config_file: &str,
+    now: u64,
+) -> Result<ManagedSecureServicePendingView, String> {
+    validate_managed_service_id(service_id)?;
+    validate_config_file_name(config_file)?;
+    let root = prepare_managed_secure_service_root(app_data_dir, service_id)?;
+    let pending_path = root.join("pending.json");
+    if pending_path.exists() {
+        let existing = read_managed_pending_record(app_data_dir, service_id)?;
+        if now.saturating_sub(existing.created_at_epoch_seconds) <= MANAGED_SETUP_MAX_AGE_SECONDS {
+            if existing.config_file != config_file {
+                return Err(
+                    "Managed secure service setup already uses a different configuration file."
+                        .into(),
+                );
+            }
+            return Ok(pending_record_view(&existing));
+        }
+        fs::remove_file(&pending_path)
+            .map_err(|_| "Could not retire stale managed secure service setup.".to_string())?;
+    }
+    let signing_key = SigningKey::generate(&mut OsRng);
+    let verifying_key = signing_key.verifying_key();
+    let mut spki = hex_bytes("302a300506032b6570032100")?;
+    spki.extend_from_slice(verifying_key.as_bytes());
+    let public_key = URL_SAFE_NO_PAD.encode(&spki);
+    let fingerprint = Sha256::digest(&spki)
+        .iter()
+        .take(8)
+        .map(|byte| format!("{byte:02X}"))
+        .collect::<Vec<_>>()
+        .join(":");
+    let record = ManagedSecureServicePendingRecord {
+        version: MANAGED_SECURE_SERVICE_VERSION,
+        setup_id: random_managed_value("setup", 18),
+        service_id: service_id.into(),
+        config_file: config_file.into(),
+        installation_id: random_managed_value("installation", 18),
+        created_at_epoch_seconds: now,
+        signing_key: URL_SAFE_NO_PAD.encode(signing_key.to_bytes()),
+        public_key,
+        fingerprint,
+        suggested_topic: random_managed_value("topic", 24),
+        state: "preparing".into(),
+    };
+    secure_write_json(&pending_path, &record)?;
+    Ok(pending_record_view(&record))
+}
+
+fn hex_bytes(value: &str) -> Result<Vec<u8>, String> {
+    if !value.len().is_multiple_of(2) {
+        return Err("Invalid encoded key header.".into());
+    }
+    (0..value.len())
+        .step_by(2)
+        .map(|index| {
+            u8::from_str_radix(&value[index..index + 2], 16)
+                .map_err(|_| "Invalid encoded key header.".to_string())
+        })
+        .collect()
+}
+
+fn validate_managed_api_path(value: &str) -> Result<&str, String> {
+    if !value.starts_with("/api/")
+        || value.contains(['?', '#', '\\'])
+        || value.contains("..")
+        || value.len() > 160
+        || value
+            .chars()
+            .any(|character| character.is_control() || character.is_whitespace())
+    {
+        return Err("Managed secure service protocol path is invalid.".into());
+    }
+    Ok(value)
+}
+
+fn validate_managed_pairing_contract(
+    contract: &ManagedSecureServicePairingContract,
+) -> Result<(), String> {
+    for value in [
+        &contract.service_identity,
+        &contract.api_version,
+        &contract.setup_version,
+    ] {
+        if value.is_empty()
+            || value.len() > 96
+            || !value.chars().all(|character| {
+                character.is_ascii_alphanumeric() || matches!(character, '.' | '-' | '_')
+            })
+        {
+            return Err("Managed secure service protocol identity is invalid.".into());
+        }
+    }
+    validate_managed_api_path(&contract.manifest_path)?;
+    validate_managed_api_path(&contract.challenge_path)?;
+    validate_managed_api_path(&contract.pair_path)?;
+    if let Some(path) = &contract.additional_pair_path {
+        validate_managed_api_path(path)?;
+    }
+    Ok(())
+}
+
+fn managed_pairing_transcript(
+    contract: &ManagedSecureServicePairingContract,
+    origin: &str,
+    challenge: &ManagedSecureServiceChallenge,
+    record: &ManagedSecureServicePendingRecord,
+) -> String {
+    [
+        contract.setup_version.as_str(),
+        contract.api_version.as_str(),
+        origin,
+        challenge.id.as_str(),
+        challenge.nonce.as_str(),
+        record.installation_id.as_str(),
+        record.fingerprint.as_str(),
+    ]
+    .join("\n")
+}
+
+fn managed_keychain_store(credential_ref: &str, credential: &str) -> Result<(), String> {
+    if credential.is_empty()
+        || credential.len() > 4096
+        || credential
+            .chars()
+            .any(|character| character.is_control() || character.is_whitespace())
+    {
+        return Err("Managed secure service returned an invalid credential.".into());
+    }
+    let status = Command::new("security")
+        .args([
+            "add-generic-password",
+            "-U",
+            "-s",
+            SECURE_SERVICE_KEYCHAIN_SERVICE,
+            "-a",
+            credential_ref,
+            "-w",
+            credential,
+        ])
+        .status()
+        .map_err(|_| "Could not store managed secure service credential.".to_string())?;
+    if !status.success() {
+        return Err("Could not store managed secure service credential.".into());
+    }
+    Ok(())
+}
+
+fn managed_keychain_delete(credential_ref: &str) {
+    let _ = Command::new("security")
+        .args([
+            "delete-generic-password",
+            "-s",
+            SECURE_SERVICE_KEYCHAIN_SERVICE,
+            "-a",
+            credential_ref,
+        ])
+        .status();
+}
+
+fn managed_keychain_delete_checked(credential_ref: &str) -> Result<(), String> {
+    let status = Command::new("security")
+        .args([
+            "delete-generic-password",
+            "-s",
+            SECURE_SERVICE_KEYCHAIN_SERVICE,
+            "-a",
+            credential_ref,
+        ])
+        .status()
+        .map_err(|_| "Could not remove managed secure service credential.".to_string())?;
+    if !status.success() {
+        return Err("Could not remove managed secure service credential.".into());
+    }
+    Ok(())
+}
+
+fn managed_secure_service_current_client_id(
+    response: &SecureServiceResponse,
+) -> Result<String, String> {
+    if response.status != 200 {
+        return Err("Managed secure service could not identify this installation.".into());
+    }
+    let client_id = response
+        .body
+        .get("currentClientId")
+        .and_then(serde_json::Value::as_str)
+        .ok_or("Managed secure service did not identify this installation.".to_string())?;
+    if client_id.len() < 4
+        || client_id.len() > 128
+        || !client_id
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || matches!(character, '-' | '_'))
+    {
+        return Err("Managed secure service returned an invalid installation id.".into());
+    }
+    Ok(client_id.to_string())
+}
+
+fn disconnect_managed_secure_service_at(
+    app_data_dir: &Path,
+    service_id: &str,
+    config_file: &str,
+    clients_path: &str,
+) -> Result<ManagedSecureServiceDisconnectResult, String> {
+    validate_managed_api_path(clients_path)?;
+    if !clients_path.ends_with("/clients") {
+        return Err("Managed secure service client path is invalid.".into());
+    }
+    let root = managed_secure_service_root(app_data_dir, service_id)?;
+    let root_text = root
+        .to_str()
+        .ok_or("Managed secure service path is invalid.")?;
+    let listed = request_configured_secure_service_from_root(
+        root_text,
+        config_file,
+        SecureServiceRequest {
+            method: "GET".into(),
+            path: clients_path.into(),
+            body: None,
+        },
+    )?;
+    let client_id = managed_secure_service_current_client_id(&listed)?;
+    let revoke_path = format!("{clients_path}/{client_id}");
+    let revoked = request_configured_secure_service_from_root(
+        root_text,
+        config_file,
+        SecureServiceRequest {
+            method: "DELETE".into(),
+            path: revoke_path,
+            body: None,
+        },
+    )?;
+    if !(200..300).contains(&revoked.status) {
+        return Err("Managed secure service did not revoke this installation.".into());
+    }
+    let config = secure_service_config_from_root(root_text, config_file)?;
+    managed_keychain_delete_checked(&config.credential_ref)?;
+    fs::remove_file(root.join(validate_config_file_name(config_file)?)).map_err(|_| {
+        "Access was revoked, but Workshop could not remove the local connection record.".to_string()
+    })?;
+    Ok(ManagedSecureServiceDisconnectResult {
+        disconnected: true,
+        remote_service_preserved: true,
+    })
+}
+
+fn curl_managed_json(
+    endpoint: &str,
+    method: &str,
+    path: &str,
+    body: Option<&serde_json::Value>,
+    bearer: Option<&str>,
+) -> Result<(u16, serde_json::Value), String> {
+    let endpoint = parse_secure_service_endpoint(endpoint)?;
+    let pinned_resolution = pinned_secure_service_resolution(&endpoint)?;
+    validate_managed_api_path(path)?;
+    if !matches!(method, "GET" | "POST" | "DELETE") {
+        return Err("Managed secure service request method is invalid.".into());
+    }
+    let mut command = Command::new("curl");
+    command
+        .args([
+            "--config",
+            "-",
+            "--silent",
+            "--show-error",
+            "--proto",
+            "=https",
+            "--tlsv1.2",
+            "--connect-timeout",
+            "5",
+            "--max-time",
+            "15",
+            "--max-redirs",
+            "0",
+            "--noproxy",
+            "*",
+            "--resolve",
+            &pinned_resolution,
+            "--request",
+            method,
+            "--write-out",
+            &format!("{SECURE_SERVICE_CURL_STATUS_MARKER}%{{http_code}}"),
+        ])
+        .arg(format!("{endpoint}{path}"))
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let mut child = command
+        .spawn()
+        .map_err(|_| "Could not reach managed secure service.".to_string())?;
+    let mut config = String::new();
+    if let Some(credential) = bearer {
+        config.push_str(&format!(
+            "header = \"Authorization: Bearer {}\"\n",
+            escape_curl_config_value(credential)
+        ));
+    }
+    if let Some(body) = body {
+        let body = serde_json::to_string(body)
+            .map_err(|_| "Managed secure service request is invalid.".to_string())?;
+        if body.len() > SECURE_SERVICE_MAX_BODY_BYTES {
+            return Err("Managed secure service request is too large.".into());
+        }
+        config.push_str("header = \"Content-Type: application/json\"\n");
+        config.push_str(&format!("data = \"{}\"\n", escape_curl_config_value(&body)));
+    }
+    child
+        .stdin
+        .take()
+        .ok_or("Could not send managed secure service request.".to_string())?
+        .write_all(config.as_bytes())
+        .map_err(|_| "Could not send managed secure service request.".to_string())?;
+    let output = child
+        .wait_with_output()
+        .map_err(|_| "Could not read managed secure service response.".to_string())?;
+    if !output.status.success() {
+        return Err("Managed secure service request failed.".into());
+    }
+    let output = String::from_utf8(output.stdout)
+        .map_err(|_| "Managed secure service returned invalid data.".to_string())?;
+    let (body, status) = output
+        .rsplit_once(SECURE_SERVICE_CURL_STATUS_MARKER)
+        .ok_or("Managed secure service returned invalid data.".to_string())?;
+    if body.len() > SECURE_SERVICE_MAX_BODY_BYTES {
+        return Err("Managed secure service response is too large.".into());
+    }
+    let status = status
+        .trim()
+        .parse::<u16>()
+        .map_err(|_| "Managed secure service returned invalid data.".to_string())?;
+    if (300..400).contains(&status) {
+        return Err("Managed secure service redirects are not allowed.".into());
+    }
+    let value = serde_json::from_str(body.trim())
+        .map_err(|_| "Managed secure service returned invalid data.".to_string())?;
+    Ok((status, value))
+}
+
+fn complete_managed_secure_service_setup_at(
+    app_data_dir: &Path,
+    service_id: &str,
+    setup_id: &str,
+    endpoint: &str,
+    contract: &ManagedSecureServicePairingContract,
+) -> Result<SecureServiceMetadata, String> {
+    validate_managed_pairing_contract(contract)?;
+    let endpoint = parse_secure_service_endpoint(endpoint)?;
+    let record = read_managed_pending_record(app_data_dir, service_id)?;
+    if record.setup_id != setup_id {
+        return Err("Managed secure service setup does not match this session.".into());
+    }
+    let root = managed_secure_service_root(app_data_dir, service_id)?;
+    let metadata = complete_managed_secure_service_transaction(
+        service_id,
+        &record,
+        &endpoint,
+        contract,
+        |method, path, body, bearer| curl_managed_json(&endpoint, method, path, body, bearer),
+        managed_keychain_store,
+        managed_keychain_delete,
+        |config| secure_write_json(&root.join(&record.config_file), config),
+    )?;
+    fs::remove_file(root.join("pending.json"))
+        .map_err(|_| "Connection succeeded, but pending setup cleanup failed.".to_string())?;
+    Ok(metadata)
+}
+
+// Keeping each external effect injectable makes the pairing transaction and
+// its compensation paths testable without touching the network or Keychain.
+#[allow(clippy::too_many_arguments)]
+fn complete_managed_secure_service_transaction<
+    Exchange,
+    StoreCredential,
+    DeleteCredential,
+    WriteConfig,
+>(
+    service_id: &str,
+    record: &ManagedSecureServicePendingRecord,
+    endpoint: &str,
+    contract: &ManagedSecureServicePairingContract,
+    mut exchange: Exchange,
+    mut store_credential: StoreCredential,
+    mut delete_credential: DeleteCredential,
+    mut write_config: WriteConfig,
+) -> Result<SecureServiceMetadata, String>
+where
+    Exchange: FnMut(
+        &str,
+        &str,
+        Option<&serde_json::Value>,
+        Option<&str>,
+    ) -> Result<(u16, serde_json::Value), String>,
+    StoreCredential: FnMut(&str, &str) -> Result<(), String>,
+    DeleteCredential: FnMut(&str),
+    WriteConfig: FnMut(&SecureServiceConfig) -> Result<(), String>,
+{
+    validate_managed_pairing_contract(contract)?;
+    let endpoint = parse_secure_service_endpoint(endpoint)?;
+    let (manifest_status, manifest_value) = exchange("GET", &contract.manifest_path, None, None)?;
+    if manifest_status != 200 {
+        return Err("Managed secure service manifest is unavailable.".into());
+    }
+    let manifest: ManagedSecureServiceManifest = serde_json::from_value(manifest_value)
+        .map_err(|_| "Managed secure service manifest is invalid.".to_string())?;
+    if manifest.service != contract.service_identity
+        || manifest.api_version != contract.api_version
+        || manifest.setup_version != contract.setup_version
+        || parse_secure_service_endpoint(&manifest.canonical_origin)? != endpoint
+        || manifest.deployed_public_key_fingerprint != record.fingerprint
+    {
+        return Err(
+            "Managed secure service identity or deployment fingerprint does not match.".into(),
+        );
+    }
+    let challenge_body = serde_json::json!({ "installationId": record.installation_id });
+    let (challenge_status, challenge_value) = exchange(
+        "POST",
+        &contract.challenge_path,
+        Some(&challenge_body),
+        None,
+    )?;
+    if challenge_status != 201 {
+        return Err("Managed secure service pairing challenge was rejected.".into());
+    }
+    let challenge: ManagedSecureServiceChallenge = serde_json::from_value(challenge_value)
+        .map_err(|_| "Managed secure service pairing challenge is invalid.".to_string())?;
+    let signing_bytes = URL_SAFE_NO_PAD
+        .decode(&record.signing_key)
+        .map_err(|_| "Managed secure service signing key is invalid.".to_string())?;
+    let signing_array: [u8; 32] = signing_bytes
+        .try_into()
+        .map_err(|_| "Managed secure service signing key is invalid.".to_string())?;
+    let signing_key = SigningKey::from_bytes(&signing_array);
+    let signature = URL_SAFE_NO_PAD.encode(
+        signing_key
+            .sign(managed_pairing_transcript(contract, &endpoint, &challenge, record).as_bytes())
+            .to_bytes(),
+    );
+    let pair_body = serde_json::json!({
+        "apiVersion": contract.api_version,
+        "challengeId": challenge.id,
+        "installationId": record.installation_id,
+        "origin": endpoint,
+        "signature": signature,
+    });
+    let (pair_status, pair_value) = exchange("POST", &contract.pair_path, Some(&pair_body), None)?;
+    if pair_status != 201 {
+        return Err("Managed secure service pairing proof was rejected.".into());
+    }
+    let paired: ManagedSecureServicePairResponse = serde_json::from_value(pair_value)
+        .map_err(|_| "Managed secure service pairing response is invalid.".to_string())?;
+    let credential_ref = format!("{}.{}", service_id, record.installation_id);
+    if let Err(error) = store_credential(&credential_ref, &paired.credential) {
+        let revoke_path = format!("/api/setup/clients/{}", paired.client.id);
+        let _ = exchange("DELETE", &revoke_path, None, Some(&paired.credential));
+        return Err(error);
+    }
+    let config = SecureServiceConfig {
+        version: 1,
+        endpoint: endpoint.clone(),
+        credential_ref: credential_ref.clone(),
+    };
+    if let Err(error) = write_config(&config) {
+        delete_credential(&credential_ref);
+        let revoke_path = format!("/api/setup/clients/{}", paired.client.id);
+        let _ = exchange("DELETE", &revoke_path, None, Some(&paired.credential));
+        return Err(error);
+    }
+    Ok(SecureServiceMetadata {
+        version: 1,
+        endpoint,
+        credential_ref,
+    })
+}
+
+fn complete_managed_secure_service_invitation_at(
+    app_data_dir: &Path,
+    service_id: &str,
+    setup_id: &str,
+    endpoint: &str,
+    invitation_code: &str,
+    contract: &ManagedSecureServicePairingContract,
+) -> Result<SecureServiceMetadata, String> {
+    let record = read_managed_pending_record(app_data_dir, service_id)?;
+    if record.setup_id != setup_id {
+        return Err("Managed secure service setup does not match this session.".into());
+    }
+    let endpoint = parse_secure_service_endpoint(endpoint)?;
+    let root = managed_secure_service_root(app_data_dir, service_id)?;
+    let metadata = complete_managed_secure_service_invitation_transaction(
+        service_id,
+        &record,
+        &endpoint,
+        invitation_code,
+        contract,
+        |method, path, body, bearer| curl_managed_json(&endpoint, method, path, body, bearer),
+        managed_keychain_store,
+        managed_keychain_delete,
+        |config| secure_write_json(&root.join(&record.config_file), config),
+    )?;
+    fs::remove_file(root.join("pending.json"))
+        .map_err(|_| "Connection succeeded, but pending setup cleanup failed.".to_string())?;
+    Ok(metadata)
+}
+
+// The invitation path uses the same explicit effect injection so failures can
+// prove remote revocation and local credential cleanup independently.
+#[allow(clippy::too_many_arguments)]
+fn complete_managed_secure_service_invitation_transaction<
+    Exchange,
+    StoreCredential,
+    DeleteCredential,
+    WriteConfig,
+>(
+    service_id: &str,
+    record: &ManagedSecureServicePendingRecord,
+    endpoint: &str,
+    invitation_code: &str,
+    contract: &ManagedSecureServicePairingContract,
+    mut exchange: Exchange,
+    mut store_credential: StoreCredential,
+    mut delete_credential: DeleteCredential,
+    mut write_config: WriteConfig,
+) -> Result<SecureServiceMetadata, String>
+where
+    Exchange: FnMut(
+        &str,
+        &str,
+        Option<&serde_json::Value>,
+        Option<&str>,
+    ) -> Result<(u16, serde_json::Value), String>,
+    StoreCredential: FnMut(&str, &str) -> Result<(), String>,
+    DeleteCredential: FnMut(&str),
+    WriteConfig: FnMut(&SecureServiceConfig) -> Result<(), String>,
+{
+    let endpoint = parse_secure_service_endpoint(endpoint)?;
+    if invitation_code.len() < 16
+        || invitation_code.len() > 256
+        || invitation_code
+            .chars()
+            .any(|character| character.is_control() || character.is_whitespace())
+    {
+        return Err("Managed secure service invitation code is invalid.".into());
+    }
+    validate_managed_pairing_contract(contract)?;
+    let additional_path = contract
+        .additional_pair_path
+        .as_deref()
+        .ok_or("Managed secure service does not declare additional-device pairing.".to_string())?;
+    let (manifest_status, manifest_value) = exchange("GET", &contract.manifest_path, None, None)?;
+    if manifest_status != 200 {
+        return Err("Managed secure service manifest is unavailable.".into());
+    }
+    let manifest: ManagedSecureServiceManifest = serde_json::from_value(manifest_value)
+        .map_err(|_| "Managed secure service manifest is invalid.".to_string())?;
+    if manifest.service != contract.service_identity
+        || manifest.api_version != contract.api_version
+        || manifest.setup_version != contract.setup_version
+        || parse_secure_service_endpoint(&manifest.canonical_origin)? != endpoint
+    {
+        return Err("Managed secure service identity does not match.".into());
+    }
+    let body = serde_json::json!({
+        "code": invitation_code,
+        "installationId": record.installation_id,
+        "origin": endpoint,
+    });
+    let (pair_status, pair_value) = exchange("POST", additional_path, Some(&body), None)?;
+    if pair_status != 201 {
+        return Err("Managed secure service invitation was rejected or expired.".into());
+    }
+    let paired: ManagedSecureServicePairResponse = serde_json::from_value(pair_value)
+        .map_err(|_| "Managed secure service pairing response is invalid.".to_string())?;
+    let credential_ref = format!("{}.{}", service_id, record.installation_id);
+    if let Err(error) = store_credential(&credential_ref, &paired.credential) {
+        let revoke_path = format!("/api/setup/clients/{}", paired.client.id);
+        let _ = exchange("DELETE", &revoke_path, None, Some(&paired.credential));
+        return Err(error);
+    }
+    let config = SecureServiceConfig {
+        version: 1,
+        endpoint: endpoint.clone(),
+        credential_ref: credential_ref.clone(),
+    };
+    if let Err(error) = write_config(&config) {
+        delete_credential(&credential_ref);
+        let revoke_path = format!("/api/setup/clients/{}", paired.client.id);
+        let _ = exchange("DELETE", &revoke_path, None, Some(&paired.credential));
+        return Err(error);
+    }
+    Ok(SecureServiceMetadata {
+        version: 1,
+        endpoint,
+        credential_ref,
+    })
 }
 
 fn parse_configured_markdown_config(contents: &str) -> Result<ConfiguredMarkdownConfig, String> {
@@ -982,11 +1925,10 @@ fn clear_megaphone_openai_key() -> Result<(), String> {
         .status()
         .map_err(|error| format!("Could not clear macOS Keychain: {error}"))?;
 
-    if status.success() {
-        Ok(())
-    } else {
-        Ok(())
+    if !status.success() {
+        return Err("Could not clear macOS Keychain credential.".into());
     }
+    Ok(())
 }
 
 fn megaphone_ai_credential_status(model: String) -> MegaphoneAiCredentialStatus {
@@ -1335,6 +2277,7 @@ fn megaphone_load_client_folder_from_context(
     )
 }
 
+#[allow(clippy::too_many_arguments)]
 fn megaphone_create_post_package_from_context(
     current_dir: &Path,
     resource_dir: Option<&Path>,
@@ -1378,7 +2321,7 @@ fn megaphone_test_ai_connection_from_context(
     client_path: String,
     model: String,
 ) -> Result<serde_json::Value, String> {
-    if let Some(_) = read_megaphone_openai_key()? {
+    if read_megaphone_openai_key()?.is_some() {
         return Ok(serde_json::json!({
             "availability": "available",
             "provider": "openai",
@@ -1402,6 +2345,7 @@ fn megaphone_test_ai_connection_from_context(
     )
 }
 
+#[allow(clippy::too_many_arguments)]
 fn megaphone_create_ai_post_package_from_context(
     current_dir: &Path,
     resource_dir: Option<&Path>,
@@ -1443,6 +2387,7 @@ fn megaphone_create_ai_post_package_from_context(
     )
 }
 
+#[allow(clippy::too_many_arguments)]
 fn megaphone_chat_with_context_from_context(
     current_dir: &Path,
     resource_dir: Option<&Path>,
@@ -1709,6 +2654,7 @@ fn collect_megaphone_artifact_paths_inner(
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 fn megaphone_create_post_package(
     app: tauri::AppHandle,
     client_id: String,
@@ -1781,6 +2727,7 @@ fn megaphone_clear_ai_credential(model: String) -> Result<MegaphoneAiCredentialS
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 fn megaphone_create_ai_post_package(
     app: tauri::AppHandle,
     client_id: String,
@@ -2114,6 +3061,262 @@ fn request_configured_secure_service(
 }
 
 #[tauri::command]
+fn managed_secure_service_capability() -> ManagedSecureServiceCapability {
+    ManagedSecureServiceCapability {
+        version: MANAGED_SECURE_SERVICE_VERSION,
+        available: true,
+    }
+}
+
+#[tauri::command]
+fn begin_managed_secure_service_setup(
+    app: tauri::AppHandle,
+    service_id: String,
+    config_file: String,
+) -> Result<ManagedSecureServicePendingView, String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|_| "Workshop managed service storage is unavailable.".to_string())?;
+    begin_managed_secure_service_setup_at(
+        &app_data_dir,
+        &service_id,
+        &config_file,
+        now_epoch_seconds()?,
+    )
+}
+
+#[tauri::command]
+fn read_managed_secure_service_setup(
+    app: tauri::AppHandle,
+    service_id: String,
+) -> Result<ManagedSecureServicePendingView, String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|_| "Workshop managed service storage is unavailable.".to_string())?;
+    read_managed_pending_record(&app_data_dir, &service_id)
+        .map(|record| pending_record_view(&record))
+}
+
+#[tauri::command]
+fn update_managed_secure_service_setup(
+    app: tauri::AppHandle,
+    service_id: String,
+    setup_id: String,
+    state: String,
+) -> Result<ManagedSecureServicePendingView, String> {
+    if state.len() < 2
+        || state.len() > 64
+        || !state.chars().all(|character| {
+            character.is_ascii_lowercase() || character.is_ascii_digit() || character == '-'
+        })
+    {
+        return Err("Managed secure service setup state is invalid.".into());
+    }
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|_| "Workshop managed service storage is unavailable.".to_string())?;
+    let mut record = read_managed_pending_record(&app_data_dir, &service_id)?;
+    if record.setup_id != setup_id {
+        return Err("Managed secure service setup does not match this session.".into());
+    }
+    record.state = state;
+    secure_write_json(
+        &managed_secure_service_root(&app_data_dir, &service_id)?.join("pending.json"),
+        &record,
+    )?;
+    Ok(pending_record_view(&record))
+}
+
+#[tauri::command]
+fn cancel_managed_secure_service_setup(
+    app: tauri::AppHandle,
+    service_id: String,
+    setup_id: String,
+) -> Result<(), String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|_| "Workshop managed service storage is unavailable.".to_string())?;
+    let record = read_managed_pending_record(&app_data_dir, &service_id)?;
+    if record.setup_id != setup_id {
+        return Err("Managed secure service setup does not match this session.".into());
+    }
+    fs::remove_file(managed_secure_service_root(&app_data_dir, &service_id)?.join("pending.json"))
+        .map_err(|_| "Could not cancel managed secure service setup.".to_string())
+}
+
+#[tauri::command]
+fn complete_managed_secure_service_setup(
+    app: tauri::AppHandle,
+    service_id: String,
+    setup_id: String,
+    endpoint: String,
+    contract: ManagedSecureServicePairingContract,
+) -> Result<SecureServiceMetadata, String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|_| "Workshop managed service storage is unavailable.".to_string())?;
+    complete_managed_secure_service_setup_at(
+        &app_data_dir,
+        &service_id,
+        &setup_id,
+        &endpoint,
+        &contract,
+    )
+}
+
+#[tauri::command]
+fn complete_managed_secure_service_invitation(
+    app: tauri::AppHandle,
+    service_id: String,
+    setup_id: String,
+    endpoint: String,
+    invitation_code: String,
+    contract: ManagedSecureServicePairingContract,
+) -> Result<SecureServiceMetadata, String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|_| "Workshop managed service storage is unavailable.".to_string())?;
+    complete_managed_secure_service_invitation_at(
+        &app_data_dir,
+        &service_id,
+        &setup_id,
+        &endpoint,
+        &invitation_code,
+        &contract,
+    )
+}
+
+#[tauri::command]
+fn read_managed_secure_service_metadata(
+    app: tauri::AppHandle,
+    service_id: String,
+    config_file: String,
+) -> Result<SecureServiceMetadata, String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|_| "Workshop managed service storage is unavailable.".to_string())?;
+    let root = managed_secure_service_root(&app_data_dir, &service_id)?;
+    secure_service_metadata_from_root(
+        root.to_str()
+            .ok_or("Managed secure service path is invalid.")?,
+        &config_file,
+    )
+}
+
+#[tauri::command]
+fn request_managed_secure_service(
+    app: tauri::AppHandle,
+    service_id: String,
+    config_file: String,
+    request: SecureServiceRequest,
+) -> Result<SecureServiceResponse, String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|_| "Workshop managed service storage is unavailable.".to_string())?;
+    let root = managed_secure_service_root(&app_data_dir, &service_id)?;
+    request_configured_secure_service_from_root(
+        root.to_str()
+            .ok_or("Managed secure service path is invalid.")?,
+        &config_file,
+        request,
+    )
+}
+
+#[tauri::command]
+fn disconnect_managed_secure_service(
+    app: tauri::AppHandle,
+    service_id: String,
+    config_file: String,
+    clients_path: String,
+) -> Result<ManagedSecureServiceDisconnectResult, String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|_| "Workshop managed service storage is unavailable.".to_string())?;
+    disconnect_managed_secure_service_at(&app_data_dir, &service_id, &config_file, &clients_path)
+}
+
+#[tauri::command]
+fn open_managed_secure_service_handoff(
+    app: tauri::AppHandle,
+    service_id: String,
+    config_file: String,
+    request: SecureServiceRequest,
+    allowed_path_prefix: String,
+) -> Result<ManagedSecureServiceHandoffResult, String> {
+    use tauri_plugin_opener::OpenerExt;
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|_| "Workshop managed service storage is unavailable.".to_string())?;
+    let root = managed_secure_service_root(&app_data_dir, &service_id)?;
+    let root_text = root
+        .to_str()
+        .ok_or("Managed secure service path is invalid.")?;
+    let config = secure_service_config_from_root(root_text, &config_file)?;
+    let response = request_configured_secure_service_from_root(root_text, &config_file, request)?;
+    if !(200..300).contains(&response.status) {
+        return Err("Managed secure service did not create a handoff.".into());
+    }
+    let handoff = response
+        .body
+        .get("url")
+        .and_then(|value| value.as_str())
+        .ok_or("Managed secure service returned an invalid handoff.".to_string())?;
+    validate_managed_secure_service_handoff(&config.endpoint, handoff, &allowed_path_prefix)?;
+    app.opener()
+        .open_url(handoff, None::<&str>)
+        .map_err(|error| format!("Could not open managed secure service handoff: {error}"))?;
+    Ok(ManagedSecureServiceHandoffResult { opened: true })
+}
+
+fn validate_managed_secure_service_handoff(
+    endpoint: &str,
+    handoff: &str,
+    allowed_path_prefix: &str,
+) -> Result<(), String> {
+    if allowed_path_prefix.len() < 2
+        || allowed_path_prefix.len() > 160
+        || !allowed_path_prefix.starts_with('/')
+        || allowed_path_prefix.contains(['?', '#', '\\'])
+        || allowed_path_prefix.contains("..")
+        || allowed_path_prefix
+            .chars()
+            .any(|character| character.is_control() || character.is_whitespace())
+    {
+        return Err("Managed secure service handoff path is invalid.".into());
+    }
+    let expected = url::Url::parse(&parse_secure_service_endpoint(endpoint)?)
+        .map_err(|_| "Managed secure service endpoint is invalid.".to_string())?;
+    let parsed = url::Url::parse(handoff)
+        .map_err(|_| "Managed secure service returned an invalid handoff.".to_string())?;
+    let path_matches = parsed.path() == allowed_path_prefix
+        || parsed
+            .path()
+            .strip_prefix(allowed_path_prefix)
+            .is_some_and(|suffix| suffix.starts_with('/'));
+    if parsed.scheme() != expected.scheme()
+        || parsed.host_str() != expected.host_str()
+        || parsed.port_or_known_default() != expected.port_or_known_default()
+        || !path_matches
+        || parsed.query().is_some()
+        || !parsed.username().is_empty()
+        || parsed.password().is_some()
+    {
+        return Err("Managed secure service handoff does not match the configured origin.".into());
+    }
+    Ok(())
+}
+
+#[tauri::command]
 fn open_external_url(app: tauri::AppHandle, url: String) -> Result<(), String> {
     use tauri_plugin_opener::OpenerExt;
 
@@ -2183,7 +3386,7 @@ fn start_configured_markdown_watch(
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .menu(|app| workshop_menu(app))
+        .menu(workshop_menu)
         .on_menu_event(|app, event| {
             emit_workshop_menu_event(app, event.id().0.as_str());
         })
@@ -2209,6 +3412,17 @@ pub fn run() {
             redline_write_packet_files,
             read_secure_service_metadata,
             request_configured_secure_service,
+            managed_secure_service_capability,
+            begin_managed_secure_service_setup,
+            read_managed_secure_service_setup,
+            update_managed_secure_service_setup,
+            cancel_managed_secure_service_setup,
+            complete_managed_secure_service_setup,
+            complete_managed_secure_service_invitation,
+            read_managed_secure_service_metadata,
+            request_managed_secure_service,
+            disconnect_managed_secure_service,
+            open_managed_secure_service_handoff,
             open_external_url,
             read_configured_markdown_sources,
             read_configured_markdown_source,
@@ -2276,6 +3490,49 @@ mod tests {
             assert!(
                 validate_external_url(unsafe_url).is_err(),
                 "{unsafe_url} should be rejected"
+            );
+        }
+    }
+
+    #[test]
+    fn managed_handoff_requires_the_exact_origin_and_a_real_path_boundary() {
+        for allowed in [
+            "https://pulse.example/setup/notification#single-use-capability",
+            "https://pulse.example/setup/notification/confirm#single-use-capability",
+        ] {
+            validate_managed_secure_service_handoff(
+                "https://pulse.example",
+                allowed,
+                "/setup/notification",
+            )
+            .expect("the configured handoff path or a true child path should be allowed");
+        }
+
+        for unsafe_handoff in [
+            "https://pulse.example/setup/notification-evil#capability",
+            "https://pulse.example/setup/notification?capability=leaked",
+            "https://other.example/setup/notification#capability",
+            "https://user:secret@pulse.example/setup/notification#capability",
+        ] {
+            assert!(
+                validate_managed_secure_service_handoff(
+                    "https://pulse.example",
+                    unsafe_handoff,
+                    "/setup/notification",
+                )
+                .is_err(),
+                "{unsafe_handoff} should be rejected"
+            );
+        }
+        for unsafe_prefix in ["/", "/setup/../notification", "/setup/notification?leak"] {
+            assert!(
+                validate_managed_secure_service_handoff(
+                    "https://pulse.example",
+                    "https://pulse.example/setup/notification#capability",
+                    unsafe_prefix,
+                )
+                .is_err(),
+                "{unsafe_prefix} should be rejected"
             );
         }
     }
@@ -2505,6 +3762,375 @@ mod tests {
             r#"{"version":2,"endpoint":"https://service.example","credentialRef":"x"}"#
         )
         .is_err());
+        for unsafe_endpoint in [
+            "https://localhost",
+            "https://127.0.0.1",
+            "https://10.0.0.1",
+            "https://100.64.0.1",
+            "https://[::1]",
+            "https://service.internal",
+        ] {
+            assert!(
+                parse_secure_service_endpoint(unsafe_endpoint).is_err(),
+                "{unsafe_endpoint}"
+            );
+        }
+    }
+
+    #[test]
+    fn managed_secure_service_setup_is_private_idempotent_and_redacted() {
+        let root = unique_temp_root("managed-secure-service");
+        fs::create_dir_all(&root).expect("temp root should be created");
+        let first = begin_managed_secure_service_setup_at(
+            &root,
+            "fixture-service",
+            "service.config.json",
+            100,
+        )
+        .expect("managed setup should begin");
+        let repeated = begin_managed_secure_service_setup_at(
+            &root,
+            "fixture-service",
+            "service.config.json",
+            101,
+        )
+        .expect("managed setup should restore");
+        assert_eq!(first, repeated);
+        assert_eq!(first.state, "preparing");
+        assert!(first.suggested_topic.starts_with("topic_"));
+        assert!(first.public_key.len() > 40);
+        assert_eq!(first.fingerprint.split(':').count(), 8);
+        let serialized = serde_json::to_string(&first).expect("view should serialize");
+        assert!(!serialized.contains("signingKey"));
+        assert!(!serialized.contains("credential"));
+        let record_text =
+            fs::read_to_string(root.join("secure-services/fixture-service/pending.json"))
+                .expect("pending setup should persist");
+        assert!(record_text.contains("signingKey"));
+        assert!(!record_text.contains("credential"));
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let directory_mode = fs::metadata(root.join("secure-services/fixture-service"))
+                .expect("directory metadata")
+                .permissions()
+                .mode()
+                & 0o777;
+            let record_mode =
+                fs::metadata(root.join("secure-services/fixture-service/pending.json"))
+                    .expect("record metadata")
+                    .permissions()
+                    .mode()
+                    & 0o777;
+            assert_eq!(directory_mode, 0o700);
+            assert_eq!(record_mode, 0o600);
+        }
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn managed_secure_service_setup_retires_stale_state_and_rejects_unsafe_identity() {
+        let root = unique_temp_root("managed-secure-service-stale");
+        fs::create_dir_all(&root).expect("temp root should be created");
+        let first = begin_managed_secure_service_setup_at(
+            &root,
+            "fixture-service",
+            "service.config.json",
+            100,
+        )
+        .expect("managed setup should begin");
+        let replacement = begin_managed_secure_service_setup_at(
+            &root,
+            "fixture-service",
+            "service.config.json",
+            100 + MANAGED_SETUP_MAX_AGE_SECONDS + 1,
+        )
+        .expect("stale setup should be replaced");
+        assert_ne!(first.setup_id, replacement.setup_id);
+        assert!(begin_managed_secure_service_setup_at(
+            &root,
+            "../unsafe",
+            "service.config.json",
+            200
+        )
+        .is_err());
+        assert!(begin_managed_secure_service_setup_at(
+            &root,
+            "fixture-two",
+            "../service.json",
+            200
+        )
+        .is_err());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn managed_pairing_transcript_binds_version_origin_challenge_installation_and_fingerprint() {
+        let contract = ManagedSecureServicePairingContract {
+            service_identity: "fixture-runner".into(),
+            api_version: "fixture.service.v1".into(),
+            setup_version: "fixture.setup.v1".into(),
+            manifest_path: "/api/setup/manifest".into(),
+            challenge_path: "/api/setup/challenge".into(),
+            pair_path: "/api/setup/pair".into(),
+            additional_pair_path: Some("/api/setup/additional-pair".into()),
+        };
+        validate_managed_pairing_contract(&contract).expect("contract should validate");
+        let record = ManagedSecureServicePendingRecord {
+            version: 1,
+            setup_id: "setup_fixture".into(),
+            service_id: "fixture-service".into(),
+            config_file: "service.config.json".into(),
+            installation_id: "installation_fixture".into(),
+            created_at_epoch_seconds: 1,
+            signing_key: "private".into(),
+            public_key: "public".into(),
+            fingerprint: "AA:BB:CC:DD:EE:FF:00:11".into(),
+            suggested_topic: "topic_fixture".into(),
+            state: "preparing".into(),
+        };
+        let challenge = ManagedSecureServiceChallenge {
+            id: "challenge_fixture".into(),
+            nonce: "nonce_fixture".into(),
+        };
+        assert_eq!(
+            managed_pairing_transcript(&contract, "https://runner.example", &challenge, &record),
+            "fixture.setup.v1\nfixture.service.v1\nhttps://runner.example\nchallenge_fixture\nnonce_fixture\ninstallation_fixture\nAA:BB:CC:DD:EE:FF:00:11",
+        );
+        let unsafe_contract = ManagedSecureServicePairingContract {
+            pair_path: "/api/../pair".into(),
+            ..contract
+        };
+        assert!(validate_managed_pairing_contract(&unsafe_contract).is_err());
+    }
+
+    #[test]
+    fn managed_pairing_transaction_verifies_signature_and_writes_only_a_credential_reference() {
+        use ed25519_dalek::{Signature, Verifier, VerifyingKey};
+        use std::cell::RefCell;
+        let root = unique_temp_root("managed-pairing-transaction");
+        fs::create_dir_all(&root).expect("temp root should exist");
+        let view = begin_managed_secure_service_setup_at(
+            &root,
+            "fixture-service",
+            "service.config.json",
+            100,
+        )
+        .expect("setup should begin");
+        let record =
+            read_managed_pending_record(&root, "fixture-service").expect("record should load");
+        let contract = ManagedSecureServicePairingContract {
+            service_identity: "fixture-runner".into(),
+            api_version: "fixture.service.v1".into(),
+            setup_version: "fixture.setup.v1".into(),
+            manifest_path: "/api/setup/manifest".into(),
+            challenge_path: "/api/setup/challenge".into(),
+            pair_path: "/api/setup/pair".into(),
+            additional_pair_path: Some("/api/setup/additional-pair".into()),
+        };
+        let stored = RefCell::new(Vec::<String>::new());
+        let written = RefCell::new(Vec::<String>::new());
+        let metadata = complete_managed_secure_service_transaction(
+            "fixture-service", &record, "https://runner.example", &contract,
+            |method, path, body, _bearer| match (method, path) {
+                ("GET", "/api/setup/manifest") => Ok((200, serde_json::json!({
+                    "service": "fixture-runner", "apiVersion": "fixture.service.v1", "setupVersion": "fixture.setup.v1",
+                    "canonicalOrigin": "https://runner.example", "deployedPublicKeyFingerprint": view.fingerprint,
+                }))),
+                ("POST", "/api/setup/challenge") => Ok((201, serde_json::json!({ "id": "challenge_fixture", "nonce": "nonce_fixture" }))),
+                ("POST", "/api/setup/pair") => {
+                    let body = body.expect("pair body");
+                    let signature_bytes = URL_SAFE_NO_PAD.decode(body["signature"].as_str().expect("signature")).expect("signature encoding");
+                    let signature = Signature::from_slice(&signature_bytes).expect("signature bytes");
+                    let public_bytes: [u8; 32] = URL_SAFE_NO_PAD.decode(&record.public_key).expect("public key")[12..]
+                        .try_into().expect("raw public key");
+                    let key = VerifyingKey::from_bytes(&public_bytes).expect("verifying key");
+                    let challenge = ManagedSecureServiceChallenge { id: "challenge_fixture".into(), nonce: "nonce_fixture".into() };
+                    key.verify(managed_pairing_transcript(&contract, "https://runner.example", &challenge, &record).as_bytes(), &signature)
+                        .expect("origin-bound transcript should verify");
+                    Ok((201, serde_json::json!({ "client": { "id": "client_fixture" }, "credential": "fixture-durable-credential" })))
+                }
+                _ => Err("unexpected request".into()),
+            },
+            |reference, credential| { stored.borrow_mut().push(format!("{reference}:{credential}")); Ok(()) },
+            |_| {},
+            |config| { written.borrow_mut().push(serde_json::to_string(config).expect("config")); Ok(()) },
+        ).expect("transaction should complete");
+        assert_eq!(metadata.endpoint, "https://runner.example");
+        assert_eq!(stored.borrow().len(), 1);
+        assert!(written.borrow()[0].contains("credentialRef"));
+        assert!(!written.borrow()[0].contains("fixture-durable-credential"));
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn managed_pairing_transaction_compensates_after_local_config_failure() {
+        use std::cell::RefCell;
+        let root = unique_temp_root("managed-pairing-rollback");
+        fs::create_dir_all(&root).expect("temp root should exist");
+        begin_managed_secure_service_setup_at(&root, "fixture-service", "service.config.json", 100)
+            .expect("setup should begin");
+        let record =
+            read_managed_pending_record(&root, "fixture-service").expect("record should load");
+        let contract = ManagedSecureServicePairingContract {
+            service_identity: "fixture-runner".into(),
+            api_version: "fixture.service.v1".into(),
+            setup_version: "fixture.setup.v1".into(),
+            manifest_path: "/api/setup/manifest".into(),
+            challenge_path: "/api/setup/challenge".into(),
+            pair_path: "/api/setup/pair".into(),
+            additional_pair_path: Some("/api/setup/additional-pair".into()),
+        };
+        let events = RefCell::new(Vec::<String>::new());
+        let result = complete_managed_secure_service_transaction(
+            "fixture-service",
+            &record,
+            "https://runner.example",
+            &contract,
+            |method, path, _body, bearer| {
+                events
+                    .borrow_mut()
+                    .push(format!("{method}:{path}:{}", bearer.is_some()));
+                match (method, path) {
+                    ("GET", "/api/setup/manifest") => Ok((
+                        200,
+                        serde_json::json!({
+                            "service": "fixture-runner", "apiVersion": "fixture.service.v1", "setupVersion": "fixture.setup.v1",
+                            "canonicalOrigin": "https://runner.example", "deployedPublicKeyFingerprint": record.fingerprint,
+                        }),
+                    )),
+                    ("POST", "/api/setup/challenge") => Ok((
+                        201,
+                        serde_json::json!({ "id": "challenge_fixture", "nonce": "nonce_fixture" }),
+                    )),
+                    ("POST", "/api/setup/pair") => Ok((
+                        201,
+                        serde_json::json!({ "client": { "id": "client_fixture" }, "credential": "fixture-durable-credential" }),
+                    )),
+                    ("DELETE", "/api/setup/clients/client_fixture") => {
+                        Ok((200, serde_json::json!({})))
+                    }
+                    _ => Err("unexpected".into()),
+                }
+            },
+            |_, _| {
+                events.borrow_mut().push("keychain:store".into());
+                Ok(())
+            },
+            |_| events.borrow_mut().push("keychain:delete".into()),
+            |_| Err("injected config failure".into()),
+        );
+        assert!(result.is_err());
+        let events = events.borrow();
+        assert!(events.contains(&"keychain:delete".into()));
+        assert!(events.contains(&"DELETE:/api/setup/clients/client_fixture:true".into()));
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn managed_invitation_transaction_is_origin_bound_and_compensates_after_local_failure() {
+        use std::cell::RefCell;
+        let root = unique_temp_root("managed-invitation-rollback");
+        fs::create_dir_all(&root).expect("temp root should exist");
+        begin_managed_secure_service_setup_at(&root, "fixture-service", "service.config.json", 100)
+            .expect("setup should begin");
+        let record =
+            read_managed_pending_record(&root, "fixture-service").expect("record should load");
+        let contract = ManagedSecureServicePairingContract {
+            service_identity: "fixture-runner".into(),
+            api_version: "fixture.service.v1".into(),
+            setup_version: "fixture.setup.v1".into(),
+            manifest_path: "/api/setup/manifest".into(),
+            challenge_path: "/api/setup/challenge".into(),
+            pair_path: "/api/setup/pair".into(),
+            additional_pair_path: Some("/api/setup/additional-pair".into()),
+        };
+        let events = RefCell::new(Vec::<String>::new());
+        let result = complete_managed_secure_service_invitation_transaction(
+            "fixture-service",
+            &record,
+            "https://runner.example",
+            "invitation_fixture_value",
+            &contract,
+            |method, path, body, bearer| {
+                events
+                    .borrow_mut()
+                    .push(format!("{method}:{path}:{}", bearer.is_some()));
+                match (method, path) {
+                    ("GET", "/api/setup/manifest") => Ok((
+                        200,
+                        serde_json::json!({
+                            "service": "fixture-runner", "apiVersion": "fixture.service.v1", "setupVersion": "fixture.setup.v1",
+                            "canonicalOrigin": "https://runner.example", "deployedPublicKeyFingerprint": "unused-for-invitation",
+                        }),
+                    )),
+                    ("POST", "/api/setup/additional-pair") => {
+                        let body = body.expect("additional pair body");
+                        assert_eq!(body["installationId"], record.installation_id);
+                        assert_eq!(body["origin"], "https://runner.example");
+                        assert_eq!(body["code"], "invitation_fixture_value");
+                        Ok((
+                            201,
+                            serde_json::json!({ "client": { "id": "client_second" }, "credential": "fixture-second-credential" }),
+                        ))
+                    }
+                    ("DELETE", "/api/setup/clients/client_second") => {
+                        Ok((200, serde_json::json!({})))
+                    }
+                    _ => Err("unexpected".into()),
+                }
+            },
+            |_, _| {
+                events.borrow_mut().push("keychain:store".into());
+                Ok(())
+            },
+            |_| events.borrow_mut().push("keychain:delete".into()),
+            |_| Err("injected config failure".into()),
+        );
+        assert!(result.is_err());
+        let events = events.borrow();
+        assert!(events.contains(&"keychain:delete".into()));
+        assert!(events.contains(&"DELETE:/api/setup/clients/client_second:true".into()));
+        assert!(complete_managed_secure_service_invitation_transaction(
+            "fixture-service", &record, "https://other.example", "invitation_fixture_value", &contract,
+            |method, path, _, _| match (method, path) {
+                ("GET", "/api/setup/manifest") => Ok((200, serde_json::json!({
+                    "service": "fixture-runner", "apiVersion": "fixture.service.v1", "setupVersion": "fixture.setup.v1",
+                    "canonicalOrigin": "https://runner.example", "deployedPublicKeyFingerprint": "unused",
+                }))),
+                _ => Err("pairing must stop before invitation consumption".into()),
+            },
+            |_, _| Ok(()), |_| {}, |_| Ok(()),
+        ).is_err());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn managed_disconnect_requires_the_authenticated_current_client_identity() {
+        assert_eq!(
+            managed_secure_service_current_client_id(&SecureServiceResponse {
+                status: 200,
+                body: serde_json::json!({ "currentClientId": "client_fixture" }),
+            })
+            .expect("client id should parse"),
+            "client_fixture"
+        );
+        for response in [
+            SecureServiceResponse {
+                status: 401,
+                body: serde_json::json!({ "currentClientId": "client_fixture" }),
+            },
+            SecureServiceResponse {
+                status: 200,
+                body: serde_json::json!({ "currentClientId": null }),
+            },
+            SecureServiceResponse {
+                status: 200,
+                body: serde_json::json!({ "currentClientId": "../other" }),
+            },
+        ] {
+            assert!(managed_secure_service_current_client_id(&response).is_err());
+        }
     }
 
     #[test]
@@ -2746,7 +4372,7 @@ mod tests {
 
         let resolved = resolve_redline_path_from_roots(
             "clients/demo-megaphone/reports/homepage-pilot/executive-summary.md",
-            &[root.clone()],
+            std::slice::from_ref(&root),
         )
         .expect("artifact should resolve");
 
@@ -2795,8 +4421,9 @@ mod tests {
         let packet_dir = root.join("clients/demo-megaphone");
         fs::create_dir_all(&packet_dir).expect("packet directory should be created");
 
-        let resolved = resolve_redline_path_from_roots("clients/demo-megaphone", &[root.clone()])
-            .expect("packet directory should resolve");
+        let resolved =
+            resolve_redline_path_from_roots("clients/demo-megaphone", std::slice::from_ref(&root))
+                .expect("packet directory should resolve");
 
         assert_eq!(resolved, packet_dir);
         let _ = fs::remove_dir_all(root);

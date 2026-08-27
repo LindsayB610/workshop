@@ -38,7 +38,8 @@ describe("Workshop release workflow", () => {
       expect(docs).toContain(secret);
     }
 
-    expect(workflow).toContain("netlify-cli deploy --prod");
+    expect(workflow).toContain("npx netlify-cli@27.1.1 deploy --prod");
+    expect(workflow).not.toContain("npx netlify-cli deploy --prod");
     expect(workflow).toContain("actions/upload-artifact");
     expect(workflow).toContain("set -o pipefail");
     expect(workflow).toContain("workshop-tauri-build.log");

@@ -219,7 +219,7 @@ jobs:
 
       - name: Deploy updater payload to Netlify
         working-directory: apps/marketing-builds-desktop
-        run: npx netlify-cli deploy --prod --no-build --dir "${{ github.workspace }}/apps/marketing-builds-desktop/dist/workshop-update-site" --site "$WORKSHOP_NETLIFY_SITE_ID" --auth "${{ secrets.NETLIFY_AUTH_TOKEN }}"
+        run: npx netlify-cli@27.1.1 deploy --prod --no-build --dir "${{ github.workspace }}/apps/marketing-builds-desktop/dist/workshop-update-site" --site "$WORKSHOP_NETLIFY_SITE_ID" --auth "${{ secrets.NETLIFY_AUTH_TOKEN }}"
 
       - name: Publish public GitHub Release
         if: steps.distribution_mode.outputs.public_installer == 'true'

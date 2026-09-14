@@ -8,7 +8,7 @@
     "build": "npm run build --workspace @redline/core && tsc --noEmit -p tsconfig.app.json && vite build && node scripts/verify-workshop-bundle.mjs",
     "dev": "vite --host 127.0.0.1",
     "preview": "vite preview --host 127.0.0.1",
-    "smoke:megaphone": "node scripts/megaphone-packaged-smoke.mjs && cargo test --manifest-path src-tauri/Cargo.toml megaphone_packaged_action_smoke -- --nocapture",
+    "smoke:megaphone": "node scripts/megaphone-packaged-smoke.mjs && cargo test --manifest-path src-tauri/Cargo.toml --lib tests::megaphone_packaged_action_smoke_exercises_tauri_local_action_helpers -- --ignored --exact --nocapture",
     "tauri": "tauri",
     "test": "npm run build --workspace @redline/core && vitest --run src scripts",
     "test:coverage": "npm run build --workspace @redline/core && vitest --run --coverage src scripts",
@@ -40,11 +40,11 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
-    "@vitest/coverage-v8": "4.1.10",
-    "autoprefixer": "^10.5.0",
+    "@vitest/coverage-v8": "4.1.11",
     "jsdom": "^28.1.0",
-    "postcss": "^8.5.15",
     "tailwindcss": "^4.3.1",
-    "vitest": "4.1.10"
+    "typescript": "^5.7.2",
+    "vite": "8.3.0",
+    "vitest": "4.1.11"
   }
 }

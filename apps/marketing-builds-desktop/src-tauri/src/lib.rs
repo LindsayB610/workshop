@@ -4839,6 +4839,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "requires separately built Megaphone and optional live AI access; run npm run smoke:megaphone --workspace @marketing-builds/desktop"]
     fn megaphone_packaged_action_smoke_exercises_tauri_local_action_helpers() {
         let current_dir = std::env::current_dir().expect("current directory should resolve");
         resolve_megaphone_bridge(&current_dir)

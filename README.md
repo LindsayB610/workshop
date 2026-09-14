@@ -142,7 +142,7 @@ two-character mark, and remembered tool folders.
 ## Develop Workshop from source
 
 Use this path to work on the shell, inspect its source, or contribute changes.
-You need macOS on Apple Silicon, Node.js 20 or later, npm, Rust, and the
+You need macOS on Apple Silicon, Node.js 24 (recommended), npm, Rust, and the
 [Tauri prerequisites](https://tauri.app/start/prerequisites/).
 
 ```sh

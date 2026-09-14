@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
+import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
@@ -8,6 +9,8 @@ import {
   disableUpdaterArtifactsForPublicBuild,
   isStagedAppBundleBuildCommand,
   listPublicClientDirs,
+  repoRoot,
+  runCommandPlan,
   runPublicCleanCloneSmoke,
   stagePublicClone,
   validatePublicClone,
@@ -93,6 +96,77 @@ async function createFixtureRepo() {
 }
 
 describe("public clean clone smoke", () => {
+  it("runs the staged packaging command with Tauri flags and disables only staged updater artifacts", async () => {
+    const root = await createFixtureRepo();
+    const staged = await mkdtemp(path.join(tmpdir(), "workshop-staged-args-"));
+    try {
+      const rehearsal = runPublicCleanCloneSmoke({ root, destinationRoot: staged });
+      const packageJson = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8"));
+      const appRoot = path.join(staged, "apps/marketing-builds-desktop");
+      writeJson(path.join(staged, "package.json"), {
+        private: true,
+        workspaces: ["apps/*"],
+        scripts: { "desktop:tauri": packageJson.scripts["desktop:tauri"] },
+      });
+      writeJson(path.join(appRoot, "package.json"), {
+        name: "@marketing-builds/desktop",
+        scripts: { tauri: "node record-args.cjs" },
+      });
+      writeFileSync(path.join(appRoot, "record-args.cjs"),
+        'require("node:fs").writeFileSync("received-args.json", JSON.stringify(process.argv.slice(2)));');
+      const [command, ...args] = rehearsal.commandPlan.at(-1).split(" ");
+      const result = runCommandPlan(staged, {
+        commands: [[command, args]],
+        disableUpdaterArtifactsBeforePackage: true,
+      });
+      expect(result.results[0].status, result.results[0].stderr).toBe(0);
+      expect(JSON.parse(readFileSync(path.join(appRoot, "received-args.json"), "utf8")))
+        .toEqual(["build", "--bundles", "app"]);
+      expect(JSON.parse(readFileSync(result.publicBuildConfigPath, "utf8")).bundle.createUpdaterArtifacts).toBe(false);
+      expect(JSON.parse(readFileSync(path.join(root, "apps/marketing-builds-desktop/src-tauri/tauri.conf.json"), "utf8")).bundle.createUpdaterArtifacts).toBeUndefined();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+      rmSync(staged, { recursive: true, force: true });
+    }
+  });
+
+  it("forwards bundle, signing, and Cargo flags through the root Tauri command", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "workshop-tauri-args-"));
+    const appRoot = path.join(root, "apps/desktop");
+    const packageJson = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8"));
+    const args = [
+      "build", "--bundles", "app", "--no-sign", "--ci",
+      "--config", JSON.stringify({ bundle: { createUpdaterArtifacts: false } }),
+      "--", "--locked", "--offline",
+    ];
+
+    try {
+      writeJson(path.join(root, "package.json"), {
+        private: true,
+        workspaces: ["apps/*"],
+        scripts: { "desktop:tauri": packageJson.scripts["desktop:tauri"] },
+      });
+      writeJson(path.join(appRoot, "package.json"), {
+        name: "@marketing-builds/desktop",
+        scripts: { tauri: "node record-args.cjs" },
+      });
+      writeFileSync(
+        path.join(appRoot, "record-args.cjs"),
+        'require("node:fs").writeFileSync("received-args.json", JSON.stringify(process.argv.slice(2)));',
+      );
+
+      const result = spawnSync("npm", ["run", "desktop:tauri", "--", ...args], {
+        cwd: root,
+        encoding: "utf8",
+        timeout: 10_000,
+      });
+      expect(result.status, result.stderr).toBe(0);
+      expect(JSON.parse(readFileSync(path.join(appRoot, "received-args.json"), "utf8"))).toEqual(args);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("stages only public-safe client folders", async () => {
     const sourceRoot = await createFixtureRepo();
     const publicRoot = await mkdtemp(path.join(tmpdir(), "workshop-public-clone-out-"));
@@ -164,7 +238,7 @@ describe("public clean clone smoke", () => {
   });
 
   it("recognizes only the staged app-bundle command as the updater-disabled package step", () => {
-    expect(isStagedAppBundleBuildCommand("npm run desktop:tauri -- build -- --bundles app")).toBe(true);
+    expect(isStagedAppBundleBuildCommand("npm run desktop:tauri -- build --bundles app")).toBe(true);
     expect(isStagedAppBundleBuildCommand("npm run desktop:tauri -- build")).toBe(false);
     expect(isStagedAppBundleBuildCommand("npm run build")).toBe(false);
   });
@@ -185,7 +259,7 @@ describe("public clean clone smoke", () => {
       "npm test",
       "npm run build",
       "npm run test:e2e --workspace @marketing-builds/desktop",
-      "npm run desktop:tauri -- build -- --bundles app",
+      "npm run desktop:tauri -- build --bundles app",
     ]);
     expect(
       JSON.parse(readFileSync(path.join(publicRoot, "workshop-public-clone-smoke.json"), "utf8"))

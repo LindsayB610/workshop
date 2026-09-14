@@ -52,10 +52,15 @@ npm run typecheck
 npm run build
 npm run public:check
 npm run test:e2e --workspace @marketing-builds/desktop
-npm run smoke:megaphone --workspace @marketing-builds/desktop
 cargo test --manifest-path apps/marketing-builds-desktop/src-tauri/Cargo.toml
 git diff --check
 ```
+
+The separate Megaphone integration smoke requires its own built repository and
+can use configured AI credentials. It is not part of the standalone Workshop
+release gate while Megaphone is unreleased. When intentionally validating that
+integration, run `npm run smoke:megaphone --workspace @marketing-builds/desktop`;
+this explicitly runs the otherwise ignored native smoke test.
 
 For a full local public-source rehearsal of the staged app bundle:
 

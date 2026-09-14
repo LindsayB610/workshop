@@ -6,8 +6,9 @@ If you have already installed the desktop app, follow
 
 ## 1. Install, verify, and open the native app
 
-Workshop's public source path requires macOS on Apple Silicon, Node.js 20 or
-later, npm, Rust, and the [Tauri prerequisites](https://tauri.app/start/prerequisites/).
+Workshop's public source path requires macOS on Apple Silicon, Node.js 24
+(recommended; supported: 20.19+, 22.12+, or 24+), npm, Rust, and the
+[Tauri prerequisites](https://tauri.app/start/prerequisites/).
 
 ```sh
 git clone https://github.com/LindsayB610/workshop.git

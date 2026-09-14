@@ -60,7 +60,7 @@ const defaultCommandPlan = [
   ["npm", ["test"]],
   ["npm", ["run", "build"]],
   ["npm", ["run", "test:e2e", "--workspace", "@marketing-builds/desktop"]],
-  ["npm", ["run", "desktop:tauri", "--", "build", "--", "--bundles", "app"]],
+  ["npm", ["run", "desktop:tauri", "--", "build", "--bundles", "app"]],
 ];
 
 export function toPosix(value) {
@@ -242,7 +242,7 @@ export function runCommandPlan(root, options = {}) {
 }
 
 export function isStagedAppBundleBuildCommand(commandText) {
-  return commandText === "npm run desktop:tauri -- build -- --bundles app";
+  return commandText === "npm run desktop:tauri -- build --bundles app";
 }
 
 export function parseArgs(argv) {

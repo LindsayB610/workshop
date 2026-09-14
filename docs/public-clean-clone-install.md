@@ -5,7 +5,7 @@ workspace.
 
 ## Prerequisites
 
-- Node.js 20+
+- Node.js 24 (recommended; supported: 20.19+, 22.12+, or 24+)
 - npm
 - Rust stable
 - Tauri desktop prerequisites for your operating system
@@ -31,6 +31,18 @@ npm test
 npm run typecheck
 npm run build
 ```
+
+Run the standalone native tests after building the frontend:
+
+```sh
+cargo test --locked --manifest-path apps/marketing-builds-desktop/src-tauri/Cargo.toml
+```
+
+The native Megaphone integration smoke is explicitly ignored in this suite: it
+requires a separately built sibling Megaphone repository and can use configured
+AI credentials. When intentionally testing that external integration, run
+`npm run smoke:megaphone --workspace @marketing-builds/desktop`; that command
+includes the ignored native smoke test.
 
 For public-source verification without private client regression fixtures:
 
@@ -74,13 +86,13 @@ npm run desktop:dev
 
 Expected first screen:
 
-- Workshop tool picker
-- Redline chiclet
-- Megaphone chiclet
-- three-dot menus with docs, workspace, demo/private workspace, reset, and
-  disable controls
+- An empty Workshop shelf
+- **Add New Tools**, with Slate and Pulse available to install
+- Preferences for appearance, folders, and updates
 
-Open Redline or Megaphone. Both should load fictional demo data on first run.
+Redline and Megaphone are unreleased contributor fixtures, so they do not appear
+in the public app catalog. Follow the README to install and connect Slate or
+Pulse.
 
 ## Run Tauri
 

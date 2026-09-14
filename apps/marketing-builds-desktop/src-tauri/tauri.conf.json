@@ -13,6 +13,7 @@
     "windows": [
       {
         "title": "Workshop",
+        "visible": false,
         "width": 1280,
         "height": 840,
         "minWidth": 1024,

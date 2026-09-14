@@ -52,7 +52,7 @@ npm run typecheck
 npm run build
 npm run public:check
 npm run test:e2e --workspace @marketing-builds/desktop
-cargo test --manifest-path apps/marketing-builds-desktop/src-tauri/Cargo.toml
+npm run test:native --workspace @marketing-builds/desktop
 git diff --check
 ```
 
@@ -120,6 +120,13 @@ preview—on macOS:
    four values arrive.
 4. In Workshop’s **Edit** menu, confirm Undo, Redo, Cut, Copy, Paste, and
    Select All are present and Copy is enabled while the field is selected.
+
+5. Move and resize the main window, quit, and reopen Workshop. Confirm the
+   previous size and position return without a visible default-size flash.
+6. Repeat while maximized and while minimized; a new launch must be visible.
+7. If an external display is available, quit with Workshop on that display,
+   disconnect it, and relaunch. Confirm the full window, including its title bar,
+   is reachable on the remaining display. See `workshop-window-restoration.md`.
 
 This is deliberately a release acceptance check: macOS owns the final native
 menu and keyboard dispatch path, which browser tests cannot faithfully invoke.

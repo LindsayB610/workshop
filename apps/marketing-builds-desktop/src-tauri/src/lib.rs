@@ -1,3 +1,6 @@
+#[cfg(desktop)]
+mod window_state;
+
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use ed25519_dalek::{Signer, SigningKey};
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
@@ -3385,7 +3388,10 @@ fn start_configured_markdown_watch(
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default();
+    #[cfg(desktop)]
+    let builder = builder.plugin(window_state::builder().build());
+    builder
         .menu(workshop_menu)
         .on_menu_event(|app, event| {
             emit_workshop_menu_event(app, event.id().0.as_str());
@@ -3438,6 +3444,15 @@ pub fn run() {
                 app.handle().plugin(tauri_plugin_opener::init())?;
                 app.handle()
                     .plugin(tauri_plugin_updater::Builder::new().build())?;
+                if let Some(window) = app.get_webview_window("main") {
+                    // Restoration drains both the Tauri and macOS queues, so it
+                    // must run off the main event loop before revealing the window.
+                    tauri::async_runtime::spawn_blocking(move || {
+                        if let Err(error) = window_state::restore_and_show(&window) {
+                            eprintln!("Workshop could not reveal its main window: {error}");
+                        }
+                    });
+                }
             }
             Ok(())
         })

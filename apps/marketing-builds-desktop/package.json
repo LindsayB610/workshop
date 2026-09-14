@@ -12,6 +12,7 @@
     "tauri": "tauri",
     "test": "npm run build --workspace @redline/core && vitest --run src scripts",
     "test:coverage": "npm run build --workspace @redline/core && vitest --run --coverage src scripts",
+    "test:native": "cargo test --locked --manifest-path src-tauri/Cargo.toml --lib && node scripts/test-window-state-native.mjs",
     "test:e2e": "npm run build --workspace @redline/core && playwright test",
     "typecheck": "npm run build --workspace @redline/core && tsc --noEmit -p tsconfig.app.json",
     "updater:bump-version": "node scripts/bump-workshop-version.mjs",

@@ -28,7 +28,7 @@
     "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
   },
   "dependencies": {
-    "@marketing-builds/pulse": "github:LindsayB610/pulse#cc6fdb12c39758a0fc75edf3f19ab6ae383ffa16",
+    "@marketing-builds/pulse": "github:LindsayB610/pulse#3fd7f2bb8c49e84d6e7fa39a5ac57cb850aecd0e",
     "slate-core": "github:LindsayB610/slate#2e281e682cd1d5d053804661f46fd8ef66f96373"
   }
 }

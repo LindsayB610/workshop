@@ -40,8 +40,10 @@ is the only place Slate learns their locations.
 
 ### 3. Add your sources
 
-Create `slate.config.json` in that private Slate folder. Replace the example
-paths with absolute paths to Markdown files you own:
+Create `slate.config.json` in that private Slate folder. Replace each example
+`path` with the complete absolute path to an existing Markdown file you own,
+including the filename and `.md` or `.markdown` extension. This is a file path,
+not the path to the folder containing the file:
 
 ```json
 {
@@ -80,7 +82,9 @@ configured files, so updates to those files appear after it refreshes.
 
 If Slate cannot connect, make sure you selected the folder—not the
 `slate.config.json` file itself—and that every configured path is absolute and
-points to an existing Markdown file.
+points to an existing Markdown file itself. For example, a source path should
+look like `/Users/you/Documents/notes/weekly-notes.md`, not
+`/Users/you/Documents/notes/`. Slate does not create missing source files.
 
 ## Connect Pulse
 

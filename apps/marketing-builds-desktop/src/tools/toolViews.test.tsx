@@ -15,17 +15,17 @@ import {
 afterEach(() => cleanup());
 
 describe("tool views", () => {
-  it("renders Redline through the shared tool view registry", () => {
+  it("loads Redline through the shared tool view registry", async () => {
     const redline = getToolById("redline");
 
     if (!redline) {
       throw new Error("Redline tool is not registered.");
     }
 
-    const markup = renderToStaticMarkup(<ToolView tool={redline} />);
+    render(<ToolView tool={redline} />);
 
-    expect(markup).toContain("Client workspaces");
-    expect(markup).toContain("Run Audit");
+    expect(await screen.findByRole("complementary", { name: "Client workspaces" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Run Audit" })).toBeTruthy();
   });
 
   it("renders Megaphone through the shared tool view registry", () => {

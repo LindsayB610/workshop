@@ -3,7 +3,6 @@ import { getToolById } from "../tool-registry/tools";
 import type { ToolDefinition } from "../tool-registry/types";
 import type { WorkspaceValidationResult } from "../tool-registry/workspaceState";
 import { MegaphoneTool } from "./megaphone/MegaphoneTool";
-import { RedlineTool } from "./redline/RedlineTool";
 import { ToolPlaceholder } from "./ToolPlaceholder";
 import type { ToolViewProps } from "./types";
 import type { WorkspaceRootBrowseResult } from "./workspaceRootBrowse";
@@ -40,10 +39,18 @@ export function lazyExternalToolView(
   };
 }
 
+const LazyRedlineView = lazy(async () => ({ default: (await import("./redline/RedlineTool")).RedlineTool }));
+
 const toolViewById: Record<string, ComponentType<ToolViewProps>> = {
   megaphone: MegaphoneTool,
   pulse: lazyExternalToolView(() => import("@marketing-builds/pulse/workshop-plugin")),
-  redline: RedlineTool,
+  redline: function LazyRedlineTool(props) {
+    return (
+      <Suspense fallback={<section aria-label="Redline is loading">Loading Redline…</section>}>
+        <LazyRedlineView {...props} />
+      </Suspense>
+    );
+  },
   slate: lazyExternalToolView(() => import("slate-core")),
 };
 
